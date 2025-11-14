@@ -1,12 +1,15 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Coffee, LogOut, LogIn, Pause, Play } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 interface Props {
-    onClockIn: () => void;
-    onClockOut: () => void;
-    onBreakStart: () => void;
-    onBreakEnd: () => void;
+    onClockIn: (name: string) => void;
+    onClockOut: (name: string) => void;
+    onBreakStart: (name: string) => void;
+    onBreakEnd: (name: string) => void;
     onBreak: boolean;
     isWorking: boolean;
 }
@@ -19,10 +22,13 @@ export function PunchButtons({
     onBreak,
     isWorking,
 }: Props) {
+    const { data: session } = useSession();
+    const name = session?.user?.name || "不明なユーザー";
+
     return (
         <div className="grid grid-cols-2 gap-4">
             <Button
-                onClick={onClockIn}
+                onClick={() => onClockIn(name)}
                 disabled={isWorking}
                 size="lg"
                 className="h-24 flex-col gap-2"
@@ -30,8 +36,9 @@ export function PunchButtons({
                 <LogIn className="h-6 w-6" />
                 出勤
             </Button>
+
             <Button
-                onClick={onClockOut}
+                onClick={() => onClockOut(name)}
                 disabled={!isWorking}
                 variant="destructive"
                 size="lg"
@@ -40,9 +47,10 @@ export function PunchButtons({
                 <LogOut className="h-6 w-6" />
                 退勤
             </Button>
+
             {!onBreak ? (
                 <Button
-                    onClick={onBreakStart}
+                    onClick={() => onBreakStart(name)}
                     disabled={!isWorking}
                     size="lg"
                     variant="outline"
@@ -53,7 +61,7 @@ export function PunchButtons({
                 </Button>
             ) : (
                 <Button
-                    onClick={onBreakEnd}
+                    onClick={() => onBreakEnd(name)}
                     size="lg"
                     variant="outline"
                     className="h-24 flex-col gap-2"
@@ -62,6 +70,7 @@ export function PunchButtons({
                     休憩終了
                 </Button>
             )}
+
             <div className="flex items-center justify-center">
                 {isWorking && !onBreak && (
                     <Badge variant="default" className="px-4 py-2">

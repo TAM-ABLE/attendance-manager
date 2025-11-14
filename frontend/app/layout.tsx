@@ -5,6 +5,7 @@ import "./globals.css"
 import { getCurrentUser } from "@/lib/auth"
 import { Header } from "@/components/Header"
 import { Footer } from "@/components/Footer"
+import { Providers } from "./providers";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] })
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] })
@@ -24,8 +25,10 @@ export default async function RootLayout({
   return (
     <html lang="ja">
       <body className={`min-h-screen bg-background ${geistSans.variable} ${geistMono.variable}`}>
-        <Header currentUser={user} />
-        <main className="container mx-auto p-6 max-w-7xl">{children}</main>
+        <Providers>
+          <Header currentUser={user} />
+          <main className="container mx-auto p-6 max-w-7xl">{children}</main>
+        </Providers>
         <Footer />
       </body>
     </html>

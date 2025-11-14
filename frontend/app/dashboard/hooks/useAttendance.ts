@@ -11,6 +11,23 @@ export function useAttendance() {
     const [onBreak, setOnBreak] = useState(false);
     const [weeklyHours, setWeeklyHours] = useState(0);
 
+    // API送信用関数
+    const sendAttendance = async (name: string, action: 'clockIn' | 'clockOut' | 'breakStart' | 'breakEnd') => {
+        try {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/attendance`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, action }),
+            });
+
+            if (!res.ok) throw new Error(`Failed: ${res.status}`);
+            const data = await res.json();
+            console.log(" Attendance sent:", data);
+        } catch (error) {
+            console.error(" Error sending attendance:", error);
+        }
+    };
+
     // データ読み込み
     useEffect(() => {
         const today = new Date().toDateString();
@@ -33,7 +50,7 @@ export function useAttendance() {
     };
 
     // 出勤
-    const handleClockIn = () => {
+    const handleClockIn = async (name: string) => {
         const now = Date.now();
         const today = new Date().toDateString();
 
@@ -49,10 +66,13 @@ export function useAttendance() {
 
         setCurrentSession(newSession);
         update(updated);
+
+        // API連携
+        await sendAttendance(name, "clockIn");
     };
 
     // 退勤
-    const handleClockOut = () => {
+    const handleClockOut = async (name: string) => {
         if (!attendance || !currentSession) return;
         const updated = {
             ...attendance,
@@ -63,10 +83,12 @@ export function useAttendance() {
         setCurrentSession(null);
         setOnBreak(false);
         update(updated);
+
+        await sendAttendance(name, "clockOut");
     };
 
     // 休憩開始
-    const handleBreakStart = () => {
+    const handleBreakStart = async (name: string) => {
         if (!attendance || !currentSession) return;
         const updated = {
             ...attendance,
@@ -78,10 +100,12 @@ export function useAttendance() {
         };
         setOnBreak(true);
         update(updated);
+
+        await sendAttendance(name, "breakStart");
     };
 
     // 休憩終了
-    const handleBreakEnd = () => {
+    const handleBreakEnd = async (name: string) => {
         if (!attendance || !currentSession) return;
         const updated = {
             ...attendance,
@@ -95,6 +119,8 @@ export function useAttendance() {
         };
         setOnBreak(false);
         update(updated);
+
+        await sendAttendance(name, "breakEnd");
     };
 
     return {
