@@ -8,9 +8,11 @@ import { PunchButtons } from "./components/PunchButtons";
 import { SummaryCard } from "./components/SummaryCard";
 import { SessionList } from "./components/SessionList";
 import { WeeklyAlert } from "./components/WeeklyAlert";
+import { ClockInDialog } from "./components/ClockInDialog";
+import { ClockOutDialog } from "./components/ClockOutDialog";
+import { useClockDialogs } from "./hooks/useClockDialogs";
 
 export default function Dashboard() {
-
     const {
         attendance,
         currentSession,
@@ -22,24 +24,44 @@ export default function Dashboard() {
         handleBreakEnd,
     } = useAttendance();
 
+    const {
+        showClockInDialog,
+        showClockOutDialog,
+        openClockIn,
+        openClockOut,
+        closeDialogs,
+    } = useClockDialogs();
+
     return (
         <div className="space-y-6">
             <ClockCard />
+
+            {/* 出勤・退勤ボタン */}
             <PunchButtons
-                onClockIn={handleClockIn}
-                onClockOut={handleClockOut}
+                onClockIn={openClockIn}
+                onClockOut={openClockOut}
                 onBreakStart={handleBreakStart}
                 onBreakEnd={handleBreakEnd}
                 onBreak={onBreak}
                 isWorking={!!currentSession}
             />
+
             <SummaryCard attendance={attendance} />
-            <SessionList
-                attendance={attendance}
-                currentSession={currentSession}
-                onBreak={onBreak}
-            />
+            <SessionList attendance={attendance} currentSession={currentSession} onBreak={onBreak} />
             <WeeklyAlert weeklyHours={weeklyHours} />
+
+            {/* ダイアログ */}
+            <ClockInDialog
+                open={showClockInDialog}
+                onClose={closeDialogs}
+                onSubmit={handleClockIn}
+            />
+
+            <ClockOutDialog
+                open={showClockOutDialog}
+                onClose={closeDialogs}
+                onSubmit={handleClockOut}
+            />
         </div>
     );
 }
