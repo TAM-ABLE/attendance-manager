@@ -6,10 +6,14 @@ import { Clock, Coffee, LogOut, LogIn, Pause, Play } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 interface Props {
-    onClockIn: (name: string) => void;
-    onClockOut: (name: string) => void;
-    onBreakStart: (name: string) => void;
-    onBreakEnd: (name: string) => void;
+    // 出勤・退勤は「ダイアログを開くだけ」
+    onClockIn: () => void;
+    onClockOut: () => void;
+
+    // 休憩開始/終了は「即API送信」するので名前を渡す
+    onBreakStart: (payload: { name: string }) => void;
+    onBreakEnd: (payload: { name: string }) => void;
+
     onBreak: boolean;
     isWorking: boolean;
 }
@@ -27,8 +31,9 @@ export function PunchButtons({
 
     return (
         <div className="grid grid-cols-2 gap-4">
+            {/* 出勤ボタン → ダイアログ表示のみ */}
             <Button
-                onClick={() => onClockIn(name)}
+                onClick={onClockIn}
                 disabled={isWorking}
                 size="lg"
                 className="h-24 flex-col gap-2"
@@ -37,8 +42,9 @@ export function PunchButtons({
                 出勤
             </Button>
 
+            {/* 退勤ボタン → ダイアログ表示のみ */}
             <Button
-                onClick={() => onClockOut(name)}
+                onClick={onClockOut}
                 disabled={!isWorking}
                 variant="destructive"
                 size="lg"
@@ -48,9 +54,10 @@ export function PunchButtons({
                 退勤
             </Button>
 
+            {/* 休憩開始・終了は即実行 */}
             {!onBreak ? (
                 <Button
-                    onClick={() => onBreakStart(name)}
+                    onClick={() => onBreakStart({ name })}
                     disabled={!isWorking}
                     size="lg"
                     variant="outline"
@@ -61,7 +68,7 @@ export function PunchButtons({
                 </Button>
             ) : (
                 <Button
-                    onClick={() => onBreakEnd(name)}
+                    onClick={() => onBreakEnd({ name })}
                     size="lg"
                     variant="outline"
                     className="h-24 flex-col gap-2"

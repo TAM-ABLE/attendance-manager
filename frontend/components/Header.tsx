@@ -29,7 +29,6 @@ export function Header({ currentUser }: { currentUser: Session["user"] | null })
     const navigation = [
         { href: "/dashboard", label: "ダッシュボード", icon: LayoutDashboard },
         { href: "/attendance-history", label: "勤怠履歴", icon: History },
-        { href: "/report-form", label: "日報投稿", icon: FileText },
         ...(isAdmin ? [{ href: "/admin", label: "管理者", icon: Users }] : []),
     ];
 
