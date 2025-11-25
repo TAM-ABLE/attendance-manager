@@ -1,55 +1,53 @@
-import type { NextAuthOptions } from "next-auth"
-import CredentialsProvider from "next-auth/providers/credentials"
-
-type AppUser = {
-    id: string
-    name: string
-    email: string
-    password: string
-    role: "admin" | "user"
-}
+import { type NextAuthOptions } from "next-auth"
+import Credentials from "next-auth/providers/credentials"
 
 export const authOptions: NextAuthOptions = {
     providers: [
-        CredentialsProvider({
-            name: "Email and Password",
+        Credentials({
+            name: "Credentials",
             credentials: {
-                email: { label: "メールアドレス", type: "email" },
-                password: { label: "パスワード", type: "password" },
+                email: { label: "email", type: "text" },
+                password: { label: "password", type: "password" }
             },
-            async authorize(credentials, _req): Promise<Omit<AppUser, "password"> | null> {
-                const users: AppUser[] = [
-                    { id: "1", name: "管理者", email: "admin@example.com", password: "demo123", role: "admin" },
-                    { id: "2", name: "一般ユーザー", email: "user@example.com", password: "demo123", role: "user" },
-                ]
+            async authorize(credentials) {
+                const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        email: credentials?.email,
+                        password: credentials?.password,
+                    }),
+                });
 
-                const found = users.find(
-                    (u) => u.email === credentials?.email && u.password === credentials?.password
-                )
+                if (!res.ok) return null;
 
-                if (!found) return null
+                const { token, user } = await res.json();
 
-                const { password, ...userWithoutPassword } = found
-                return userWithoutPassword
-            },
-        }),
+                return { ...user, token };
+            }
+        })
     ],
-    pages: { signIn: "/login" },
-    session: { strategy: "jwt" },
+
     callbacks: {
         async jwt({ token, user }) {
             if (user) {
-                token.id = user.id
-                token.role = user.role
+                token.id = user.id;
+                token.role = user.role;
+                token.apiToken = user.token; // backend JWT を保存
             }
-            return token
+            return token;
         },
+
         async session({ session, token }) {
-            if (session.user) {
-                session.user.id = token.id
-                session.user.role = token.role
-            }
-            return session
-        },
+            session.user.id = token.id;
+            session.user.role = token.role;
+            session.user.apiToken = token.apiToken; // Session に反映
+
+            return session;
+        }
     },
+
+    pages: {
+        signIn: "/login",
+    }
 }
