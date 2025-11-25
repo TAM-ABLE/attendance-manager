@@ -1,11 +1,17 @@
 // backend/src/index.ts
 import { Hono } from 'hono'
-import slackRoute from './routes/slack'
 import databaseRoute from './routes/database'
+import authRouter from './routes/auth/'
 
-const app = new Hono<{ Bindings: { SLACK_WEBHOOK_URL: string } }>()
+type Env = {
+    SUPABASE_URL: string;
+    SUPABASE_SERVICE_ROLE_KEY: string;
+    JWT_SECRET: string;
+};
 
-app.route('/slack', slackRoute)
+const app = new Hono<{ Bindings: Env }>();
+
+app.route('/auth', authRouter);
 app.route("/database", databaseRoute);
 
 export default app

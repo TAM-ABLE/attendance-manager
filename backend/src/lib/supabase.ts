@@ -1,9 +1,7 @@
 // backend/lib/supabase.ts
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '../types/supabase'
 
-export const getSupabaseClient = (env: {
-    SUPABASE_URL: string;
-    SUPABASE_SERVICE_ROLE_KEY: string;
-}) => {
-    return createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY);
-};
+export const getSupabaseClient = (env: { SUPABASE_URL: string; SUPABASE_SERVICE_ROLE_KEY: string; JWT_SECRET: string; }): SupabaseClient<Database> => {
+    return createClient<Database>(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY)
+}

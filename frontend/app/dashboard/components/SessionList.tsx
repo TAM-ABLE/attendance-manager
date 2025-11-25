@@ -1,8 +1,8 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Coffee } from "lucide-react";
-import { AttendanceRecord, WorkSession } from "../types";
-import { formatTime } from "../lib/time";
+import { AttendanceRecord, WorkSession } from "../../../../shared/types/Attendance";
+import { formatClockTime, formatDurationMs } from "@/lib/time";
 
 export function SessionList({
     attendance,
@@ -13,7 +13,7 @@ export function SessionList({
     currentSession: WorkSession | null;
     onBreak: boolean;
 }) {
-    if (!attendance || attendance.sessions.length === 0) return null;
+    if (!attendance || !attendance.sessions?.length) return null;
 
     return (
         <Card>
@@ -24,26 +24,21 @@ export function SessionList({
                 {attendance.sessions.map((s, i) => {
                     const end = s.clockOut || (currentSession?.id === s.id ? Date.now() : s.clockIn);
                     const work = end - s.clockIn;
+
                     const breakMs = s.breaks.reduce(
                         (sum, b) => sum + ((b.end || (currentSession?.id === s.id && onBreak ? Date.now() : b.start)) - b.start),
                         0
                     );
+
                     return (
                         <div key={s.id} className="border rounded-lg p-4 space-y-3">
                             <div className="flex items-center gap-2">
-                                <Badge variant={s.clockOut ? "secondary" : "default"}>セッション {i + 1}</Badge>
+                                <Badge variant={s.clockOut ? "secondary" : "default"}>
+                                    セッション {i + 1}
+                                </Badge>
                                 <p className="text-sm">
-                                    {new Date(s.clockIn).toLocaleTimeString("ja-JP", {
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                    })}{" "}
-                                    ~{" "}
-                                    {s.clockOut
-                                        ? new Date(s.clockOut).toLocaleTimeString("ja-JP", {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                        })
-                                        : "勤務中"}
+                                    {formatClockTime(s.clockIn)} ~{" "}
+                                    {s.clockOut ? formatClockTime(s.clockOut) : "勤務中"}
                                 </p>
                             </div>
 
@@ -53,7 +48,9 @@ export function SessionList({
                                         <Clock className="h-4 w-4 text-blue-600" />
                                         <p className="text-xs text-blue-600">勤務時間</p>
                                     </div>
-                                    <p className="text-lg text-blue-900">{formatTime(work - breakMs)}</p>
+                                    <p className="text-lg text-blue-900">
+                                        {formatDurationMs(work - breakMs)}
+                                    </p>
                                 </div>
 
                                 {s.breaks.length > 0 && (
@@ -62,7 +59,9 @@ export function SessionList({
                                             <Coffee className="h-4 w-4 text-orange-600" />
                                             <p className="text-xs text-orange-600">休憩時間</p>
                                         </div>
-                                        <p className="text-lg text-orange-900">{formatTime(breakMs)}</p>
+                                        <p className="text-lg text-orange-900">
+                                            {formatDurationMs(breakMs)}
+                                        </p>
                                     </div>
                                 )}
                             </div>
