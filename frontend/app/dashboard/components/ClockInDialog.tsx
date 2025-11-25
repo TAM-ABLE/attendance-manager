@@ -7,32 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Plus, X } from "lucide-react";
-import { useSession } from "next-auth/react";
 
-export const ClockInDialog = ({
-    open,
-    onClose,
-    onSubmit,
-}: {
-    open: boolean;
-    onClose: () => void;
-    onSubmit: (data: {
-        name: string;
-        plannedTasks: { task: string; hours: string }[];
-    }) => void;
-}) => {
-    const { data: session } = useSession();
-    const name = session?.user?.name || "不明なユーザー";
+export const ClockInDialog = ({ open, onClose }: { open: boolean; onClose: () => void; onSubmit: () => Promise<void>; }) => {
 
     const [plannedTasks, setPlannedTasks] = useState([
         { task: "", hours: "" },
     ]);
 
     const handleSubmit = () => {
-        onSubmit({
-            name,
-            plannedTasks,
-        });
         setPlannedTasks([{ task: "", hours: "" }]);
         onClose();
     };

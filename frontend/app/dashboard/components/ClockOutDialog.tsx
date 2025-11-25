@@ -8,25 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Plus, X } from "lucide-react";
-import { useSession } from "next-auth/react";
 
-export const ClockOutDialog = ({
-    open,
-    onClose,
-    onSubmit,
-}: {
-    open: boolean;
-    onClose: () => void;
-    onSubmit: (data: {
-        name: string;
-        actualTasks: { task: string; hours: string }[];
-        summary: string;
-        issues: string;
-        notes: string;
-    }) => void;
-}) => {
-    const { data: session } = useSession();
-    const name = session?.user?.name || "不明なユーザー";
+export const ClockOutDialog = ({ open, onClose }: { open: boolean; onClose: () => void; onSubmit: () => Promise<void>; }) => {
 
     const [actualTasks, setActualTasks] = useState([{ task: "", hours: "" }]);
     const [summary, setSummary] = useState("");
@@ -34,19 +17,11 @@ export const ClockOutDialog = ({
     const [notes, setNotes] = useState("");
 
     const handleSubmit = () => {
-        onSubmit({
-            name,
-            actualTasks,
-            summary,
-            issues,
-            notes,
-        });
 
         setActualTasks([{ task: "", hours: "" }]);
         setSummary("");
         setIssues("");
         setNotes("");
-
         onClose();
     };
 

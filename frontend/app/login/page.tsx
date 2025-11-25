@@ -44,7 +44,7 @@ export default function LoginPage() {
     }
 
     const handleDemoLogin = (demoEmail: string) => {
-        handleLogin(demoEmail, "demo123")
+        handleLogin(demoEmail, "password123")
     }
 
     return (
