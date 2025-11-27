@@ -51,7 +51,7 @@ export function MonthlyAttendanceView() {
         async function fetchMonthData() {
             try {
                 const res = await fetch(
-                    `/api/attendance/month?userId=${selectedUser?.id}&year=${year}&month=${month}`
+                    `/api/attendance/user-month?userId=${selectedUser?.id}&year=${year}&month=${month}`
                 );
                 const data: DayAttendance[] = await res.json();
                 setMonthData(data);
