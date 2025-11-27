@@ -10,6 +10,7 @@ import attendanceClockOutRouter from './attendance/clock-out';
 import attendanceBreakStartRouter from './attendance/break-start';
 import attendanceBreakEndRouter from './attendance/break-end'
 import attendanceWeekTotalHoursRouter from './attendance/week-total-hours'
+import attendanceUserMonthRouter from './attendance/user-month';
 
 type Env = {
     SUPABASE_URL: string;
@@ -23,6 +24,7 @@ database.use('*', cors());
 
 // 各ルーターをマウント
 database.route('/attendance/users', attendanceUsersRouter);
+database.route('/attendance/user-month', attendanceUserMonthRouter);
 database.route('/attendance/day', attendanceDayRouter);
 database.route('/attendance/month', attendanceMonthRouter);
 database.route('/attendance/clock-in', attendanceClockInRouter);
