@@ -13,16 +13,17 @@ export async function GET(request: Request) {
 
         // 2. クエリパラメータを取得
         const url = new URL(request.url);
+        const userId = url.searchParams.get("userId");
         const year = url.searchParams.get("year");
         const month = url.searchParams.get("month");
 
-        if (!year || !month) {
+        if (!userId || !year || !month) {
             return new Response(JSON.stringify({ error: "Missing parameters" }), { status: 400 });
         }
 
         // 3. 外部 API を叩く
         const res = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/database/attendance/month?&year=${year}&month=${month}`,
+            `${process.env.NEXT_PUBLIC_API_URL}/database/attendance/user-month?userId=${userId}&year=${year}&month=${month}`,
             {
                 headers: { Authorization: `Bearer ${token}` },
             }
