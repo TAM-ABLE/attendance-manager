@@ -48,7 +48,7 @@ export default function LoginPage() {
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 p-4">
+        <div className="min-h-screen w-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100 p-4">
             <Card className="w-full max-w-md shadow-lg">
                 <CardHeader className="space-y-4 text-center">
                     <div className="flex justify-center">
@@ -140,6 +140,16 @@ export default function LoginPage() {
                         <Button type="submit" className="w-full" size="lg" disabled={loading}>
                             {loading ? "ログイン中..." : "ログイン"}
                         </Button>
+
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => router.push("/sign-up")}
+                        >
+                            新規アカウント作成
+                        </Button>
+
                     </form>
                 </CardContent>
             </Card>
