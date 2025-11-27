@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AttendanceRecord, WorkSession } from "../../../../shared/types/Attendance"
+import { AttendanceRecord, WorkSession } from "../../../../shared/types/Attendance";
 
 //現在のセッション判定関数
 function detectCurrentSession(attendance: AttendanceRecord | null): WorkSession | null {
@@ -42,7 +42,6 @@ export function useAttendance() {
         const init = async () => {
             const todayData: AttendanceRecord = await fetch("/api/attendance/day").then(r => r.json());
             const hours = await fetch("/api/attendance/week-total-hours").then(r => r.json());
-
             const session = detectCurrentSession(todayData);
             const breakState = detectOnBreak(session);
 
