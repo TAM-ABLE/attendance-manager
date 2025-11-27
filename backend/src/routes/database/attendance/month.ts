@@ -1,8 +1,9 @@
 // backend/src/routes/database/attendance/month.ts
 import { Hono } from 'hono';
-import { verify } from 'hono/jwt';
 import { getSupabaseClient } from '../../../lib/supabase';
-import { DayAttendance } from '../../../../../shared/types/Attendance';
+import { toJST } from '../../../lib/time';
+import type { Database } from '../../../types/supabase';
+import { verify } from 'hono/jwt';
 
 type Env = {
     SUPABASE_URL: string;
@@ -10,55 +11,64 @@ type Env = {
     JWT_SECRET: string;
 };
 
+// attendance_records + work_sessions + breaks の型
+type DbAttendanceRecord = Database['public']['Tables']['attendance_records']['Row'] & {
+    work_sessions: Array<
+        Database['public']['Tables']['work_sessions']['Row'] & {
+            breaks: Database['public']['Tables']['breaks']['Row'][];
+        }
+    >;
+};
+
 const attendanceMonthRouter = new Hono<{ Bindings: Env }>();
 
 attendanceMonthRouter.get('/', async (c) => {
-    // --- JWT 認証 ---
-    const authHeader = c.req.header('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-        return c.json({ error: 'Unauthorized' }, 401);
+    // -------------------------
+    // 認証
+    // -------------------------
+    const authHeader = c.req.header("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+        return c.json({ error: "Unauthorized" }, 401);
     }
 
-    const token = authHeader.split(' ')[1];
-    let payload: { id: string; role: 'admin' | 'user' };
+    const token = authHeader.split(" ")[1];
 
+    if (!c.env.JWT_SECRET) {
+        console.error("JWT_SECRET missing");
+        return c.json({ error: "Server configuration error" }, 500);
+    }
+
+    let payload: { id: string; role: "admin" | "user" };
     try {
-        payload = await verify(token, c.env.JWT_SECRET) as {
-            id: string;
-            role: 'admin' | 'user';
-        };
-    } catch {
-        return c.json({ error: 'Invalid token' }, 401);
+        payload = await verify(token, c.env.JWT_SECRET) as any;
+    } catch (e) {
+        return c.json({ error: "Invalid token" }, 401);
     }
 
-    // --- 管理者のみ ---
-    if (payload.role !== 'admin') {
-        return c.json({ error: 'Forbidden (admin only)' }, 403);
+    const userId = payload.id;
+
+    // -------------------------
+    // クエリパラメータ取得
+    // -------------------------
+    const year = c.req.query("year");
+    const month = c.req.query("month");
+
+    if (!year || !month) {
+        return c.json({ error: "Missing parameters" }, 400);
     }
 
-    // --- クエリ取得 ---
-    const userId = c.req.query('userId');
-    const year = c.req.query('year');
-    const month = c.req.query('month');
+    // YYYY-MM の範囲に一致させる
+    const start = `${year}-${month.padStart(2, "0")}-01`;
+    const endDate = new Date(Number(year), Number(month), 0).getDate(); // 月末日
+    const end = `${year}-${month.padStart(2, "0")}-${endDate}`;
 
-    if (!userId || !year || !month) {
-        return c.json({ error: 'Missing parameters' }, 400);
-    }
-
-    const yearNum = Number(year);
-    const monthNum = Number(month);
-
-    const startDate = new Date(yearNum, monthNum, 1);
-    const endDate = new Date(yearNum, monthNum + 1, 0);
-
-    const startStr = startDate.toISOString().split("T")[0];
-    const endStr = endDate.toISOString().split("T")[0];
-
-    // --- Supabase ---
     const supabase = getSupabaseClient(c.env);
 
+    // -------------------------
+    // Supabase から月次データ取得
+    // -------------------------
     const { data, error } = await supabase
-        .from('attendance_records')
+        .from("attendance_records")
         .select(`
             id,
             date,
@@ -66,103 +76,43 @@ attendanceMonthRouter.get('/', async (c) => {
                 id,
                 clock_in,
                 clock_out,
-                breaks ( id, break_start, break_end )
+                breaks (
+                    id,
+                    break_start,
+                    break_end
+                )
             )
         `)
-        .eq('user_id', userId)
-        .gte('date', startStr)
-        .lte('date', endStr)
-        .order('date');
+        .eq("user_id", userId)
+        .gte("date", start)
+        .lte("date", end)
+        .order("date", { ascending: true })
+        .returns<DbAttendanceRecord[]>();
 
-    if (error) return c.json({ error: "Database error" }, 500);
-
-    // --- 日本語曜日 ---
-    const jpWeekday = ["日", "月", "火", "水", "木", "金", "土"];
-
-    const result: DayAttendance[] = [];
-    const daysInMonth = endDate.getDate();
-
-    for (let d = 1; d <= daysInMonth; d++) {
-        const objDate = new Date(yearNum, monthNum, d);
-
-        const dateStr = objDate.toISOString().split("T")[0];
-        const weekday = jpWeekday[objDate.getDay()];
-        const dateLabel = `${monthNum + 1}月${d}日`;
-
-        const record = data.find((r) => r.date === dateStr);
-
-        if (!record) {
-            result.push({
-                day: weekday,
-                date: dateLabel,
-                hasData: false,
-                session1ClockIn: null,
-                session1ClockOut: null,
-                session2ClockIn: null,
-                session2ClockOut: null,
-                session3ClockIn: null,
-                session3ClockOut: null,
-                workTotalHours: 0,
-                breakTotalHours: 0,
-            });
-            continue;
-        }
-
-        const sessions = record.work_sessions;
-
-        let workTotal = 0;
-        let breakTotal = 0;
-
-        const clockFields: Record<string, number | null> = {
-            session1ClockIn: null,
-            session1ClockOut: null,
-            session2ClockIn: null,
-            session2ClockOut: null,
-            session3ClockIn: null,
-            session3ClockOut: null,
-        };
-
-        sessions.forEach((s, index) => {
-            if (index > 2) return;
-
-            const ci = s.clock_in ? new Date(s.clock_in).getTime() : null;
-            const co = s.clock_out ? new Date(s.clock_out).getTime() : null;
-
-            clockFields[`session${index + 1}ClockIn`] = ci;
-            clockFields[`session${index + 1}ClockOut`] = co;
-
-            // --- 勤務時間 & 休憩時間 ---
-            if (ci && co) {
-                // 休憩時間計算
-                let sessionBreak = 0;
-
-                s.breaks?.forEach((b) => {
-                    if (b.break_start && b.break_end) {
-                        const bs = new Date(b.break_start).getTime();
-                        const be = new Date(b.break_end).getTime();
-                        sessionBreak += (be - bs);
-                    }
-                });
-
-                // 勤務時間計算
-                const sessionWork = (co - ci) - sessionBreak;
-
-                workTotal += sessionWork;
-                breakTotal += sessionBreak;
-            }
-        });
-
-        result.push({
-            day: weekday,
-            date: dateLabel,
-            hasData: true,
-            ...clockFields,
-            workTotalHours: workTotal,
-            breakTotalHours: breakTotal,
-        });
+    if (error) {
+        console.error(error);
+        return c.json({ error: "Database error" }, 500);
     }
 
-    return c.json(result);
+    // -------------------------
+    // JST に整形して返す
+    // -------------------------
+    const formatted = data.map((d) => ({
+        id: d.id,
+        date: d.date,
+        sessions: d.work_sessions.map((s) => ({
+            id: s.id,
+            clockIn: toJST(s.clock_in),
+            clockOut: s.clock_out ? toJST(s.clock_out) : null,
+            breaks: s.breaks.map((b) => ({
+                id: b.id,
+                start: toJST(b.break_start),
+                end: b.break_end ? toJST(b.break_end) : null,
+            })),
+        })),
+    }));
+
+    return c.json(formatted);
 });
 
 export default attendanceMonthRouter;
