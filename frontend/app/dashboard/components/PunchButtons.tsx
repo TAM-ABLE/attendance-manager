@@ -10,9 +10,8 @@ interface Props {
     onClockIn: () => void;
     onClockOut: () => void;
 
-    // 休憩開始/終了は「即API送信」するので名前を渡す
-    onBreakStart: (payload: { name: string }) => void;
-    onBreakEnd: (payload: { name: string }) => void;
+    onBreakStart: () => void;
+    onBreakEnd: () => void;
 
     onBreak: boolean;
     isWorking: boolean;
@@ -26,8 +25,6 @@ export function PunchButtons({
     onBreak,
     isWorking,
 }: Props) {
-    const { data: session } = useSession();
-    const name = session?.user?.name || "不明なユーザー";
 
     return (
         <div className="space-y-4">
@@ -86,7 +83,7 @@ export function PunchButtons({
                     {/* 休憩開始・終了は即実行 - 中央に配置 */}
                     {!onBreak ? (
                         <Button
-                            onClick={() => onBreakStart({ name })}
+                            onClick={() => onBreakStart()}
                             disabled={!isWorking}
                             size="lg"
                             variant="outline"
@@ -97,7 +94,7 @@ export function PunchButtons({
                         </Button>
                     ) : (
                         <Button
-                            onClick={() => onBreakEnd({ name })}
+                            onClick={() => onBreakEnd()}
                             size="lg"
                             variant="outline"
                             className="h-24 flex-col gap-2 w-[400px] text-xl font-semibold"

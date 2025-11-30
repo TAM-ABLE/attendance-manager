@@ -13,6 +13,7 @@ export async function POST() {
 
         // 2. Hono の API を叩く
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/database/attendance/clock-in`, {
+            method: "POST",
             headers: { Authorization: `Bearer ${token}` },
         });
 

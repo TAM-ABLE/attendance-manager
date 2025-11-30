@@ -15,21 +15,6 @@ interface Props {
     exportCSV: () => void;
 }
 
-
-const exampleDay: DayAttendance = {
-    day: "水",
-    date: "11月25日",
-    hasData: true,
-    session1ClockIn: 1700805600000,   // 2025-11-24 09:00 JST のタイムスタンプ(ms)
-    session1ClockOut: 1700812800000,  // 2025-11-24 11:00 JST
-    session2ClockIn: 1700816400000,   // 13:00 JST
-    session2ClockOut: 1700823600000,  // 15:00 JST
-    session3ClockIn: null,
-    session3ClockOut: null,
-    workTotalHours: 4 * 60 * 60 * 1000, // 4時間 → ミリ秒
-    breakTotalHours: 1 * 60 * 60 * 1000 // 1時間 → ミリ秒
-}
-
 export const UserMonthlyAttendance = ({ user, monthData, openEditDialog, exportCSV }: Props) => {
     const workMonthDays = monthData.filter(d => d.hasData).length;
     const totalMonthHours = monthData.reduce((acc, d) => acc + d.workTotalHours, 0);
