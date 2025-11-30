@@ -1,7 +1,7 @@
 // backend/src/routes/database/attendance/users.ts
 import { Hono } from 'hono';
 import { verify } from 'hono/jwt';
-import { getSupabaseClient } from '../../../lib/supabase';
+import { getSupabaseClient } from '../../../../lib/supabase';
 
 type Env = {
     SUPABASE_URL: string;

@@ -1,7 +1,7 @@
 // /routes/auth/register.ts
 import { Hono } from "hono";
 import bcrypt from "bcryptjs";
-import { getSupabaseClient } from "../../lib/supabase";
+import { getSupabaseClient } from "..../../../lib/supabase";
 
 type Env = {
     SUPABASE_URL: string;

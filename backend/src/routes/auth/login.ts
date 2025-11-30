@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { getSupabaseClient } from '../../lib/supabase'
+import { getSupabaseClient } from '../../../lib/supabase'
 import bcrypt from 'bcryptjs'
 import { sign } from 'hono/jwt'
 

@@ -1,7 +1,7 @@
 // backend/src/routes/database/attendance/month.ts
 import { Hono } from 'hono';
 import { verify } from 'hono/jwt';
-import { getSupabaseClient } from '../../../lib/supabase';
+import { getSupabaseClient } from '../../../../lib/supabase';
 import { DayAttendance } from '../../../../../shared/types/Attendance';
 
 type Env = {
