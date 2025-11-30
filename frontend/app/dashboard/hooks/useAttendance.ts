@@ -3,106 +3,91 @@
 import { useState, useEffect } from "react";
 import { AttendanceRecord, WorkSession } from "../../../../shared/types/Attendance";
 
-//現在のセッション判定関数
+// セッション検出（出勤中かどうか）
 function detectCurrentSession(attendance: AttendanceRecord | null): WorkSession | null {
-    if (!attendance) return null;
-    if (!attendance.sessions || attendance.sessions.length === 0) return null;
-
+    if (!attendance?.sessions?.length) return null;
     const lastSession = attendance.sessions[attendance.sessions.length - 1];
-
-    // 退勤していなければ現在のセッション
-    if (!lastSession.clockOut) {
-        return lastSession;
-    }
-
-    return null;
+    return lastSession.clockOut ? null : lastSession;
 }
 
-//現在休憩中かどうかの判定関数
+// 休憩中かどうか検出
 function detectOnBreak(currentSession: WorkSession | null): boolean {
-    if (!currentSession) return false;
-
-    const breaks = currentSession.breaks;
-    if (!breaks || breaks.length === 0) return false;
-
-    const lastBreak = breaks[breaks.length - 1];
-
-    // end がなければ休憩中
-    return !lastBreak.end;
+    if (!currentSession?.breaks?.length) return false;
+    const lastBreak = currentSession.breaks[currentSession.breaks.length - 1];
+    return !lastBreak.end; // end が null → 休憩中
 }
 
 export function useAttendance() {
     const [attendance, setAttendance] = useState<AttendanceRecord | null>(null);
-    const [weekTotalHours, setWeekTotalHours] = useState<number>(0);
     const [currentSession, setCurrentSession] = useState<WorkSession | null>(null);
-    const [onBreak, setOnBreak] = useState(<boolean>false);
+    const [onBreak, setOnBreak] = useState<boolean>(false);
+    const [weekTotalHours, setWeekTotalHours] = useState<number>(0);
 
-    useEffect(() => {
-
-        const init = async () => {
+    // 初期読み込み
+    const loadAll = async () => {
+        try {
             const todayData: AttendanceRecord = await fetch("/api/attendance/day").then(r => r.json());
-            const hours = await fetch("/api/attendance/week-total-hours").then(r => r.json());
+            const weekly = await fetch("/api/attendance/week-total-hours").then(r => r.json());
+
             const session = detectCurrentSession(todayData);
-            const breakState = detectOnBreak(session);
 
             setAttendance(todayData);
-            setWeekTotalHours(hours.netWorkMs);
             setCurrentSession(session);
-            setOnBreak(breakState);
-        };
+            setOnBreak(detectOnBreak(session));
+            setWeekTotalHours(weekly.netWorkMs);
+        } catch (e) {
+            console.error("Failed to load attendance:", e);
+        }
+    };
 
-        init();
+    useEffect(() => {
+        loadAll();
     }, []);
+
 
     // 出勤
     const handleClockIn = async () => {
-        // 1. 出勤 API を叩く
-        const ok = await fetch("/api/attendance/clock-in").then(r => r.json());
+        const res = await fetch("/api/attendance/clock-in", { method: "POST" });
+        if (!res.ok) {
+            console.error("Clock-in failed");
+            return;
+        }
 
-        // 2. 出勤後のデータを再取得
-        const todayData: AttendanceRecord = await fetch("/api/attendance/day").then(r => r.json());
-
-        // 3. 現在のセッションを再判定
-        const newSession = detectCurrentSession(todayData);
-
-        // 4. state 更新
-        setAttendance(todayData);
-        setCurrentSession(newSession);
+        await loadAll();
     };
 
     // 退勤
     const handleClockOut = async () => {
+        const res = await fetch("/api/attendance/clock-out", { method: "POST" });
+        if (!res.ok) {
+            console.error("Clock-out failed");
+            return;
+        }
 
-        const ok = await fetch("/api/attendance/clock-out").then(r => r.json());
-
-        const todayData = await fetch("/api/attendance/day").then(r => r.json());
-        const hours = await fetch("/api/attendance/week-total-hours").then(r => r.json());
-        setAttendance(todayData);
-        setWeekTotalHours(hours.netWorkMs);
-        setCurrentSession(null);
+        await loadAll();
     };
 
     // 休憩開始
     const handleBreakStart = async () => {
+        const res = await fetch("/api/attendance/break-start", { method: "POST" });
+        if (!res.ok) {
+            console.error("Break-start failed");
+            return;
+        }
 
-        const ok = await fetch("/api/attendance/break-start").then(r => r.json());
-
-        const todayData: AttendanceRecord = await fetch("/api/attendance/day").then(r => r.json());
-
-        setOnBreak(true);
+        await loadAll();
     };
 
     // 休憩終了
     const handleBreakEnd = async () => {
+        const res = await fetch("/api/attendance/break-end", { method: "POST" });
+        if (!res.ok) {
+            console.error("Break-end failed");
+            return;
+        }
 
-        const ok = await fetch("/api/attendance/break-end").then(r => r.json());
-
-        const todayData: AttendanceRecord = await fetch("/api/attendance/day").then(r => r.json());
-
-        setOnBreak(false);
-
+        await loadAll();
     };
-
 
     return {
         attendance,
