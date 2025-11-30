@@ -9,15 +9,16 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Plus, X } from "lucide-react";
 
-export const ClockOutDialog = ({ open, onClose }: { open: boolean; onClose: () => void; onSubmit: () => Promise<void>; }) => {
+export const ClockOutDialog = ({ open, onClose, onSubmit }: { open: boolean; onClose: () => void; onSubmit: () => Promise<void>; }) => {
 
     const [actualTasks, setActualTasks] = useState([{ task: "", hours: "" }]);
     const [summary, setSummary] = useState("");
     const [issues, setIssues] = useState("");
     const [notes, setNotes] = useState("");
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
 
+        await onSubmit();
         setActualTasks([{ task: "", hours: "" }]);
         setSummary("");
         setIssues("");
