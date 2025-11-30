@@ -1,4 +1,5 @@
-export function toJST(dateString: string): number {
-    const utc = new Date(dateString).getTime();
-    return utc + 9 * 60 * 60 * 1000; // UTC → JST (+9h)
-}
+export const todayJSTString = () => {
+    const d = new Date();
+    const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+    return jst.toISOString().split("T")[0];
+};
