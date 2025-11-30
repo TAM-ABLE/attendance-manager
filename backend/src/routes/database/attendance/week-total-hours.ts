@@ -1,6 +1,6 @@
 // backend/src/routes/database/attendance/week-total-hours.ts
 import { Hono } from 'hono';
-import { getSupabaseClient } from '../../../lib/supabase';
+import { getSupabaseClient } from '../../../../lib/supabase';
 import type { Database } from '../../../types/supabase';
 import { verify } from 'hono/jwt';
 

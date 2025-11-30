@@ -1,6 +1,6 @@
 // backend/src/routes/database/attendance/clock-out.ts
 import { Hono } from 'hono';
-import { getSupabaseClient } from '../../../lib/supabase';
+import { getSupabaseClient } from '../../../../lib/supabase';
 import { verify } from 'hono/jwt';
 
 type Env = {
