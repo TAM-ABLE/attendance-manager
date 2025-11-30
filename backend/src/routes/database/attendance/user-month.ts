@@ -3,6 +3,7 @@ import { Hono } from 'hono';
 import { verify } from 'hono/jwt';
 import { getSupabaseClient } from '../../../../lib/supabase';
 import { DayAttendance } from '../../../../../shared/types/Attendance';
+import { formatJSTDate } from '../../../../lib/time';
 
 type Env = {
     SUPABASE_URL: string;
@@ -51,8 +52,8 @@ attendanceUserMonthRouter.get('/', async (c) => {
     const startDate = new Date(yearNum, monthNum, 1);
     const endDate = new Date(yearNum, monthNum + 1, 0);
 
-    const startStr = startDate.toISOString().split("T")[0];
-    const endStr = endDate.toISOString().split("T")[0];
+    const startStr = formatJSTDate(startDate);
+    const endStr = formatJSTDate(endDate);
 
     // --- Supabase ---
     const supabase = getSupabaseClient(c.env);
@@ -85,7 +86,7 @@ attendanceUserMonthRouter.get('/', async (c) => {
     for (let d = 1; d <= daysInMonth; d++) {
         const objDate = new Date(yearNum, monthNum, d);
 
-        const dateStr = objDate.toISOString().split("T")[0];
+        const dateStr = formatJSTDate(objDate);
         const weekday = jpWeekday[objDate.getDay()];
         const dateLabel = `${monthNum + 1}月${d}日`;
 
