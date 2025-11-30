@@ -10,7 +10,7 @@ VALUES
 ON CONFLICT (email) DO NOTHING;
 
 -- ================================================
--- 管理者（9:00–18:00 / 休憩 12:00–13:00）
+-- 管理者（9:00–18:00 / 休憩 12:00–13:00 / JST）
 -- ================================================
 DO $$
 DECLARE
@@ -18,7 +18,7 @@ DECLARE
     att_id UUID;
 BEGIN
     FOR d IN
-        SELECT generate_series('2025-11-01'::date, '2025-11-30'::date, interval '1 day')
+        SELECT generate_series('2025-12-01'::date, '2025-12-31'::date, interval '1 day')
     LOOP
         IF EXTRACT(ISODOW FROM d) < 6 THEN
             INSERT INTO public.attendance_records (user_id, date)
@@ -26,20 +26,24 @@ BEGIN
             RETURNING id INTO att_id;
 
             INSERT INTO public.work_sessions (attendance_id, clock_in, clock_out)
-            VALUES (att_id, d::timestamp + TIME '09:00', d::timestamp + TIME '18:00');
+            VALUES (
+                att_id,
+                (d::timestamp + TIME '09:00') AT TIME ZONE 'Asia/Tokyo',
+                (d::timestamp + TIME '18:00') AT TIME ZONE 'Asia/Tokyo'
+            );
 
             INSERT INTO public.breaks (session_id, break_start, break_end)
             VALUES (
                 (SELECT id FROM public.work_sessions WHERE attendance_id = att_id LIMIT 1),
-                d::timestamp + TIME '12:00',
-                d::timestamp + TIME '13:00'
+                (d::timestamp + TIME '12:00') AT TIME ZONE 'Asia/Tokyo',
+                (d::timestamp + TIME '13:00') AT TIME ZONE 'Asia/Tokyo'
             );
         END IF;
     END LOOP;
 END $$;
 
 -- ================================================
--- 一般ユーザー（軽いランダム）
+-- 一般ユーザー（軽いランダム / JST）
 -- ================================================
 DO $$
 DECLARE
@@ -47,7 +51,7 @@ DECLARE
     att_id UUID;
 BEGIN
     FOR d IN
-        SELECT generate_series('2025-11-01'::date, '2025-11-30'::date, interval '1 day')
+        SELECT generate_series('2025-12-01'::date, '2025-12-31'::date, interval '1 day')
     LOOP
         IF EXTRACT(ISODOW FROM d) < 6 THEN
             INSERT INTO public.attendance_records (user_id, date)
@@ -57,22 +61,22 @@ BEGIN
             INSERT INTO public.work_sessions (attendance_id, clock_in, clock_out)
             VALUES (
                 att_id,
-                d::timestamp + (CASE WHEN EXTRACT(DAY FROM d) % 3 = 0 THEN TIME '09:30' ELSE TIME '09:00' END),
-                d::timestamp + (CASE WHEN EXTRACT(DAY FROM d) % 5 = 0 THEN TIME '17:30' ELSE TIME '18:00' END)
+                (d::timestamp + (CASE WHEN EXTRACT(DAY FROM d) % 3 = 0 THEN TIME '09:30' ELSE TIME '09:00' END)) AT TIME ZONE 'Asia/Tokyo',
+                (d::timestamp + (CASE WHEN EXTRACT(DAY FROM d) % 5 = 0 THEN TIME '17:30' ELSE TIME '18:00' END)) AT TIME ZONE 'Asia/Tokyo'
             );
 
             INSERT INTO public.breaks (session_id, break_start, break_end)
             VALUES (
                 (SELECT id FROM public.work_sessions WHERE attendance_id = att_id LIMIT 1),
-                d::timestamp + TIME '12:30',
-                d::timestamp + TIME '13:15'
+                (d::timestamp + TIME '12:30') AT TIME ZONE 'Asia/Tokyo',
+                (d::timestamp + TIME '13:15') AT TIME ZONE 'Asia/Tokyo'
             );
         END IF;
     END LOOP;
 END $$;
 
 -- ================================================
--- 田中太郎（早番 8:30–17:00）
+-- 田中太郎（早番 8:30–17:00 / JST）
 -- ================================================
 DO $$
 DECLARE
@@ -80,7 +84,7 @@ DECLARE
     att_id UUID;
 BEGIN
     FOR d IN
-        SELECT generate_series('2025-11-01'::date, '2025-11-30'::date, interval '1 day')
+        SELECT generate_series('2025-12-01'::date, '2025-12-31'::date, interval '1 day')
     LOOP
         IF EXTRACT(ISODOW FROM d) < 6 THEN
             INSERT INTO public.attendance_records (user_id, date)
@@ -90,22 +94,22 @@ BEGIN
             INSERT INTO public.work_sessions (attendance_id, clock_in, clock_out)
             VALUES (
                 att_id,
-                d::timestamp + TIME '08:30',
-                d::timestamp + TIME '17:00'
+                (d::timestamp + TIME '08:30') AT TIME ZONE 'Asia/Tokyo',
+                (d::timestamp + TIME '17:00') AT TIME ZONE 'Asia/Tokyo'
             );
 
             INSERT INTO public.breaks (session_id, break_start, break_end)
             VALUES (
                 (SELECT id FROM public.work_sessions WHERE attendance_id = att_id LIMIT 1),
-                d::timestamp + TIME '12:00',
-                d::timestamp + TIME '12:45'
+                (d::timestamp + TIME '12:00') AT TIME ZONE 'Asia/Tokyo',
+                (d::timestamp + TIME '12:45') AT TIME ZONE 'Asia/Tokyo'
             );
         END IF;
     END LOOP;
 END $$;
 
 -- ================================================
--- 鈴木花子（遅番 10:00–19:00）
+-- 鈴木花子（遅番 10:00–19:00 / JST）
 -- ================================================
 DO $$
 DECLARE
@@ -113,7 +117,7 @@ DECLARE
     att_id UUID;
 BEGIN
     FOR d IN
-        SELECT generate_series('2025-11-01'::date, '2025-11-30'::date, interval '1 day')
+        SELECT generate_series('2025-12-01'::date, '2025-12-31'::date, interval '1 day')
     LOOP
         IF EXTRACT(ISODOW FROM d) < 6 THEN
             INSERT INTO public.attendance_records (user_id, date)
@@ -123,15 +127,15 @@ BEGIN
             INSERT INTO public.work_sessions (attendance_id, clock_in, clock_out)
             VALUES (
                 att_id,
-                d::timestamp + TIME '10:00',
-                d::timestamp + TIME '19:00'
+                (d::timestamp + TIME '10:00') AT TIME ZONE 'Asia/Tokyo',
+                (d::timestamp + TIME '19:00') AT TIME ZONE 'Asia/Tokyo'
             );
 
             INSERT INTO public.breaks (session_id, break_start, break_end)
             VALUES (
                 (SELECT id FROM public.work_sessions WHERE attendance_id = att_id LIMIT 1),
-                d::timestamp + TIME '13:00',
-                d::timestamp + TIME '14:00'
+                (d::timestamp + TIME '13:00') AT TIME ZONE 'Asia/Tokyo',
+                (d::timestamp + TIME '14:00') AT TIME ZONE 'Asia/Tokyo'
             );
         END IF;
     END LOOP;

@@ -1,7 +1,7 @@
 // backend/src/routes/database/attendance/day.ts
 import { Hono } from 'hono';
-import { getSupabaseClient } from '../../../lib/supabase';
-import { toJST } from '../../../lib/time';
+import { getSupabaseClient } from '../../../../lib/supabase';
+import { toJST } from '../../../../lib/time';
 import type { Database } from '../../../types/supabase';
 import { verify } from 'hono/jwt';
 
