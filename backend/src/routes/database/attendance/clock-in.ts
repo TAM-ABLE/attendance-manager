@@ -2,6 +2,7 @@
 import { Hono } from 'hono';
 import { getSupabaseClient } from '../../../../lib/supabase';
 import { verify } from 'hono/jwt';
+import { todayJSTString } from '../../../../lib/time';
 
 type Env = {
     SUPABASE_URL: string;
@@ -33,15 +34,14 @@ attendanceClockInRouter.post('/', async (c) => {
     const userId = payload.id;
     const supabase = getSupabaseClient(c.env);
 
-    const today = new Date();
-    const dateStr = today.toISOString().split('T')[0];
+    const date = todayJSTString();
 
     // 1. 今日の attendance_record が存在するか確認
     const { data: record, error: recordErr } = await supabase
         .from('attendance_records')
         .select('id')
         .eq('user_id', userId)
-        .eq('date', dateStr)
+        .eq('date', date)
         .maybeSingle();
 
     if (recordErr) {
@@ -57,7 +57,7 @@ attendanceClockInRouter.post('/', async (c) => {
             .from('attendance_records')
             .insert({
                 user_id: userId,
-                date: dateStr,
+                date: date,
             })
             .select('id')
             .single();
