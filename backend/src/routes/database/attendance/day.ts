@@ -1,7 +1,7 @@
 // backend/src/routes/database/attendance/day.ts
 import { Hono } from 'hono';
 import { getSupabaseClient } from '../../../../lib/supabase';
-import { toJST } from '../../../../lib/time';
+import { todayJSTString } from '../../../../lib/time';
 import type { Database } from '../../../types/supabase';
 import { verify } from 'hono/jwt';
 
@@ -53,7 +53,7 @@ attendanceDayRouter.get('/', async (c) => {
     // --- 検証終了 ---
 
     const userId = payload.id;
-    const date = new Date().toISOString().split("T")[0]; //"2025-11-23"
+    const date = todayJSTString(); //"2025-11-23"
 
     const supabase = getSupabaseClient(c.env);
 
@@ -84,12 +84,12 @@ attendanceDayRouter.get('/', async (c) => {
         date: data.date,
         sessions: data.work_sessions.map((s) => ({
             id: s.id,
-            clockIn: toJST(s.clock_in),
-            clockOut: s.clock_out ? toJST(s.clock_out) : null,
+            clockIn: s.clock_in ? new Date(s.clock_in).getTime() : null,
+            clockOut: s.clock_out ? new Date(s.clock_out).getTime() : null,
             breaks: s.breaks.map((b) => ({
                 id: b.id,
-                start: toJST(b.break_start),
-                end: b.break_end ? toJST(b.break_end) : null,
+                start: b.break_start ? new Date(b.break_start).getTime() : null,
+                end: b.break_end ? new Date(b.break_end).getTime() : null,
             })),
         })),
     };

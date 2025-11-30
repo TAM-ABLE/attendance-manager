@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { AttendanceRecord } from "../../../../shared/types/Attendance";
+import { toJSTDateString } from "../../../lib/time";
 
 export function useAttendance() {
-    const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
-    const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date);
+    const [currentMonth, setCurrentMonth] = useState<Date>(new Date);
     const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -58,12 +59,8 @@ export function useAttendance() {
     // ---------------------------
     // 選択している日のデータを取得
     // ---------------------------
-    const selectedDayISO = selectedDate
-        ? selectedDate.toISOString().split("T")[0]
-        : null;
 
-    const selectedDayData =
-        attendanceData.find((r) => r.date === selectedDayISO) || null;
+    const selectedDayData = attendanceData.find((r) => r.date === toJSTDateString(selectedDate)) || null;
 
     return {
         attendanceData,

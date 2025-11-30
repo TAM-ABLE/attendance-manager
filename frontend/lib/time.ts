@@ -1,4 +1,22 @@
 //lib/time.ts
+
+/**
+ * UTCのDateをJST基準で YYYY-MM-DD 文字列に変換
+ */
+export const toJSTDateString = (date: Date | undefined): string => {
+    if (!date) return "";
+
+    // UTC → JST に変換
+    const jst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+
+    // YYYY-MM-DD 形式に整形
+    const yyyy = jst.getUTCFullYear();
+    const mm = (jst.getUTCMonth() + 1).toString().padStart(2, "0");
+    const dd = jst.getUTCDate().toString().padStart(2, "0");
+
+    return `${yyyy}-${mm}-${dd}`;
+};
+
 export const formatDurationMs = (ms: number) => {
     const h = Math.floor(ms / (1000 * 60 * 60));
     const m = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
@@ -7,11 +25,14 @@ export const formatDurationMs = (ms: number) => {
 
 export const formatClockTime = (timestamp?: number) => {
     if (!timestamp) return "--:--";
-    return new Date(timestamp).toLocaleTimeString('ja-JP', {
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+
+    const date = new Date(timestamp);
+    const h = date.getHours().toString().padStart(2, "0");
+    const m = date.getMinutes().toString().padStart(2, "0");
+
+    return `${h}:${m}`;
 };
+
 
 export const getISOWeekNumber = (date: Date) => {
     const tmp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
