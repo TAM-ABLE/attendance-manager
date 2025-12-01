@@ -2,13 +2,13 @@
 
 export interface Break {
     id: string;
-    start: number; // timestamp などで扱う場合は number か Date
+    start?: number; // timestamp などで扱う場合は number か Date
     end?: number;
 }
 
 export interface WorkSession {
     id: string;
-    clockIn: number;
+    clockIn?: number;
     clockOut?: number;
     breaks: Break[];
 }
