@@ -1,102 +1,219 @@
-// components/admin/EditAttendanceDialog.tsx
-/*
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { DayAttendance } from "@/types/DayAttendance";
-import { User } from "@/types/User";
-import { EditSession } from "@/types/EditSession";
+import { WorkSession, Break } from "../../../../shared/types/Attendance";
+import { formatClockTime, mergeDateAndTime } from "@/lib/time";
 
 interface Props {
-    editingDay: { user: User, dayData: DayAttendance } | null;
-    editFormData: EditSession[];
-    setEditFormData: (data: EditSession[]) => void;
+    open: boolean;
+    date: string | null; //yyy-mm-dd形式
     onClose: () => void;
-    onSave: () => void;
+    onSave: () => Promise<void>;
+    sessions: WorkSession[];
+    setSessions: (s: WorkSession[]) => void;
 }
 
-export const EditAttendanceDialog = ({
-    editingDay,
-    editFormData,
-    setEditFormData,
+export function EditAttendanceDialog({
+    open,
+    date,
     onClose,
-    onSave
-}: Props) => {
+    onSave,
+    sessions,
+    setSessions,
+}: Props) {
+    const updateSession = (sessionId: string, field: "clockIn" | "clockOut", value: string) => {
+        setSessions(
+            sessions.map((s) =>
+                s.id === sessionId
+                    ? { ...s, [field]: mergeDateAndTime(date, value) }
+                    : s
+            )
+        );
+    };
 
-    const updateFormSession = (
-        index: number,
-        field: "clockIn" | "clockOut",
-        value: string
-    ) => {
-        const newSessions = [...editFormData];
-        newSessions[index] = { ...newSessions[index], [field]: value };
-        setEditFormData(newSessions);
+    const updateBreak = (sessionId: string, breakId: string, field: "start" | "end", value: string) => {
+        setSessions(
+            sessions.map((s) =>
+                s.id === sessionId
+                    ? {
+                        ...s,
+                        breaks: s.breaks.map((b) =>
+                            b.id === breakId
+                                ? { ...b, [field]: mergeDateAndTime(date, value) }
+                                : b
+                        ),
+                    }
+                    : s
+            )
+        );
+    };
+
+    // セッション追加
+    const addSession = () => {
+        if (sessions.length >= 3) return;
+        const newSession: WorkSession = {
+            id: crypto.randomUUID(),
+            clockIn: mergeDateAndTime(date, "00:00"), // ← 初期値
+            clockOut: mergeDateAndTime(date, "00:00"),   // ← 初期値
+            breaks: [],
+        };
+        setSessions([...sessions, newSession]);
+    };
+
+    // 休憩追加
+    const addBreak = (sessionId: string) => {
+        const newBreak: Break = {
+            id: crypto.randomUUID(),
+            start: mergeDateAndTime(date, "00:00"), // ← 初期値
+            end: mergeDateAndTime(date, "00:00"),   // ← 初期値
+        };
+        setSessions(
+            sessions.map((s) =>
+                s.id === sessionId ? { ...s, breaks: [...s.breaks, newBreak] } : s
+            )
+        );
+    };
+
+    // セッション削除
+    const removeSession = (sessionId: string) => {
+        setSessions(sessions.filter(s => s.id !== sessionId));
+    };
+
+    // 休憩削除
+    const removeBreak = (sessionId: string, breakId: string) => {
+        setSessions(
+            sessions.map(s =>
+                s.id === sessionId
+                    ? { ...s, breaks: s.breaks.filter(b => b.id !== breakId) }
+                    : s
+            )
+        );
     };
 
     return (
-        <Dialog open={!!editingDay} onOpenChange={onClose}>
-            <DialogContent className="max-w-2xl">
+        <Dialog open={open} onOpenChange={onClose}>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>勤怠データを編集</DialogTitle>
                     <DialogDescription>
-                        {editingDay && (
-                            <>
-                                {editingDay.user.name} -{" "}
-                                {new Date(editingDay.dayData.date).toLocaleDateString(
-                                    "ja-JP",
-                                    {
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric",
-                                        weekday: "long"
-                                    }
-                                )}
-                            </>
-                        )}
+                        出勤・退勤・休憩時間を編集できます。
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-6 py-4">
-                    {editFormData.map((session, index) => (
-                        <div key={index} className="space-y-3 p-4 border rounded-lg">
-                            <h4 className="text-sm">セッション {index + 1}</h4>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor={`clockIn-${index}`}>出勤時刻</Label>
-                                    <Input
-                                        id={`clockIn-${index}`}
-                                        type="time"
-                                        value={session.clockIn}
-                                        onChange={(e) =>
-                                            updateFormSession(index, "clockIn", e.target.value)
-                                        }
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor={`clockOut-${index}`}>退勤時刻</Label>
-                                    <Input
-                                        id={`clockOut-${index}`}
-                                        type="time"
-                                        value={session.clockOut}
-                                        onChange={(e) =>
-                                            updateFormSession(index, "clockOut", e.target.value)
-                                        }
-                                    />
-                                </div>
+                    {sessions.map((session, idx) => (
+                        <div key={session.id} className="border p-4 rounded-md space-y-4">
+                            <h3 className="font-semibold flex justify-between items-center">
+                                セッション {idx + 1}
+                                <Button size="sm" variant="ghost" onClick={() => removeSession(session.id)}>
+                                    ✕
+                                </Button>
+                            </h3>
+
+                            {/* 出勤 */}
+                            <div className="flex gap-4 items-center">
+                                <Label className="w-24">出勤</Label>
+                                <Input
+                                    type="time"
+                                    value={formatClockTime(session.clockIn)}
+                                    onChange={(e) =>
+                                        updateSession(session.id, "clockIn", e.target.value)
+                                    }
+                                />
+                            </div>
+
+                            {/* 退勤 */}
+                            <div className="flex gap-4 items-center">
+                                <Label className="w-24">退勤</Label>
+                                <Input
+                                    type="time"
+                                    value={formatClockTime(session.clockOut)}
+                                    onChange={(e) =>
+                                        updateSession(session.id, "clockOut", e.target.value)
+                                    }
+                                />
+                            </div>
+
+                            {/* 休憩 */}
+                            <div className="mt-4 space-y-2">
+                                <h4 className="font-medium flex items-center justify-between">
+                                    <span>休憩</span>
+                                    <Button size="sm" onClick={() => addBreak(session.id)}>
+                                        休憩追加
+                                    </Button>
+                                </h4>
+
+                                {session.breaks.map((br) => (
+                                    <div key={br.id} className="ml-4 space-y-2 border-l pl-4">
+
+                                        <div className="ml-4 space-y-2 border-l pl-4">
+                                            {/* 削除ボタン */}
+                                            <div className="flex justify-end">
+                                                <Button
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    onClick={() => removeBreak(session.id, br.id)}
+                                                >
+                                                    ✕
+                                                </Button>
+                                            </div>
+
+                                            {/* 開始 */}
+                                            <div className="flex gap-4 items-center">
+                                                <Label className="w-24">開始</Label>
+                                                <Input
+                                                    type="time"
+                                                    value={formatClockTime(br.start)}
+                                                    onChange={(e) =>
+                                                        updateBreak(session.id, br.id, "start", e.target.value)
+                                                    }
+                                                />
+                                            </div>
+
+                                            {/* 終了 */}
+                                            <div className="flex gap-4 items-center">
+                                                <Label className="w-24">終了</Label>
+                                                <Input
+                                                    type="time"
+                                                    value={formatClockTime(br.end)}
+                                                    onChange={(e) =>
+                                                        updateBreak(session.id, br.id, "end", e.target.value)
+                                                    }
+                                                />
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     ))}
+                </div>
+
+                {/* セッション追加ボタン */}
+                <div className="flex justify-end mb-4">
+                    <Button variant="outline" disabled={sessions.length >= 3} onClick={addSession}>
+                        セッション追加
+                    </Button>
                 </div>
 
                 <DialogFooter>
                     <Button variant="outline" onClick={onClose}>
                         キャンセル
                     </Button>
-                    <Button onClick={onSave}>保存</Button>
+                    <Button onClick={onSave}>
+                        保存
+                    </Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
     );
-};
-*/
+}

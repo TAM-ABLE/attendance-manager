@@ -11,7 +11,7 @@ import { DayAttendance, User } from "../../../../shared/types/Attendance";
 interface Props {
     user: User;
     monthData: DayAttendance[];
-    openEditDialog: (user: User, dayData: DayAttendance) => void;
+    openEditDialog: (date: string) => void;
     exportCSV: () => void;
 }
 
@@ -79,11 +79,9 @@ export const UserMonthlyAttendance = ({ user, monthData, openEditDialog, exportC
                                         <TableCell>{dayData.hasData ? formatDurationMs(dayData.breakTotalHours) : '-'}</TableCell>
                                         <TableCell>{dayData.hasData ? formatDurationMs(dayData.workTotalHours) : '-'}</TableCell>
                                         <TableCell>
-                                            {dayData.hasData ?
-                                                <Button variant="outline" size="sm" onClick={() => openEditDialog(user, dayData)}>
-                                                    <Edit className="h-4 w-4 mr-2" />編集
-                                                </Button>
-                                                : <span className="text-muted-foreground">-</span>}
+                                            <Button variant="outline" size="sm" onClick={() => openEditDialog("2025-11-30")}>
+                                                <Edit className="h-4 w-4 mr-2" />編集
+                                            </Button>
                                         </TableCell>
                                     </TableRow>
                                 );
