@@ -67,9 +67,9 @@ export const UserMonthlyAttendance = ({ user, monthData, openEditDialog, exportC
                         <TableBody>
                             {monthData.map(dayData => {
                                 return (
-                                    <TableRow key={dayData.date} className={''}>
-                                        <TableCell>{dayData.date}</TableCell>
-                                        <TableCell className={''}>{dayData.day}</TableCell>
+                                    <TableRow key={dayData.dateLabel} className={''}>
+                                        <TableCell>{dayData.dateLabel}</TableCell>
+                                        <TableCell className={''}>{dayData.weekday}</TableCell>
                                         <TableCell>{dayData.session1ClockIn != null ? formatClockTime(dayData.session1ClockIn) : '-'}</TableCell>
                                         <TableCell>{dayData.session1ClockOut != null ? formatClockTime(dayData.session1ClockOut) : '-'}</TableCell>
                                         <TableCell>{dayData.session2ClockIn != null ? formatClockTime(dayData.session2ClockIn) : '-'}</TableCell>
@@ -79,7 +79,7 @@ export const UserMonthlyAttendance = ({ user, monthData, openEditDialog, exportC
                                         <TableCell>{dayData.hasData ? formatDurationMs(dayData.breakTotalHours) : '-'}</TableCell>
                                         <TableCell>{dayData.hasData ? formatDurationMs(dayData.workTotalHours) : '-'}</TableCell>
                                         <TableCell>
-                                            <Button variant="outline" size="sm" onClick={() => openEditDialog("2025-11-30")}>
+                                            <Button variant="outline" size="sm" onClick={() => openEditDialog(dayData.date)}>
                                                 <Edit className="h-4 w-4 mr-2" />編集
                                             </Button>
                                         </TableCell>
