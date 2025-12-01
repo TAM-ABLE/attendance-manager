@@ -24,7 +24,7 @@ export const formatDurationMs = (ms: number) => {
 };
 
 export const formatClockTime = (timestamp?: number) => {
-    if (!timestamp) return "--:--";
+    if (timestamp == null) return "--:--";
 
     const date = new Date(timestamp);
     const h = date.getHours().toString().padStart(2, "0");
@@ -33,6 +33,19 @@ export const formatClockTime = (timestamp?: number) => {
     return `${h}:${m}`;
 };
 
+// date: "YYYY-MM-DD"
+// time: "HH:MM"
+export const mergeDateAndTime = (date: string | null, time: string) => {
+    if (!date || !time) return undefined;
+
+    const [h, m] = time.split(":").map(Number);
+
+    // YYYY-MM-DD を Date にする（ローカル扱い）
+    const d = new Date(date);
+    d.setHours(h, m, 0, 0);
+
+    return d.getTime();
+}
 
 export const getISOWeekNumber = (date: Date) => {
     const tmp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
