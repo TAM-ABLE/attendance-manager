@@ -94,8 +94,9 @@ attendanceUserMonthRouter.get('/', async (c) => {
 
         if (!record) {
             result.push({
-                day: weekday,
-                date: dateLabel,
+                date: dateStr,
+                weekday: weekday,
+                dateLabel: dateLabel,
                 hasData: false,
                 session1ClockIn: null,
                 session1ClockOut: null,
@@ -154,8 +155,9 @@ attendanceUserMonthRouter.get('/', async (c) => {
         });
 
         result.push({
-            day: weekday,
-            date: dateLabel,
+            date: dateStr,
+            weekday: weekday,
+            dateLabel: dateLabel,
             hasData: true,
             ...clockFields,
             workTotalHours: workTotal,

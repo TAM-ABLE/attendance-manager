@@ -19,8 +19,9 @@ export interface AttendanceRecord {
 }
 
 export interface DayAttendance {
-    day: string;
-    date: string;
+    date: string; // 'YYYY-MM-DD'
+    weekday: string;
+    dateLabel: string;
     hasData: boolean;
     session1ClockIn?: number | null;
     session1ClockOut?: number | null;
