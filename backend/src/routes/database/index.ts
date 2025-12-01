@@ -11,6 +11,8 @@ import attendanceBreakStartRouter from './attendance/break-start';
 import attendanceBreakEndRouter from './attendance/break-end'
 import attendanceWeekTotalHoursRouter from './attendance/week-total-hours'
 import attendanceUserMonthRouter from './attendance/user-month';
+import attendanceGetUserDateSessions from './attendance/get-user-date-work-sessions';
+import attendanceUpdateUserDateSessions from './attendance/update-user-date-work-sessions';
 
 type Env = {
     SUPABASE_URL: string;
@@ -23,6 +25,8 @@ const database = new Hono<{ Bindings: Env }>();
 database.use('*', cors());
 
 // 各ルーターをマウント
+database.route('/attendance/update-user-date-work-sessions', attendanceUpdateUserDateSessions);
+database.route('/attendance/get-user-date-work-sessions', attendanceGetUserDateSessions)
 database.route('/attendance/users', attendanceUsersRouter);
 database.route('/attendance/user-month', attendanceUserMonthRouter);
 database.route('/attendance/day', attendanceDayRouter);
