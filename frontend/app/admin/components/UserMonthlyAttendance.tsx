@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Edit, Download } from "lucide-react";
 import { formatClockTime, formatDurationMs } from "@/lib/time";
 import { DayAttendance, User } from "../../../../shared/types/Attendance";
+import { exportMonthlyAttendanceCSV } from "@/lib/exportCsv";
 
 interface Props {
     user: User;
@@ -20,6 +21,10 @@ export const UserMonthlyAttendance = ({ user, monthData, openEditDialog, exportC
     const totalMonthHours = monthData.reduce((acc, d) => acc + d.workTotalHours, 0);
 
     const getInitials = (name: string) => name.slice(0, 2);
+
+    const handleExportCSV = () => {
+        exportMonthlyAttendanceCSV(monthData, user.name);
+    };
 
     return (
         <Card>
@@ -91,7 +96,7 @@ export const UserMonthlyAttendance = ({ user, monthData, openEditDialog, exportC
                 </div>
 
                 <div className="mt-4 flex justify-end">
-                    <Button variant="outline" size="sm" onClick={exportCSV}>
+                    <Button variant="outline" size="sm" onClick={handleExportCSV}>
                         <Download className="h-4 w-4 mr-2" />CSVダウンロード
                     </Button>
                 </div>
