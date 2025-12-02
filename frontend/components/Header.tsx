@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { Session } from "next-auth";
+import { signOut } from "next-auth/react";
 
 // Headerコンポーネント
 export function Header({ currentUser }: { currentUser: Session["user"] | null }) {
@@ -32,7 +33,7 @@ export function Header({ currentUser }: { currentUser: Session["user"] | null })
         ...(isAdmin ? [{ href: "/admin", label: "管理者", icon: Users }] : []),
     ];
 
-    const getInitials = (name: string | undefined) =>
+    const getInitials = (name: string | null | undefined) =>
         name ? name.charAt(0).toUpperCase() : "U";
 
     return (
@@ -87,6 +88,15 @@ export function Header({ currentUser }: { currentUser: Session["user"] | null })
                             {currentUser.email ?? ""}
                         </p>
                     </div>
+                    {/* ログアウトボタン */}
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="ml-4"
+                        onClick={() => signOut({ callbackUrl: "/login" })}
+                    >
+                        ログアウト
+                    </Button>
                 </div>
             </div>
 
