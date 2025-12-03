@@ -15,7 +15,7 @@ export default function AttendanceHistory() {
             <h2 className="text-xl font-semibold">勤怠履歴</h2>
             <p className="text-muted-foreground">カレンダーから日付を選択して詳細を表示</p>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-stretch">
                 <CalendarPanel
                     selectedDate={selectedDate}
                     currentMonth={currentMonth}
@@ -24,10 +24,12 @@ export default function AttendanceHistory() {
                     onMonthChange={setCurrentMonth}
                 />
 
-                <DayDetailCard
-                    selectedDate={selectedDate}
-                    selectedDayData={selectedDayData}
-                />
+                <div className="lg:col-span-2 h-full">
+                    <DayDetailCard
+                        selectedDate={selectedDate}
+                        selectedDayData={selectedDayData}
+                    />
+                </div>
             </div>
 
             <MonthlySummaryCard totalDays={attendanceData.length} totalHours={calculateMonthWorkHours(attendanceData)} />
