@@ -16,7 +16,7 @@ export function DayDetailCard({
     selectedDayData,
 }: Props) {
     return (
-        <Card>
+        <Card className="h-full flex flex-col">
             <CardHeader>
                 <CardTitle>詳細情報</CardTitle>
                 <CardDescription>
@@ -29,19 +29,19 @@ export function DayDetailCard({
                 </CardDescription>
             </CardHeader>
 
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 flex-1">
                 {selectedDayData ? (
                     <>
                         <div className="space-y-2">
                             <div className="flex justify-between items-center pb-2 border-b">
-                                <span className="text-sm text-muted-foreground">セッション数</span>
-                                <Badge>{selectedDayData.sessions.length}回</Badge>
-                            </div>
-                            <div className="flex justify-between items-center">
                                 <span>総勤務時間</span>
                                 <span className="text-xl">
                                     {formatDurationMs(calculateDayWorkHours(selectedDayData.sessions))}
                                 </span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-sm text-muted-foreground">セッション数</span>
+                                <Badge>{selectedDayData.sessions.length}回</Badge>
                             </div>
                         </div>
 
