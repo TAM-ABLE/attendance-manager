@@ -21,7 +21,7 @@ export function CalendarPanel({
     onMonthChange,
 }: Props) {
     return (
-        <Card className="lg:col-span-2">
+        <Card className="h-full flex flex-col">
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <CardTitle>
@@ -56,23 +56,31 @@ export function CalendarPanel({
                 </div>
             </CardHeader>
 
-            <CardContent>
-                <CalendarComponent
-                    mode="single"
-                    selected={selectedDate}
-                    onSelect={onSelectDate}
-                    month={currentMonth}
-                    onMonthChange={onMonthChange}
-                    className="rounded-md border"
-                    modifiers={{
-                        hasAttendance: attendanceData.map(record =>
-                            new Date(record.sessions[0]?.clockIn)
-                        ),
-                    }}
-                    modifiersClassNames={{
-                        hasAttendance: "bg-primary/10 font-semibold",
-                    }}
-                />
+            <CardContent className="flex-1 flex items-center justify-center">
+                <div className="flex justify-center">
+                    <div className="w-fit max-w-full scale-110 origin-center">
+                        <CalendarComponent
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={onSelectDate}
+                            month={currentMonth}
+                            onMonthChange={onMonthChange}
+                            className="rounded-md border"
+                            modifiers={{
+                                hasAttendance: attendanceData
+                                    .filter(record => record.date && record.sessions && record.sessions.length > 0)
+                                    .map(record => {
+                                        // dateは 'YYYY-MM-DD' 形式の文字列なので、Dateオブジェクトに変換
+                                        const [year, month, day] = record.date.split('-').map(Number);
+                                        return new Date(year, month - 1, day);
+                                    }),
+                            }}
+                            modifiersClassNames={{
+                                hasAttendance: "bg-primary/10 font-semibold",
+                            }}
+                        />
+                    </div>
+                </div>
             </CardContent>
         </Card>
     );
