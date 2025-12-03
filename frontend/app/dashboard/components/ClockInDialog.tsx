@@ -10,12 +10,20 @@ import { Plus, X } from "lucide-react";
 
 export const ClockInDialog = ({ open, onClose, onSubmit }: { open: boolean; onClose: () => void; onSubmit: () => Promise<void>; }) => {
 
-    const [plannedTasks, setPlannedTasks] = useState([
+    const [plannedTasks, setPlannedTasks] = useState<{ task: string, hours: string }[]>([
         { task: "", hours: "" },
     ]);
 
     const handleSubmit = async () => {
         await onSubmit();
+        // onSubmitがうまくいったらRoute Handler
+        await fetch("/api/slack/clock-in-report", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                plannedTasks: plannedTasks,
+            }),
+        });
         setPlannedTasks([{ task: "", hours: "" }]);
         onClose();
     };
