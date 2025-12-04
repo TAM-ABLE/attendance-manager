@@ -2,7 +2,6 @@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Edit, Download } from "lucide-react";
 import { formatClockTime, formatDurationMs } from "@/lib/time";
@@ -13,10 +12,9 @@ interface Props {
     user: User;
     monthData: DayAttendance[];
     openEditDialog: (date: string) => void;
-    exportCSV: () => void;
 }
 
-export const UserMonthlyAttendance = ({ user, monthData, openEditDialog, exportCSV }: Props) => {
+export const UserMonthlyAttendance = ({ user, monthData, openEditDialog }: Props) => {
     const workMonthDays = monthData.filter(d => d.hasData).length;
     const totalMonthHours = monthData.reduce((acc, d) => acc + d.workTotalHours, 0);
 
