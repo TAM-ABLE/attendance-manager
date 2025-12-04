@@ -1,29 +1,37 @@
 // hooks/useUsers.ts
 "use client";
 
+import useSWR from "swr";
 import { useEffect, useState } from "react";
 import { User } from "../../../../shared/types/Attendance";
 
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
 export function useUsers() {
-    const [users, setUsers] = useState<User[]>([]);
+    const { data: users, error, isLoading } = useSWR<User[]>(
+        "/api/attendance/users",
+        fetcher,
+        {
+            revalidateOnFocus: false,   // 画面に戻ってきた時に再fetchしない
+            dedupingInterval: 30 * 60 * 1000, // 30分以内の重複fetchを防ぐ
+            refreshInterval: 0,        // 自動ポーリングなし
+        }
+    );
+
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
+    // users を受け取ったタイミングで selectedUser を初期化
     useEffect(() => {
-        async function fetchUsers() {
-            const res = await fetch(`/api/attendance/users`);
-            const usersData: User[] = await res.json();
-            if (Array.isArray(usersData)) {
-                setUsers(usersData);
-                if (usersData.length > 0) {
-                    setSelectedUser(usersData[0]);
-                }
-            } else {
-                console.error("users API is not returning an array:", usersData);
-                setUsers([]); // fallback
-            }
+        if (users && users.length > 0 && !selectedUser) {
+            setSelectedUser(users[0]);
         }
-        fetchUsers();
-    }, []);
+    }, [users]);
 
-    return { users, selectedUser, setSelectedUser };
+    return {
+        users: users || [],
+        selectedUser,
+        setSelectedUser,
+        isLoading,
+        error,
+    };
 }
