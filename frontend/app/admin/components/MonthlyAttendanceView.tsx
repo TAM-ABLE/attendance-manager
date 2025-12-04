@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,90 +14,25 @@ import {
 
 import { UserMonthlyAttendance } from "./UserMonthlyAttendance";
 import { EditAttendanceDialog } from "./EditAttendanceDialog";
-import { User, DayAttendance, WorkSession } from "../../../../shared/types/Attendance";
+import { useUsers } from "../hooks/useUsers";
+import { useMonthlyAttendance } from "../hooks/useMonthlyAttendance";
+import { useEditDialog } from "../hooks/useEditDialog";
 
 export function MonthlyAttendanceView() {
-    const [users, setUsers] = useState<User[]>([]);
-    const [selectedUser, setSelectedUser] = useState<User | null>(null);
+
     const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [monthData, setMonthData] = useState<DayAttendance[] | null>(null);
+    const { users, selectedUser, setSelectedUser } = useUsers();
+    const { monthData, setMonthData } = useMonthlyAttendance(selectedUser, currentMonth);
 
-    // 編集用
-    const [showEditDialog, setShowEditDialog] = useState(false);
-    const [selectedEdittingDate, setSelectedEdittingDate] = useState<string | null>(null);
-    const [edittingWorkSessions, setEdittingWorkSessions] = useState<WorkSession[]>([]);
-
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
-
-    // ユーザー取得
-    useEffect(() => {
-        async function fetchUsers() {
-            const res = await fetch(`/api/attendance/users`);
-            const usersData: User[] = await res.json();
-            setUsers(usersData);
-
-            if (usersData.length > 0) {
-                setSelectedUser(usersData[0]);
-            }
-        }
-        fetchUsers();
-    }, []);
-
-    // 月データ取得
-    useEffect(() => {
+    const reloadMonth = async () => {
         if (!selectedUser) return;
-
-        async function fetchMonthData() {
-            const res = await fetch(
-                `/api/attendance/user-month?userId=${selectedUser?.id}&year=${year}&month=${month}`
-            );
-            const data: DayAttendance[] = await res.json();
-            setMonthData(data);
-        }
-
-        fetchMonthData();
-    }, [selectedUser, year, month]);
-
-    // ダイアログを開く（date を yyyy-mm-dd 形式で受け取る
-    const openEditDialog = async (date: string) => {
-        setSelectedEdittingDate(date);
-
-        // --- 対象日のセッションをロード ---
         const res = await fetch(
-            `/api/attendance/get-user-date-work-sessions?userId=${selectedUser?.id}&date=${date}`
+            `/api/attendance/user-month?userId=${selectedUser.id}&year=${currentMonth.getFullYear()}&month=${currentMonth.getMonth()}`
         );
-        const data: WorkSession[] = await res.json(); //なくてもから配列で帰ってくる
-
-        setEdittingWorkSessions(data);
-        setShowEditDialog(true);
+        setMonthData(await res.json());
     };
 
-    const closeDialog = () => setShowEditDialog(false);
-
-    // 保存処理（sessions のみ送る）
-    const handleSubmitEdit = async () => {
-        await fetch("/api/attendance/update-user-date-work-sessions", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                userId: selectedUser?.id,
-                date: selectedEdittingDate,
-                sessions: edittingWorkSessions,
-            }),
-        });
-
-        // 月データを再読み込み
-        if (selectedUser) {
-            const res = await fetch(
-                `/api/attendance/user-month?userId=${selectedUser.id}&year=${currentMonth.getFullYear()}&month=${currentMonth.getMonth()}`
-            );
-            const data: DayAttendance[] = await res.json();
-            setMonthData(data);
-        }
-
-        setShowEditDialog(false);
-    };
+    const editDialog = useEditDialog(selectedUser, reloadMonth);
 
     return (
         <div className="space-y-6">
@@ -127,7 +62,7 @@ export function MonthlyAttendanceView() {
                         </Button>
 
                         <span className="ml-2 text-lg font-semibold">
-                            {year}年{month + 1}月
+                            {currentMonth.getFullYear()}年{currentMonth.getMonth() + 1}月
                         </span>
                     </div>
 
@@ -158,19 +93,18 @@ export function MonthlyAttendanceView() {
                 <UserMonthlyAttendance
                     user={selectedUser}
                     monthData={monthData}
-                    openEditDialog={openEditDialog}
-                    exportCSV={() => console.log("エクスポート")}
+                    openEditDialog={editDialog.openDialog}
                 />
             )}
 
             {/* 編集ダイアログ */}
             <EditAttendanceDialog
-                open={showEditDialog}
-                date={selectedEdittingDate}
-                onClose={closeDialog}
-                onSave={handleSubmitEdit}
-                sessions={edittingWorkSessions ?? []}
-                setSessions={setEdittingWorkSessions}
+                open={editDialog.showEditDialog}
+                date={editDialog.selectedDate}
+                onClose={editDialog.closeDialog}
+                onSave={editDialog.saveSessions}
+                sessions={editDialog.sessions}
+                setSessions={editDialog.setSessions}
             />
         </div>
     );
