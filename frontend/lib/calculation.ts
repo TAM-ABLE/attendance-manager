@@ -1,25 +1,32 @@
 import { AttendanceRecord, WorkSession } from "../../shared/types/Attendance";
 import { getISOWeekNumber } from "@/lib/time";
 
-/**
- * セッション単位（1回の出勤〜退勤）の労働時間（ms）
- */
+// 1セッション単位（1回の出勤〜退勤）の休憩時間（ms）
+export const calculateSessionBreakHours = (s: WorkSession) => {
+    return s.breaks.reduce((sum, b) => {
+        if (!b.start || !b.end) return sum;
+        return sum + (b.end - b.start);
+    }, 0);
+};
+
+// 1セッション単位（1回の出勤〜退勤）の労働時間（ms）
 export const calculateSessionWorkHours = (s: WorkSession) => {
     if (!s.clockIn || !s.clockOut) return 0;
 
-    const work = s.clockOut - s.clockIn; // 出勤〜退勤の ms
-    const breaks = s.breaks.reduce(
-        (sum, b) => (b.end ? sum + (b.end - b.start) : sum),
-        0
-    );
+    const work = s.clockOut - s.clockIn;
+    const breaks = calculateSessionBreakHours(s);
 
-    // ミリ秒で返す
     return Math.max(0, work - breaks);
 };
 
-/**
- * 1日の総労働時間（ms）
- */
+// 1日の総休憩時間（ms）
+export const calculateDayBreakHours = (sessions: WorkSession[]) => {
+    return sessions.reduce((sum, session) => {
+        return sum + calculateSessionBreakHours(session);
+    }, 0);
+}
+
+// 1日の総労働時間（ms）
 export const calculateDayWorkHours = (sessions: WorkSession[]) => {
     return sessions.reduce((sum, session) => {
         return sum + calculateSessionWorkHours(session);

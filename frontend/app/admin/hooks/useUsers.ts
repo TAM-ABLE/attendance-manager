@@ -2,7 +2,7 @@
 "use client";
 
 import useSWR from "swr";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { User } from "../../../../shared/types/Attendance";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -18,14 +18,19 @@ export function useUsers() {
         }
     );
 
+    // users が取得されたら最初のユーザーを返すメモ化値
+    const firstUser = useMemo(() => {
+        if (!users || users.length === 0) return null;
+        return users[0];
+    }, [users]);
+
+    // selectedUser の初期値は users[0]
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
-    // users を受け取ったタイミングで selectedUser を初期化
-    useEffect(() => {
-        if (users && users.length > 0 && !selectedUser) {
-            setSelectedUser(users[0]);
-        }
-    }, [users]);
+    // 初回だけ firstUser があるならセット
+    if (selectedUser === null && firstUser !== null) {
+        setSelectedUser(firstUser);
+    }
 
     return {
         users: users || [],

@@ -1,21 +1,19 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { formatDurationMs } from "@/lib/time";
 import { AttendanceRecord } from "../../../../shared/types/Attendance";
+import { calculateDayWorkHours, calculateDayBreakHours } from "@/lib/calculation";
 
 export function SummaryCard({ attendance }: { attendance: AttendanceRecord | null }) {
 
     if (!attendance || !attendance.sessions) return null;
+
     const sessionCount = attendance.sessions.length;
-    const work = attendance.sessions.reduce((sum, s) => {
-        if (!s.clockOut) return sum;
-        const work = s.clockOut - s.clockIn;
-        const breaks = s.breaks.reduce((t, b) => t + (b.end ? b.end - b.start : 0), 0);
-        return sum + (work - breaks);
-    }, 0);
-    const breaks = attendance.sessions.reduce(
-        (sum, s) => sum + s.breaks.reduce((t, b) => t + (b.end ? b.end - b.start : 0), 0),
-        0
-    );
+
+    // 勤務時間（ms）
+    const work = calculateDayWorkHours(attendance.sessions);
+
+    // 休憩時間（ms）
+    const breaks = calculateDayBreakHours(attendance.sessions);
 
     return (
         <Card>
