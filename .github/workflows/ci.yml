@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  backend:
+    name: Backend Lint & TypeCheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Enable pnpm
+        run: corepack enable && corepack prepare pnpm@latest --activate
+
+      - name: Install backend dependencies
+        run: pnpm install
+        working-directory: backend
+
+      - name: Run backend lint
+        run: pnpm lint
+        working-directory: backend
+
+      - name: Backend TypeScript type check
+        run: pnpm tsc --noEmit
+        working-directory: backend
+
+  frontend:
+    name: Frontend Lint & TypeCheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Enable pnpm
+        run: corepack enable && corepack prepare pnpm@latest --activate
+
+      - name: Install frontend dependencies
+        run: pnpm install
+        working-directory: frontend
+
+      - name: Run frontend lint
+        run: pnpm lint
+        working-directory: frontend
+
+      - name: Frontend TypeScript type check
+        run: pnpm tsc --noEmit
+        working-directory: frontend
