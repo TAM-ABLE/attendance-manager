@@ -2,38 +2,63 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
 
 jobs:
-  lint-and-typecheck:
-    name: Lint & TypeCheck
+  backend:
+    name: Backend Lint & TypeCheck
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        project: [frontend, backend]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup Node.js and pnpm
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 20
-      - run: corepack enable && corepack prepare pnpm@latest --activate
 
+      - name: Enable pnpm
+        run: corepack enable && corepack prepare pnpm@latest --activate
 
-      - name: Install dependencies
+      - name: Install backend dependencies
         run: pnpm install
-        working-directory: ${{ matrix.project }}
+        working-directory: backend
 
-      - name: Run lint
+      - name: Run backend lint
         run: pnpm lint
-        working-directory: ${{ matrix.project }}
+        working-directory: backend
 
-      - name: TypeScript type check
+      - name: Backend TypeScript type check
         run: pnpm tsc --noEmit
-        working-directory: ${{ matrix.project }}
+        working-directory: backend
+
+  frontend:
+    name: Frontend Lint & TypeCheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Enable pnpm
+        run: corepack enable && corepack prepare pnpm@latest --activate
+
+      - name: Install frontend dependencies
+        run: pnpm install
+        working-directory: frontend
+
+      - name: Run frontend lint
+        run: pnpm lint
+        working-directory: frontend
+
+      - name: Frontend TypeScript type check
+        run: pnpm tsc --noEmit
+        working-directory: frontend
