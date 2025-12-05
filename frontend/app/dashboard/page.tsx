@@ -17,7 +17,7 @@ export default function Dashboard() {
         attendance,
         currentSession,
         onBreak,
-        weekTotalHours,
+        weekTotalMs,
         handleClockIn,
         handleClockOut,
         handleBreakStart,
@@ -48,7 +48,7 @@ export default function Dashboard() {
 
             <SummaryCard attendance={attendance} />
             <SessionList attendance={attendance} currentSession={currentSession} onBreak={onBreak} />
-            <WeeklyAlert weeklyHours={weekTotalHours} />
+            <WeeklyAlert weeklyMs={weekTotalMs} />
 
             {/* ダイアログ */}
             <ClockInDialog

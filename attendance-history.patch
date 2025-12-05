@@ -1,0 +1,131 @@
+﻿diff --git a/frontend/app/attendance-history/components/CalendarPanel.tsx b/frontend/app/attendance-history/components/CalendarPanel.tsx
+index 6598eff..c2dcfbf 100644
+--- a/frontend/app/attendance-history/components/CalendarPanel.tsx
++++ b/frontend/app/attendance-history/components/CalendarPanel.tsx
+@@ -21,7 +21,7 @@ export function CalendarPanel({
+     onMonthChange,
+ }: Props) {
+     return (
+-        <Card className="lg:col-span-2">
++        <Card className="h-full flex flex-col">
+             <CardHeader>
+                 <div className="flex items-center justify-between">
+                     <CardTitle>
+@@ -56,23 +56,31 @@ export function CalendarPanel({
+                 </div>
+             </CardHeader>
+ 
+-            <CardContent>
+-                <CalendarComponent
+-                    mode="single"
+-                    selected={selectedDate}
+-                    onSelect={onSelectDate}
+-                    month={currentMonth}
+-                    onMonthChange={onMonthChange}
+-                    className="rounded-md border"
+-                    modifiers={{
+-                        hasAttendance: attendanceData.map(record =>
+-                            new Date(record.sessions[0]?.clockIn)
+-                        ),
+-                    }}
+-                    modifiersClassNames={{
+-                        hasAttendance: "bg-primary/10 font-semibold",
+-                    }}
+-                />
++            <CardContent className="flex-1 flex items-center justify-center">
++                <div className="flex justify-center">
++                    <div className="w-fit max-w-full scale-110 origin-center">
++                        <CalendarComponent
++                            mode="single"
++                            selected={selectedDate}
++                            onSelect={onSelectDate}
++                            month={currentMonth}
++                            onMonthChange={onMonthChange}
++                            className="rounded-md border"
++                            modifiers={{
++                                hasAttendance: attendanceData
++                                    .filter(record => record.date && record.sessions && record.sessions.length > 0)
++                                    .map(record => {
++                                        // date縺ｯ 'YYYY-MM-DD' 蠖｢蠑上・譁・ｭ怜・縺ｪ縺ｮ縺ｧ縲．ate繧ｪ繝悶ず繧ｧ繧ｯ繝医↓螟画鋤
++                                        const [year, month, day] = record.date.split('-').map(Number);
++                                        return new Date(year, month - 1, day);
++                                    }),
++                            }}
++                            modifiersClassNames={{
++                                hasAttendance: "bg-primary/10 font-semibold",
++                            }}
++                        />
++                    </div>
++                </div>
+             </CardContent>
+         </Card>
+     );
+diff --git a/frontend/app/attendance-history/components/DayDetailCard.tsx b/frontend/app/attendance-history/components/DayDetailCard.tsx
+index 925ed66..299b348 100644
+--- a/frontend/app/attendance-history/components/DayDetailCard.tsx
++++ b/frontend/app/attendance-history/components/DayDetailCard.tsx
+@@ -16,7 +16,7 @@ export function DayDetailCard({
+     selectedDayData,
+ }: Props) {
+     return (
+-        <Card>
++        <Card className="h-full flex flex-col">
+             <CardHeader>
+                 <CardTitle>隧ｳ邏ｰ諠・ｱ</CardTitle>
+                 <CardDescription>
+@@ -29,20 +29,20 @@ export function DayDetailCard({
+                 </CardDescription>
+             </CardHeader>
+ 
+-            <CardContent className="space-y-4">
++            <CardContent className="space-y-4 flex-1">
+                 {selectedDayData ? (
+                     <>
+                         <div className="space-y-2">
+                             <div className="flex justify-between items-center pb-2 border-b">
+-                                <span className="text-sm text-muted-foreground">繧ｻ繝・す繝ｧ繝ｳ謨ｰ</span>
+-                                <Badge>{selectedDayData.sessions.length}蝗・/Badge>
+-                            </div>
+-                            <div className="flex justify-between items-center">
+                                 <span>邱丞共蜍呎凾髢・/span>
+                                 <span className="text-xl">
+                                     {formatDurationMs(calculateDayWorkHours(selectedDayData.sessions))}
+                                 </span>
+                             </div>
++                            <div className="flex justify-between items-center">
++                                <span className="text-sm text-muted-foreground">繧ｻ繝・す繝ｧ繝ｳ謨ｰ</span>
++                                <Badge>{selectedDayData.sessions.length}蝗・/Badge>
++                            </div>
+                         </div>
+ 
+                         <div className="space-y-3 pt-2">
+diff --git a/frontend/app/attendance-history/page.tsx b/frontend/app/attendance-history/page.tsx
+index 14861df..33ddfd1 100644
+--- a/frontend/app/attendance-history/page.tsx
++++ b/frontend/app/attendance-history/page.tsx
+@@ -15,7 +15,7 @@ export default function AttendanceHistory() {
+             <h2 className="text-xl font-semibold">蜍､諤螻･豁ｴ</h2>
+             <p className="text-muted-foreground">繧ｫ繝ｬ繝ｳ繝繝ｼ縺九ｉ譌･莉倥ｒ驕ｸ謚槭＠縺ｦ隧ｳ邏ｰ繧定｡ｨ遉ｺ</p>
+ 
+-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
++            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 items-stretch">
+                 <CalendarPanel
+                     selectedDate={selectedDate}
+                     currentMonth={currentMonth}
+@@ -24,10 +24,12 @@ export default function AttendanceHistory() {
+                     onMonthChange={setCurrentMonth}
+                 />
+ 
+-                <DayDetailCard
+-                    selectedDate={selectedDate}
+-                    selectedDayData={selectedDayData}
+-                />
++                <div className="lg:col-span-2 h-full">
++                    <DayDetailCard
++                        selectedDate={selectedDate}
++                        selectedDayData={selectedDayData}
++                    />
++                </div>
+             </div>
+ 
+             <MonthlySummaryCard totalDays={attendanceData.length} totalHours={calculateMonthWorkHours(attendanceData)} />
