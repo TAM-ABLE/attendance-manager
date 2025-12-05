@@ -3,6 +3,7 @@
 import { Hono } from "hono";
 import { verify } from "hono/jwt";
 import { getSupabaseClient } from "../../../../lib/supabase";
+import { WorkSession } from "../../../../../shared/types/Attendance";
 
 type Env = {
     SUPABASE_URL: string;
@@ -35,7 +36,7 @@ attendanceUpdateUserDateSessions.put("/", async (c) => {
     }
 
     // --- 2. Body ---
-    const { userId, date, sessions } = await c.req.json();
+    const { userId, date, sessions }: { userId: string; date: string; sessions: WorkSession[] } = await c.req.json();
 
     if (!userId || !date || !sessions) {
         return c.json({ error: "Missing parameters" }, 400);
