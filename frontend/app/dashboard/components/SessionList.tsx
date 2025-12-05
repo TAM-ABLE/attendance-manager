@@ -1,8 +1,11 @@
+"use client";
+
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Coffee } from "lucide-react";
 import { AttendanceRecord, WorkSession } from "../../../../shared/types/Attendance";
 import { formatClockTime, formatDurationMs } from "@/lib/time";
+import { useEffect, useState } from "react";
 
 export function SessionList({
     attendance,
@@ -15,6 +18,17 @@ export function SessionList({
 }) {
     if (!attendance || !attendance.sessions?.length) return null;
 
+    // 現在時刻を state 管理（Date.now() を直接使わない）
+    const [now, setNow] = useState(Date.now());
+
+    useEffect(() => {
+        const id = setInterval(() => {
+            setNow(Date.now()); // 1秒おきに更新
+        }, 1000);
+
+        return () => clearInterval(id);
+    }, []);
+
     return (
         <Card>
             <CardHeader>
@@ -22,13 +36,32 @@ export function SessionList({
             </CardHeader>
             <CardContent className="space-y-3">
                 {attendance.sessions.map((s, i) => {
-                    const end = s.clockOut || (currentSession?.id === s.id ? Date.now() : s.clockIn);
-                    const work = end - s.clockIn;
+                    // セッション終了時間
+                    let end: number;
+                    if (s.clockOut != null) {
+                        end = s.clockOut;                           // 退勤済み
+                    } else if (currentSession?.id === s.id) {
+                        end = now;                                  // 今勤務中（Date.now() → now に置換）
+                    } else {
+                        end = s.clockIn ?? 0;                       // 過去セッションの未終了 → 0扱い
+                    }
 
-                    const breakMs = s.breaks.reduce(
-                        (sum, b) => sum + ((b.end || (currentSession?.id === s.id && onBreak ? Date.now() : b.start)) - b.start),
-                        0
-                    );
+                    const work = end - (s.clockIn ?? 0);
+
+                    // 休憩時間合計
+                    const breakMs = s.breaks.reduce((sum, b) => {
+                        let breakEnd: number;
+
+                        if (b.end != null) {
+                            breakEnd = b.end;                       // 休憩終了済み
+                        } else if (currentSession?.id === s.id && onBreak) {
+                            breakEnd = now;                         // 休憩中（Date.now() → now）
+                        } else {
+                            breakEnd = b.start ?? 0;                // 休憩してない扱い
+                        }
+
+                        return sum + (breakEnd - (b.start ?? 0));
+                    }, 0);
 
                     return (
                         <div key={s.id} className="border rounded-lg p-4 space-y-3">
