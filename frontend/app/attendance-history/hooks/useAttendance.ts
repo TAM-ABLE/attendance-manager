@@ -7,13 +7,11 @@ export function useAttendance() {
     const [currentMonth, setCurrentMonth] = useState<Date>(new Date);
     const [attendanceData, setAttendanceData] = useState<AttendanceRecord[]>([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchAttendance = async () => {
             try {
                 setLoading(true);
-                setError(null);
 
                 const year = currentMonth.getFullYear();
                 const month = currentMonth.getMonth() + 1;
@@ -26,28 +24,16 @@ export function useAttendance() {
                     throw new Error("Failed to fetch attendance");
                 }
 
-                const json = await res.json();
+                const data: AttendanceRecord[] = await res.json();
 
-                // API の返却形式に合わせて整形
-                const formatted: AttendanceRecord[] = json.map((day: any) => ({
-                    id: day.id,
-                    date: day.date, // "2025-11-24" など ISO 形式
-                    sessions: day.sessions.map((s: any) => ({
-                        id: s.id,
-                        clockIn: s.clockIn,
-                        clockOut: s.clockOut,
-                        breaks: s.breaks.map((b: any) => ({
-                            id: b.id,
-                            start: b.start,
-                            end: b.end,
-                        })),
-                    })),
-                }));
+                setAttendanceData(data);
 
-                setAttendanceData(formatted);
-
-            } catch (e: any) {
-                setError(e.message);
+            } catch (err: unknown) {
+                if (err instanceof Error) {
+                    console.error("Error:", err.message);
+                } else {
+                    console.error("Unknown error:", err);
+                }
             } finally {
                 setLoading(false);
             }
@@ -68,7 +54,6 @@ export function useAttendance() {
         selectedDate,
         currentMonth,
         loading,
-        error,
         setCurrentMonth,
         setSelectedDate,
     };

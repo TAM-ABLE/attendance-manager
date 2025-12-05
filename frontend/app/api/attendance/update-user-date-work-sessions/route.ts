@@ -37,7 +37,8 @@ export async function PUT(request: Request) {
         let data;
         try {
             data = await res.json();
-        } catch {
+        } catch (err) {
+            console.error("Failed to parse backend response:", err);
             data = { error: "Invalid response from backend" };
         }
 

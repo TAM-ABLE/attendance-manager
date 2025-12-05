@@ -16,10 +16,8 @@ export function SessionList({
     currentSession: WorkSession | null;
     onBreak: boolean;
 }) {
-    if (!attendance || !attendance.sessions?.length) return null;
-
     // 現在時刻を state 管理（Date.now() を直接使わない）
-    const [now, setNow] = useState(Date.now());
+    const [now, setNow] = useState(() => Date.now());
 
     useEffect(() => {
         const id = setInterval(() => {
@@ -28,6 +26,8 @@ export function SessionList({
 
         return () => clearInterval(id);
     }, []);
+
+    if (!attendance || !attendance.sessions?.length) return null;
 
     return (
         <Card>

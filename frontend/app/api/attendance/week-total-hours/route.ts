@@ -20,6 +20,7 @@ export async function GET() {
         try {
             data = await res.json();
         } catch (err) {
+            console.error("Failed to parse backend response:", err);
             data = { error: "Invalid response from backend" };
         }
 

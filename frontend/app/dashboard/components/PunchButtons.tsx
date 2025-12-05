@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Coffee, LogOut, LogIn, Pause, Play } from "lucide-react";
-import { useSession } from "next-auth/react";
 
 interface Props {
     // 出勤・退勤は「ダイアログを開くだけ」
