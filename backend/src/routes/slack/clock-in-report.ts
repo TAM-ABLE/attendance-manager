@@ -33,6 +33,7 @@ slackClockInReport.post("/", async (c) => {
     }
 
     const token = authHeader.split(" ")[1];
+
     let payload: { id: string; role: "admin" | "user" };
 
     try {
@@ -41,9 +42,11 @@ slackClockInReport.post("/", async (c) => {
         return c.json({ error: "Invalid token" }, 401);
     }
 
+    const userId: string = payload.id;
+    console.log(userId);
+
     // body の取得
     const { userName, plannedTasks } = await c.req.json() as {
-        userId: string;
         userName: string;
         plannedTasks: Task[];
     };
