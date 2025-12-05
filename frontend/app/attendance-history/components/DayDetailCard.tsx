@@ -4,7 +4,6 @@ import { AttendanceRecord } from "../../../../shared/types/Attendance";
 import { SessionItem } from "./SessionItem";
 import { formatDurationMs } from "@/lib/time";
 import { calculateDayWorkHours } from "@/lib/calculation";
-import { toJSTDateString } from "../../../lib/time";
 
 interface Props {
     selectedDate: Date | undefined;

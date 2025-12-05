@@ -16,12 +16,10 @@ export default function SignUpPage() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
-        setError(null)
 
         try {
             // ① Hono API へ新規登録
@@ -32,8 +30,6 @@ export default function SignUpPage() {
             })
 
             if (!res.ok) {
-                const err = await res.json().catch(() => ({}))
-                setError(err.error || "登録に失敗しました。")
                 setLoading(false)
                 return
             }
@@ -46,7 +42,6 @@ export default function SignUpPage() {
             })
 
             if (login?.error) {
-                setError("登録後のログインに失敗しました。")
                 setLoading(false)
                 return
             }
@@ -54,8 +49,8 @@ export default function SignUpPage() {
             // ③ ダッシュボードへ
             router.push("/dashboard")
             router.refresh()
-        } catch (error) {
-            setError("サーバーエラーが発生しました。")
+        } catch (err: unknown) {
+            console.error("Error during sign-up:", err)
         } finally {
             setLoading(false)
         }
@@ -132,8 +127,6 @@ export default function SignUpPage() {
                                 />
                             </div>
                         </div>
-
-                        {error && <p className="text-red-500 text-sm">{error}</p>}
 
                         <Button className="w-full" size="lg" disabled={loading}>
                             {loading ? "作成中..." : "アカウントを作成"}

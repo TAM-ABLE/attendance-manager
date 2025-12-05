@@ -7,7 +7,6 @@ import {
     Menu,
     X,
     LayoutDashboard,
-    FileText,
     History,
     Users,
 } from "lucide-react";
