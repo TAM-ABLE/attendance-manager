@@ -39,8 +39,8 @@ attendanceMonthRouter.get('/', async (c) => {
 
     let payload: { id: string; role: "admin" | "user" };
     try {
-        payload = await verify(token, c.env.JWT_SECRET) as any;
-    } catch (e) {
+        payload = await verify(token, c.env.JWT_SECRET) as { id: string; role: "admin" | "user" };
+    } catch {
         return c.json({ error: "Invalid token" }, 401);
     }
 

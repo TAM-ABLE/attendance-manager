@@ -107,9 +107,9 @@ export type Database = {
                 ];
             };
         };
-        Views: {};
-        Functions: {};
-        Enums: {};
-        CompositeTypes: {};
+        Views: object;
+        Functions: object;
+        Enums: object;
+        CompositeTypes: object;
     };
 };
