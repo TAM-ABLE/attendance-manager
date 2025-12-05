@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint-and-typecheck:
+    name: Lint & TypeCheck
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        project: [frontend, backend]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install
+        working-directory: ${{ matrix.project }}
+
+      - name: Run lint
+        run: pnpm lint
+        working-directory: ${{ matrix.project }}
+
+      - name: TypeScript type check
+        run: pnpm tsc --noEmit
+        working-directory: ${{ matrix.project }}
