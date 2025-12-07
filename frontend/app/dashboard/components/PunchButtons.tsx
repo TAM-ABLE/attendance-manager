@@ -3,9 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Coffee, LogOut, LogIn, Pause, Play } from "lucide-react";
+import { Loader } from "@/components/Loader";
 
 interface Props {
-    // 出勤・退勤は「ダイアログを開くだけ」
     onClockIn: () => void;
     onClockOut: () => void;
 
@@ -14,6 +14,7 @@ interface Props {
 
     onBreak: boolean;
     isWorking: boolean;
+    loading: boolean;
 }
 
 export function PunchButtons({
@@ -23,7 +24,16 @@ export function PunchButtons({
     onBreakEnd,
     onBreak,
     isWorking,
+    loading
 }: Props) {
+
+    if (loading) {
+        return (
+            <div className="flex justify-center py-12">
+                <Loader size={40} border={4} />
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-4">
