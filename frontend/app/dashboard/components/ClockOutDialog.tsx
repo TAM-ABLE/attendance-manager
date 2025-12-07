@@ -8,6 +8,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Plus, X } from "lucide-react";
+import { Loader } from "@/components/Loader";
+import { SuccessDialog } from "@/components/SuccessDialog";
+
 
 export const ClockOutDialog = ({ open, onClose, onSubmit }: { open: boolean; onClose: () => void; onSubmit: () => Promise<void>; }) => {
 
@@ -15,30 +18,64 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: { open: boolean; onC
     const [summary, setSummary] = useState<string>("");
     const [issues, setIssues] = useState<string>("");
     const [notes, setNotes] = useState<string>("");
+    const [mode, setMode] = useState<"form" | "loading" | "success">("form");
 
     const handleSubmit = async () => {
+        try {
+            setMode("loading");
 
-        await onSubmit();
+            await onSubmit();
 
-        // onSubmitがうまくいったらRoute Handler
-        await fetch("/api/slack/clock-out-report", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                actualTasks: actualTasks,
-                summary: summary,
-                issues: issues,
-                notes: notes,
-            }),
-        });
+            await fetch("/api/slack/clock-out-report", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    actualTasks,
+                    summary,
+                    issues,
+                    notes,
+                }),
+            });
 
+            setMode("success");
+
+        } catch (e) {
+            console.error(e);
+            setMode("form");
+        }
+    };
+
+    const handleCloseSuccess = () => {
+        onClose();
         setActualTasks([{ task: "", hours: "" }]);
         setSummary("");
         setIssues("");
         setNotes("");
-        onClose();
+        setMode("form");
     };
 
+    // --- Loading UI ---
+    if (mode === "loading") {
+        return (
+            <Dialog open={open} onOpenChange={onClose}>
+                <DialogContent className="flex justify-center py-12">
+                    <Loader size={50} border={4} />
+                </DialogContent>
+            </Dialog>
+        );
+    }
+
+    // --- Success UI ---
+    if (mode === "success") {
+        return (
+            <SuccessDialog
+                open={open}
+                onClose={handleCloseSuccess}
+            />
+        );
+    }
+
+    // --- Form UI ---
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent className="w-[calc(100%-2rem)] max-w-2xl max-h-[90vh] overflow-y-auto p-6">
@@ -66,7 +103,7 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: { open: boolean; onC
                                     </div>
                                     <div className="w-32">
                                         <Input
-                                            placeholder="時間"
+                                            placeholder="1時間"
                                             value={task.hours}
                                             onChange={(e) => {
                                                 const newList = [...actualTasks];
@@ -135,7 +172,6 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: { open: boolean; onC
                 </div>
 
                 <DialogFooter>
-                    <Button variant="outline" onClick={onClose}>戻る</Button>
                     <Button onClick={handleSubmit}>送信</Button>
                 </DialogFooter>
             </DialogContent>
