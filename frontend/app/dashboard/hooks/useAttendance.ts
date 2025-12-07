@@ -24,6 +24,7 @@ export function useAttendance() {
     const [currentSession, setCurrentSession] = useState<WorkSession | null>(null);
     const [onBreak, setOnBreak] = useState<boolean>(false);
     const [weekTotalHours, setWeekTotalHours] = useState<number>(0);
+    const [loading, setLoading] = useState<boolean>(false)
 
     // 初期読み込み
     const loadAll = async () => {
@@ -49,46 +50,50 @@ export function useAttendance() {
 
     // 出勤
     const handleClockIn = async () => {
+        setLoading(true);
         const res = await fetch("/api/attendance/clock-in", { method: "POST" });
+        await loadAll();
+        setLoading(false);
+
         if (!res.ok) {
             console.error("Clock-in failed");
-            return;
         }
-
-        await loadAll();
     };
 
     // 退勤
     const handleClockOut = async () => {
+        setLoading(true);
         const res = await fetch("/api/attendance/clock-out", { method: "POST" });
+        await loadAll();
+        setLoading(false);
+
         if (!res.ok) {
             console.error("Clock-out failed");
-            return;
         }
-
-        await loadAll();
     };
 
     // 休憩開始
     const handleBreakStart = async () => {
+        setLoading(true);
         const res = await fetch("/api/attendance/break-start", { method: "POST" });
+        await loadAll();
+        setLoading(false);
+
         if (!res.ok) {
             console.error("Break-start failed");
-            return;
         }
-
-        await loadAll();
     };
 
     // 休憩終了
     const handleBreakEnd = async () => {
+        setLoading(true);
         const res = await fetch("/api/attendance/break-end", { method: "POST" });
+        await loadAll();
+        setLoading(false);
+
         if (!res.ok) {
             console.error("Break-end failed");
-            return;
         }
-
-        await loadAll();
     };
 
     return {
@@ -100,5 +105,6 @@ export function useAttendance() {
         handleClockOut,
         handleBreakStart,
         handleBreakEnd,
+        loading
     };
 }
