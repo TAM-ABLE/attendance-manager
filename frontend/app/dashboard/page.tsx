@@ -22,6 +22,7 @@ export default function Dashboard() {
         handleClockOut,
         handleBreakStart,
         handleBreakEnd,
+        loading
     } = useAttendance();
 
     const {
@@ -44,6 +45,7 @@ export default function Dashboard() {
                 onBreakEnd={handleBreakEnd}
                 onBreak={onBreak}
                 isWorking={!!currentSession}
+                loading={loading}
             />
 
             <SummaryCard attendance={attendance} />
