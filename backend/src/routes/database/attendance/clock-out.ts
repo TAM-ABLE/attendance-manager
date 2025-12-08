@@ -3,12 +3,7 @@ import { Hono } from 'hono';
 import { getSupabaseClient } from '../../../../lib/supabase';
 import { verify } from 'hono/jwt';
 import { todayJSTString } from '../../../../lib/time';
-
-type Env = {
-    SUPABASE_URL: string;
-    SUPABASE_SERVICE_ROLE_KEY: string;
-    JWT_SECRET: string;
-};
+import { Env } from '../../../types/env';
 
 const attendanceClockOutRouter = new Hono<{ Bindings: Env }>();
 

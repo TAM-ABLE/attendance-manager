@@ -4,12 +4,7 @@ import { verify } from 'hono/jwt';
 import { getSupabaseClient } from '../../../../lib/supabase';
 import { DayAttendance } from '../../../../../shared/types/Attendance';
 import { formatJSTDate } from '../../../../lib/time';
-
-type Env = {
-    SUPABASE_URL: string;
-    SUPABASE_SERVICE_ROLE_KEY: string;
-    JWT_SECRET: string;
-};
+import { Env } from '../../../types/env';
 
 const attendanceUserMonthRouter = new Hono<{ Bindings: Env }>();
 

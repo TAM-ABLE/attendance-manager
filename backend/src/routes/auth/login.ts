@@ -1,13 +1,8 @@
-import { Hono } from 'hono'
-import { getSupabaseClient } from '../../../lib/supabase'
-import bcrypt from 'bcryptjs'
-import { sign } from 'hono/jwt'
-
-type Env = {
-    SUPABASE_URL: string;
-    SUPABASE_SERVICE_ROLE_KEY: string;
-    JWT_SECRET: string;
-};
+import { Hono } from 'hono';
+import { getSupabaseClient } from '../../../lib/supabase';
+import bcrypt from 'bcryptjs';
+import { sign } from 'hono/jwt';
+import { Env } from '../../types/env';
 
 const loginRouter = new Hono<{ Bindings: Env }>();
 
