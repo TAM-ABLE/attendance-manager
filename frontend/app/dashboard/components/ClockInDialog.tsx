@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Plus, X } from "lucide-react";
 import { Loader } from "@/components/Loader";
 import { SuccessDialog } from "@/components/SuccessDialog";
+import { Task } from "../../../../shared/types/Attendance";
 
-export const ClockInDialog = ({ open, onClose, onSubmit }: { open: boolean; onClose: () => void; onSubmit: () => Promise<void>; }) => {
+export const ClockInDialog = ({ open, onClose, onSubmit }: { open: boolean; onClose: () => void; onSubmit: (tasks: Task[]) => Promise<void>; }) => {
 
     const [plannedTasks, setPlannedTasks] = useState<{ task: string, hours: string }[]>([
         { task: "", hours: "" },
@@ -20,15 +21,7 @@ export const ClockInDialog = ({ open, onClose, onSubmit }: { open: boolean; onCl
     const handleSubmit = async () => {
         try {
             setMode("loading");
-
-            await onSubmit();
-
-            await fetch("/api/slack/clock-in-report", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ plannedTasks }),
-            });
-
+            await onSubmit(plannedTasks);
             setMode("success");
         } catch (e) {
             console.error(e);

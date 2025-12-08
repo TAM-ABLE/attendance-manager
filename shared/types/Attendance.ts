@@ -39,3 +39,8 @@ export interface User {
     email: string;
     employeeId: string; //社員ID
 };
+
+export interface Task {
+    task: string;
+    hours: string;
+}
