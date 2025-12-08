@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Plus, X } from "lucide-react";
 import { Loader } from "@/components/Loader";
 import { SuccessDialog } from "@/components/SuccessDialog";
+import { Task } from "../../../../shared/types/Attendance";
 
 
-export const ClockOutDialog = ({ open, onClose, onSubmit }: { open: boolean; onClose: () => void; onSubmit: () => Promise<void>; }) => {
+export const ClockOutDialog = ({ open, onClose, onSubmit }: { open: boolean; onClose: () => void; onSubmit: (actualTasks: Task[], summary: string, issues: string, notes: string) => Promise<void>; }) => {
 
     const [actualTasks, setActualTasks] = useState<{ task: string, hours: string }[]>([{ task: "", hours: "" }]);
     const [summary, setSummary] = useState<string>("");
@@ -23,20 +24,7 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: { open: boolean; onC
     const handleSubmit = async () => {
         try {
             setMode("loading");
-
-            await onSubmit();
-
-            await fetch("/api/slack/clock-out-report", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    actualTasks,
-                    summary,
-                    issues,
-                    notes,
-                }),
-            });
-
+            await onSubmit(actualTasks, summary, issues, notes);
             setMode("success");
 
         } catch (e) {
