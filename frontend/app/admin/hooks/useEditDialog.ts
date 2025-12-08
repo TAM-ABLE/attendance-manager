@@ -1,8 +1,10 @@
-// hooks/useEditDialog.ts
 "use client";
+// hooks/useEditDialog.ts
 
 import { useState } from "react";
 import { WorkSession, User } from "../../../../shared/types/Attendance";
+import { updateWorkSessions } from "@/app/actions/update-work-sessions";
+import { getWorkSessions } from "@/app/actions/get-work-sessions";
 
 export function useEditDialog(selectedUser: User | null, reloadMonthData: () => void) {
     const [showEditDialog, setShowEditDialog] = useState(false);
@@ -10,31 +12,25 @@ export function useEditDialog(selectedUser: User | null, reloadMonthData: () => 
     const [sessions, setSessions] = useState<WorkSession[]>([]);
 
     const openDialog = async (date: string) => {
+        if (!selectedUser) return;
         setSelectedDate(date);
-
-        const res = await fetch(
-            `/api/attendance/get-user-date-work-sessions?userId=${selectedUser?.id}&date=${date}`
-        );
-
-        setSessions(await res.json());
+        setSessions(await getWorkSessions(selectedUser.id, date));
         setShowEditDialog(true);
     };
 
     const closeDialog = () => setShowEditDialog(false);
 
     const saveSessions = async () => {
-        await fetch("/api/attendance/update-user-date-work-sessions", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                userId: selectedUser?.id,
-                date: selectedDate,
-                sessions,
-            }),
-        });
+        if (!selectedUser || !selectedDate) return;
+
+        const res = await updateWorkSessions(selectedUser.id, selectedDate, sessions);
 
         reloadMonthData();
         closeDialog();
+
+        if (!res.success) {
+            console.error("Update-work-sessions failed:", res.error);
+        }
     };
 
     return { showEditDialog, selectedDate, sessions, setSessions, openDialog, closeDialog, saveSessions };
