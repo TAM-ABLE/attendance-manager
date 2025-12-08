@@ -1,6 +1,6 @@
 // lib/exportCsv.ts
 import { DayAttendance } from "../../shared/types/Attendance";
-import { formatClockTime, formatDurationMs } from "./time";
+import { formatClockTime, formatDurationMsToHM } from "./time";
 
 export const exportMonthlyAttendanceCSV = (monthData: DayAttendance[], userName: string) => {
     // CSVヘッダー
@@ -27,8 +27,8 @@ export const exportMonthlyAttendanceCSV = (monthData: DayAttendance[], userName:
         d.session2ClockOut != null ? formatClockTime(d.session2ClockOut) : "-",
         d.session3ClockIn != null ? formatClockTime(d.session3ClockIn) : "-",
         d.session3ClockOut != null ? formatClockTime(d.session3ClockOut) : "-",
-        d.hasData ? formatDurationMs(d.breakTotalHours) : "-",
-        d.hasData ? formatDurationMs(d.workTotalHours) : "-",
+        d.hasData ? formatDurationMsToHM(d.breakTotalHours) : "-",
+        d.hasData ? formatDurationMsToHM(d.workTotalHours) : "-",
     ]);
 
     // CSV文字列を結合
