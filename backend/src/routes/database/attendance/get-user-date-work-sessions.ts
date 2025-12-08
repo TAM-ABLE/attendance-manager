@@ -1,14 +1,9 @@
 // backend/src/routes/database/attendance/get-user-date-work-sessions.ts
-import { Hono } from "hono";
-import { verify } from "hono/jwt";
-import { getSupabaseClient } from "../../../../lib/supabase";
-import type { Database } from "../../../types/supabase";
-
-type Env = {
-    SUPABASE_URL: string;
-    SUPABASE_SERVICE_ROLE_KEY: string;
-    JWT_SECRET: string;
-};
+import { Hono } from 'hono';
+import { verify } from 'hono/jwt';
+import { getSupabaseClient } from '../../../../lib/supabase';
+import type { Database } from '../../../types/supabase';
+import { Env } from '../../../types/env';
 
 // DB row 型
 type DbRecord = Database["public"]["Tables"]["attendance_records"]["Row"] & {

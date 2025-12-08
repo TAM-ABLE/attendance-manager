@@ -1,18 +1,7 @@
-import { Hono } from "hono";
-import { verify } from "hono/jwt";
-
-type Env = {
-    SLACK_BOT_TOKEN: string;
-    SLACK_CHANNEL_ID: string;
-    SUPABASE_URL: string;
-    SUPABASE_SERVICE_ROLE_KEY: string;
-    JWT_SECRET: string;
-};
-
-interface Task {
-    task: string;
-    hours: string;
-}
+import { Hono } from 'hono';
+import { verify } from 'hono/jwt';
+import { Task } from '../../../../shared/types/Attendance';
+import { Env } from '../../types/env';
 
 interface SlackPostMessageResponse {
     ok: boolean;

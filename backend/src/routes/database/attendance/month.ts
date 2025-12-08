@@ -3,12 +3,7 @@ import { Hono } from 'hono';
 import { getSupabaseClient } from '../../../../lib/supabase';
 import type { Database } from '../../../types/supabase';
 import { verify } from 'hono/jwt';
-
-type Env = {
-    SUPABASE_URL: string;
-    SUPABASE_SERVICE_ROLE_KEY: string;
-    JWT_SECRET: string;
-};
+import { Env } from '../../../types/env';
 
 // attendance_records + work_sessions + breaks の型
 type DbAttendanceRecord = Database['public']['Tables']['attendance_records']['Row'] & {

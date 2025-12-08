@@ -1,7 +1,7 @@
-import { Hono } from 'hono'
+import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import loginRouter from './login'
-import registerRouter from './register'
+import loginRouter from './login';
+import registerRouter from './register';
 
 const auth = new Hono()
 

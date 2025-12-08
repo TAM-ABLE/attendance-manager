@@ -1,15 +1,10 @@
 // backend/src/routes/database/attendance/update-user-date-work-sessions.ts
 
-import { Hono } from "hono";
-import { verify } from "hono/jwt";
-import { getSupabaseClient } from "../../../../lib/supabase";
-import { WorkSession } from "../../../../../shared/types/Attendance";
-
-type Env = {
-    SUPABASE_URL: string;
-    SUPABASE_SERVICE_ROLE_KEY: string;
-    JWT_SECRET: string;
-};
+import { Hono } from 'hono';
+import { verify } from 'hono/jwt';
+import { getSupabaseClient } from '../../../../lib/supabase';
+import { WorkSession } from '../../../../../shared/types/Attendance';
+import { Env } from '../../../types/env';
 
 const attendanceUpdateUserDateSessions = new Hono<{ Bindings: Env }>();
 

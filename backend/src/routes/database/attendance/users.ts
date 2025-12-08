@@ -2,12 +2,7 @@
 import { Hono } from 'hono';
 import { verify } from 'hono/jwt';
 import { getSupabaseClient } from '../../../../lib/supabase';
-
-type Env = {
-    SUPABASE_URL: string;
-    SUPABASE_SERVICE_ROLE_KEY: string;
-    JWT_SECRET: string;
-};
+import { Env } from '../../../types/env';
 
 const attendanceUsersRouter = new Hono<{ Bindings: Env }>();
 
