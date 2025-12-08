@@ -3,7 +3,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { AttendanceRecord, WorkSession } from "../../../../shared/types/Attendance";
+import { AttendanceRecord, WorkSession, Task } from "../../../../shared/types/Attendance";
+import { clockInWithTasks } from "@/app/actions/clock-in";
+import { clockOutWithTasks } from "@/app/actions/clock-out";
+import { breakStart } from "@/app/actions/break-start";
+import { breakEnd } from "@/app/actions/break-end";
+
 
 // セッション検出（出勤中かどうか）
 function detectCurrentSession(attendance: AttendanceRecord | null): WorkSession | null {
@@ -48,51 +53,50 @@ export function useAttendance() {
     }, []);
 
 
-    // 出勤
-    const handleClockIn = async () => {
+    const handleClockIn = async (plannedTasks: Task[]) => {
         setLoading(true);
-        const res = await fetch("/api/attendance/clock-in", { method: "POST" });
+        const res = await clockInWithTasks(plannedTasks);
         await loadAll();
         setLoading(false);
 
-        if (!res.ok) {
-            console.error("Clock-in failed");
+        if (!res.success) {
+            console.error("Clock-in failed:", res.error);
         }
     };
 
     // 退勤
-    const handleClockOut = async () => {
+    const handleClockOut = async (actualTasks: Task[], summary: string, issues: string, notes: string) => {
         setLoading(true);
-        const res = await fetch("/api/attendance/clock-out", { method: "POST" });
+        const res = await clockOutWithTasks(actualTasks, summary, issues, notes);
         await loadAll();
         setLoading(false);
 
-        if (!res.ok) {
-            console.error("Clock-out failed");
+        if (!res.success) {
+            console.error("Clock-out failed:", res.error);
         }
     };
 
     // 休憩開始
     const handleBreakStart = async () => {
         setLoading(true);
-        const res = await fetch("/api/attendance/break-start", { method: "POST" });
+        const res = await breakStart();
         await loadAll();
         setLoading(false);
 
-        if (!res.ok) {
-            console.error("Break-start failed");
+        if (!res.success) {
+            console.error("Break-start failed:", res.error);
         }
     };
 
     // 休憩終了
     const handleBreakEnd = async () => {
         setLoading(true);
-        const res = await fetch("/api/attendance/break-end", { method: "POST" });
+        const res = await breakEnd();
         await loadAll();
         setLoading(false);
 
-        if (!res.ok) {
-            console.error("Break-end failed");
+        if (!res.success) {
+            console.error("Break-end failed:", res.error);
         }
     };
 

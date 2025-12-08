@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/com
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Edit, Download } from "lucide-react";
-import { formatClockTime, formatDurationMs } from "@/lib/time";
+import { formatClockTime, formatDurationMs, formatDurationMsToHM } from "@/lib/time";
 import { DayAttendance, User } from "../../../../shared/types/Attendance";
 import { exportMonthlyAttendanceCSV } from "@/lib/exportCsv";
 
@@ -79,8 +79,8 @@ export const UserMonthlyAttendance = ({ user, monthData, openEditDialog }: Props
                                         <TableCell>{dayData.session2ClockOut != null ? formatClockTime(dayData.session2ClockOut) : '-'}</TableCell>
                                         <TableCell>{dayData.session3ClockIn != null ? formatClockTime(dayData.session3ClockIn) : '-'}</TableCell>
                                         <TableCell>{dayData.session3ClockOut != null ? formatClockTime(dayData.session3ClockOut) : '-'}</TableCell>
-                                        <TableCell>{dayData.hasData ? formatDurationMs(dayData.breakTotalHours) : '-'}</TableCell>
-                                        <TableCell>{dayData.hasData ? formatDurationMs(dayData.workTotalHours) : '-'}</TableCell>
+                                        <TableCell>{dayData.hasData ? formatDurationMsToHM(dayData.breakTotalHours) : '-'}</TableCell>
+                                        <TableCell>{dayData.hasData ? formatDurationMsToHM(dayData.workTotalHours) : '-'}</TableCell>
                                         <TableCell>
                                             <Button variant="outline" size="sm" onClick={() => openEditDialog(dayData.date)}>
                                                 <Edit className="h-4 w-4 mr-2" />編集

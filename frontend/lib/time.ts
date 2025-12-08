@@ -23,6 +23,16 @@ export const formatDurationMs = (ms: number) => {
     return `${h}時間${m}分`;
 };
 
+export const formatDurationMsToHM = (ms: number) => {
+    const totalMinutes = Math.floor(ms / 1000 / 60);
+    const h = Math.floor(totalMinutes / 60);
+    const m = totalMinutes % 60;
+
+    const pad = (n: number) => n.toString().padStart(2, "0");
+
+    return `${pad(h)}:${pad(m)}`;
+};
+
 export const formatClockTime = (timestamp?: number) => {
     if (timestamp == null) return "--:--";
 
