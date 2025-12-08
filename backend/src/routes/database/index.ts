@@ -2,6 +2,7 @@
 
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
+import { Env } from '../../types/env';
 import attendanceUsersRouter from './attendance/users';
 import attendanceDayRouter from './attendance/day';
 import attendanceMonthRouter from './attendance/month'
@@ -13,12 +14,6 @@ import attendanceWeekTotalHoursRouter from './attendance/week-total-hours'
 import attendanceUserMonthRouter from './attendance/user-month';
 import attendanceGetUserDateSessions from './attendance/get-user-date-work-sessions';
 import attendanceUpdateUserDateSessions from './attendance/update-user-date-work-sessions';
-
-type Env = {
-    SUPABASE_URL: string;
-    SUPABASE_SERVICE_ROLE_KEY: string;
-    JWT_SECRET: string;
-};
 
 const database = new Hono<{ Bindings: Env }>();
 
