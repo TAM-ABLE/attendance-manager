@@ -28,7 +28,7 @@ export function useAttendance() {
     const [attendance, setAttendance] = useState<AttendanceRecord | null>(null);
     const [currentSession, setCurrentSession] = useState<WorkSession | null>(null);
     const [onBreak, setOnBreak] = useState<boolean>(false);
-    const [weekTotalHours, setWeekTotalHours] = useState<number>(0);
+    const [weekTotalMs, setWeekTotalMs] = useState<number>(0);
     const [loading, setLoading] = useState<boolean>(false)
 
     // 初期読み込み
@@ -42,7 +42,7 @@ export function useAttendance() {
             setAttendance(todayData);
             setCurrentSession(session);
             setOnBreak(detectOnBreak(session));
-            setWeekTotalHours(weekly.netWorkMs);
+            setWeekTotalMs(weekly.netWorkMs);
         } catch (e) {
             console.error("Failed to load attendance:", e);
         }
@@ -104,7 +104,7 @@ export function useAttendance() {
         attendance,
         currentSession,
         onBreak,
-        weekTotalHours,
+        weekTotalMs,
         handleClockIn,
         handleClockOut,
         handleBreakStart,
