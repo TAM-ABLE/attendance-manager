@@ -46,6 +46,7 @@ export default function Dashboard() {
                 onBreak={onBreak}
                 isWorking={!!currentSession}
                 loading={loading}
+                sessionCount={attendance?.sessions?.length || 0}
             />
 
             <SummaryCard attendance={attendance} />
