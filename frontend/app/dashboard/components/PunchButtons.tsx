@@ -70,7 +70,11 @@ export function PunchButtons({
                         onClick={onClockIn}
                         disabled={isWorking || sessionCount >= 3}
                         size="lg"
-                        className="h-24 flex-col gap-2 w-[400px] text-xl font-semibold"
+                        className={`h-24 flex-col gap-2 w-[400px] text-xl font-semibold ${
+                            !isWorking && !onBreak
+                                ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                                : "bg-gray-300 text-gray-500"
+                        }`}
                     >
                         <LogIn className="h-12 w-12" />
                         出勤
@@ -79,10 +83,13 @@ export function PunchButtons({
                     {/* 退勤ボタン → ダイアログ表示のみ */}
                     <Button
                         onClick={onClockOut}
-                        disabled={!isWorking}
-                        variant="destructive"
+                        disabled={!isWorking || onBreak}
                         size="lg"
-                        className="h-24 flex-col gap-2 w-[400px] text-xl font-semibold"
+                        className={`h-24 flex-col gap-2 w-[400px] text-xl font-semibold ${
+                            isWorking && !onBreak
+                                ? "bg-red-500 text-white hover:bg-red-600"
+                                : "bg-gray-200 text-gray-400"
+                        }`}
                     >
                         <LogOut className="h-12 w-12" />
                         退勤
@@ -97,8 +104,11 @@ export function PunchButtons({
                             onClick={() => onBreakStart()}
                             disabled={!isWorking}
                             size="lg"
-                            variant="outline"
-                            className="h-24 flex-col gap-2 w-[400px] text-xl font-semibold"
+                            className={`h-24 flex-col gap-2 w-[400px] text-xl font-semibold ${
+                                isWorking
+                                    ? "bg-gray-900 text-white hover:bg-gray-800"
+                                    : "bg-gray-200 text-gray-400"
+                            }`}
                         >
                             <Coffee className="h-12 w-12" />
                             休憩開始
@@ -107,8 +117,7 @@ export function PunchButtons({
                         <Button
                             onClick={() => onBreakEnd()}
                             size="lg"
-                            variant="outline"
-                            className="h-24 flex-col gap-2 w-[400px] text-xl font-semibold"
+                            className="h-24 flex-col gap-2 w-[400px] text-xl font-semibold bg-gray-900 text-white hover:bg-gray-800"
                         >
                             <Play className="h-12 w-12" />
                             休憩終了
