@@ -15,6 +15,7 @@ interface Props {
     onBreak: boolean;
     isWorking: boolean;
     loading: boolean;
+    sessionCount: number;
 }
 
 export function PunchButtons({
@@ -24,7 +25,8 @@ export function PunchButtons({
     onBreakEnd,
     onBreak,
     isWorking,
-    loading
+    loading,
+    sessionCount
 }: Props) {
 
     if (loading) {
@@ -66,7 +68,7 @@ export function PunchButtons({
                     {/* 出勤ボタン → ダイアログ表示のみ */}
                     <Button
                         onClick={onClockIn}
-                        disabled={isWorking}
+                        disabled={isWorking || sessionCount >= 3}
                         size="lg"
                         className="h-24 flex-col gap-2 w-[400px] text-xl font-semibold"
                     >
