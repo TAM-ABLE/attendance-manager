@@ -61,8 +61,8 @@ export function EditAttendanceDialog({
         if (sessions.length >= 3) return;
         const newSession: WorkSession = {
             id: crypto.randomUUID(),
-            clockIn: mergeDateAndTime(date, "00:00"), // ← 初期値
-            clockOut: mergeDateAndTime(date, "00:00"),   // ← 初期値
+            clockIn: mergeDateAndTime(date, "00:00"),
+            clockOut: mergeDateAndTime(date, "00:00"),
             breaks: [],
         };
         setSessions([...sessions, newSession]);
@@ -72,12 +72,12 @@ export function EditAttendanceDialog({
     const addBreak = (sessionId: string) => {
         const newBreak: Break = {
             id: crypto.randomUUID(),
-            start: mergeDateAndTime(date, "00:00"), // ← 初期値
-            end: mergeDateAndTime(date, "00:00"),   // ← 初期値
+            start: mergeDateAndTime(date, "00:00"),
+            end: mergeDateAndTime(date, "00:00"),
         };
         setSessions(
             sessions.map((s) =>
-                s.id === sessionId ? { ...s, breaks: [...s.breaks, newBreak] } : s
+                s.id === sessionId ? { ...s, breaks: [newBreak, ...s.breaks] } : s
             )
         );
     };
@@ -108,7 +108,7 @@ export function EditAttendanceDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-6 py-4">
+                <div className="space-y-4 py-4">
                     {sessions.map((session, idx) => (
                         <div key={session.id} className="border p-4 rounded-md space-y-4">
                             <h3 className="font-semibold flex justify-between items-center">
@@ -144,16 +144,10 @@ export function EditAttendanceDialog({
 
                             {/* 休憩 */}
                             <div className="mt-4 space-y-2">
-                                <h4 className="font-medium flex items-center justify-between">
-                                    <span>休憩</span>
-                                    <Button size="sm" onClick={() => addBreak(session.id)}>
-                                        休憩追加
-                                    </Button>
-                                </h4>
+                                <h4 className="font-medium">休憩</h4>
 
                                 {session.breaks.map((br) => (
                                     <div key={br.id} className="ml-4 space-y-2 border-l pl-4">
-
                                         <div className="ml-4 space-y-2 border-l pl-4">
                                             {/* 削除ボタン */}
                                             <div className="flex justify-end">
@@ -190,18 +184,30 @@ export function EditAttendanceDialog({
                                                 />
                                             </div>
                                         </div>
-
                                     </div>
                                 ))}
+
+                                {/* 休憩追加ボタン - セッション内 */}
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="mt-2 border-dashed text-muted-foreground"
+                                    onClick={() => addBreak(session.id)}
+                                >
+                                    + 休憩追加
+                                </Button>
                             </div>
                         </div>
                     ))}
-                </div>
 
-                {/* セッション追加ボタン */}
-                <div className="flex justify-end mb-4">
-                    <Button variant="outline" disabled={sessions.length >= 3} onClick={addSession}>
-                        セッション追加
+                    {/* セッション追加ボタン - セッションの外 */}
+                    <Button
+                        variant="outline"
+                        className="w-full border-dashed text-muted-foreground"
+                        disabled={sessions.length >= 3}
+                        onClick={addSession}
+                    >
+                        + セッション追加
                     </Button>
                 </div>
 
