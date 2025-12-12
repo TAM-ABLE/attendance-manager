@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Coffee, LogOut, LogIn, Pause, Play } from "lucide-react";
-import { Loader } from "@/components/Loader";
 
 interface Props {
     onClockIn: () => void;
@@ -14,7 +13,6 @@ interface Props {
 
     onBreak: boolean;
     isWorking: boolean;
-    loading: boolean;
     sessionCount: number;
 }
 
@@ -25,17 +23,8 @@ export function PunchButtons({
     onBreakEnd,
     onBreak,
     isWorking,
-    loading,
     sessionCount
 }: Props) {
-
-    if (loading) {
-        return (
-            <div className="flex justify-center py-12">
-                <Loader size={40} border={4} />
-            </div>
-        );
-    }
 
     return (
         <div className="space-y-4">
@@ -70,11 +59,10 @@ export function PunchButtons({
                         onClick={onClockIn}
                         disabled={isWorking || sessionCount >= 3}
                         size="lg"
-                        className={`h-24 flex-col gap-2 w-[400px] text-xl font-semibold ${
-                            !isWorking && !onBreak
-                                ? "bg-emerald-600 text-white hover:bg-emerald-700"
-                                : "bg-gray-300 text-gray-500"
-                        }`}
+                        className={`h-24 flex-col gap-2 w-[400px] text-xl font-semibold ${!isWorking && !onBreak
+                            ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                            : "bg-gray-300 text-gray-500"
+                            }`}
                     >
                         <LogIn className="h-12 w-12" />
                         出勤
@@ -85,11 +73,10 @@ export function PunchButtons({
                         onClick={onClockOut}
                         disabled={!isWorking || onBreak}
                         size="lg"
-                        className={`h-24 flex-col gap-2 w-[400px] text-xl font-semibold ${
-                            isWorking && !onBreak
-                                ? "bg-red-500 text-white hover:bg-red-600"
-                                : "bg-gray-200 text-gray-400"
-                        }`}
+                        className={`h-24 flex-col gap-2 w-[400px] text-xl font-semibold ${isWorking && !onBreak
+                            ? "bg-red-500 text-white hover:bg-red-600"
+                            : "bg-gray-200 text-gray-400"
+                            }`}
                     >
                         <LogOut className="h-12 w-12" />
                         退勤
@@ -104,11 +91,10 @@ export function PunchButtons({
                             onClick={() => onBreakStart()}
                             disabled={!isWorking}
                             size="lg"
-                            className={`h-24 flex-col gap-2 w-[400px] text-xl font-semibold ${
-                                isWorking
-                                    ? "bg-gray-900 text-white hover:bg-gray-800"
-                                    : "bg-gray-200 text-gray-400"
-                            }`}
+                            className={`h-24 flex-col gap-2 w-[400px] text-xl font-semibold ${isWorking
+                                ? "bg-gray-900 text-white hover:bg-gray-800"
+                                : "bg-gray-200 text-gray-400"
+                                }`}
                         >
                             <Coffee className="h-12 w-12" />
                             休憩開始

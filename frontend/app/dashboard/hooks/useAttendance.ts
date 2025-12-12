@@ -29,7 +29,6 @@ export function useAttendance() {
     const [currentSession, setCurrentSession] = useState<WorkSession | null>(null);
     const [onBreak, setOnBreak] = useState<boolean>(false);
     const [weekTotalMs, setWeekTotalMs] = useState<number>(0);
-    const [loading, setLoading] = useState<boolean>(false)
 
     // 初期読み込み
     const loadAll = async () => {
@@ -54,10 +53,8 @@ export function useAttendance() {
 
 
     const handleClockIn = async (plannedTasks: Task[]) => {
-        setLoading(true);
         const res = await clockInWithTasks(plannedTasks);
         await loadAll();
-        setLoading(false);
 
         if (!res.success) {
             console.error("Clock-in failed:", res.error);
@@ -66,10 +63,8 @@ export function useAttendance() {
 
     // 退勤
     const handleClockOut = async (actualTasks: Task[], summary: string, issues: string, notes: string) => {
-        setLoading(true);
         const res = await clockOutWithTasks(actualTasks, summary, issues, notes);
         await loadAll();
-        setLoading(false);
 
         if (!res.success) {
             console.error("Clock-out failed:", res.error);
@@ -78,10 +73,8 @@ export function useAttendance() {
 
     // 休憩開始
     const handleBreakStart = async () => {
-        setLoading(true);
         const res = await breakStart();
         await loadAll();
-        setLoading(false);
 
         if (!res.success) {
             console.error("Break-start failed:", res.error);
@@ -90,10 +83,8 @@ export function useAttendance() {
 
     // 休憩終了
     const handleBreakEnd = async () => {
-        setLoading(true);
         const res = await breakEnd();
         await loadAll();
-        setLoading(false);
 
         if (!res.success) {
             console.error("Break-end failed:", res.error);
@@ -109,6 +100,5 @@ export function useAttendance() {
         handleClockOut,
         handleBreakStart,
         handleBreakEnd,
-        loading
     };
 }
