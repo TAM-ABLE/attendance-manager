@@ -10,6 +10,7 @@ import { SessionList } from "./components/SessionList";
 import { WeeklyAlert } from "./components/WeeklyAlert";
 import { ClockInDialog } from "./components/ClockInDialog";
 import { ClockOutDialog } from "./components/ClockOutDialog";
+import { BreakDialog } from "./components/BreakDialog";
 import { useClockDialogs } from "./hooks/useClockDialogs";
 
 export default function Dashboard() {
@@ -22,14 +23,17 @@ export default function Dashboard() {
         handleClockOut,
         handleBreakStart,
         handleBreakEnd,
-        loading
     } = useAttendance();
 
     const {
         showClockInDialog,
         showClockOutDialog,
+        showBreakDialog,
+        breakMode,
         openClockIn,
         openClockOut,
+        openBreakStart,
+        openBreakEnd,
         closeDialogs,
     } = useClockDialogs();
 
@@ -41,11 +45,10 @@ export default function Dashboard() {
             <PunchButtons
                 onClockIn={openClockIn}
                 onClockOut={openClockOut}
-                onBreakStart={handleBreakStart}
-                onBreakEnd={handleBreakEnd}
+                onBreakStart={openBreakStart}
+                onBreakEnd={openBreakEnd}
                 onBreak={onBreak}
                 isWorking={!!currentSession}
-                loading={loading}
                 sessionCount={attendance?.sessions?.length || 0}
             />
 
@@ -64,6 +67,14 @@ export default function Dashboard() {
                 open={showClockOutDialog}
                 onClose={closeDialogs}
                 onSubmit={handleClockOut}
+            />
+
+            <BreakDialog
+                open={showBreakDialog}
+                mode={breakMode}
+                onClose={closeDialogs}
+                onStart={handleBreakStart}
+                onEnd={handleBreakEnd}
             />
         </div>
     );
