@@ -108,7 +108,7 @@ export function EditAttendanceDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="space-y-6 py-4">
+                <div className="space-y-4 py-4">
                     {sessions.map((session, idx) => (
                         <div key={session.id} className="border p-4 rounded-md space-y-4">
                             <h3 className="font-semibold flex justify-between items-center">
@@ -144,12 +144,15 @@ export function EditAttendanceDialog({
 
                             {/* 休憩 */}
                             <div className="mt-4 space-y-2">
-                                <h4 className="font-medium flex items-center justify-between">
-                                    <span>休憩</span>
-                                    <Button size="sm" onClick={() => addBreak(session.id)}>
-                                        休憩追加
-                                    </Button>
-                                </h4>
+                                <h4 className="font-medium">休憩</h4>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="w-full"
+                                    onClick={() => addBreak(session.id)}
+                                >
+                                    + 休憩追加
+                                </Button>
 
                                 {session.breaks.map((br) => (
                                     <div key={br.id} className="ml-4 space-y-2 border-l pl-4">
@@ -198,12 +201,15 @@ export function EditAttendanceDialog({
                     ))}
                 </div>
 
-                {/* セッション追加ボタン */}
-                <div className="flex justify-end mb-4">
-                    <Button variant="outline" disabled={sessions.length >= 3} onClick={addSession}>
-                        セッション追加
-                    </Button>
-                </div>
+                {/* セッション追加ボタン - セッションの外 */}
+                <Button
+                    variant="outline"
+                    className="w-full mb-4"
+                    disabled={sessions.length >= 3}
+                    onClick={addSession}
+                >
+                    + セッション追加
+                </Button>
 
                 <DialogFooter>
                     <Button variant="outline" onClick={onClose}>
