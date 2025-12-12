@@ -19,11 +19,11 @@ export const SuccessDialog = ({
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent className="flex flex-col items-center text-center py-10">
                 <CheckCircle className="h-12 w-12 text-green-500 mb-4" />
-                <DialogHeader>
-                    <DialogTitle>{title}</DialogTitle>
-                    <DialogDescription>{description}</DialogDescription>
+                <DialogHeader className="text-center">
+                    <DialogTitle className="text-center">{title}</DialogTitle>
+                    <DialogDescription className="text-center">{description}</DialogDescription>
                 </DialogHeader>
-                <DialogFooter className="mt-6">
+                <DialogFooter className="mt-6 justify-center">
                     <Button onClick={onClose}>OK</Button>
                 </DialogFooter>
             </DialogContent>
