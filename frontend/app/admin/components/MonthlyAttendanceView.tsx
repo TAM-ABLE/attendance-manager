@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Download } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +17,7 @@ import { EditAttendanceDialog } from "./EditAttendanceDialog";
 import { useUsers } from "../hooks/useUsers";
 import { useMonthlyAttendance } from "../hooks/useMonthlyAttendance";
 import { useEditDialog } from "../hooks/useEditDialog";
+import { exportMonthlyAttendanceCSV } from "@/lib/exportCsv";
 
 export function MonthlyAttendanceView() {
 
@@ -33,6 +34,18 @@ export function MonthlyAttendanceView() {
     };
 
     const editDialog = useEditDialog(selectedUser, reloadMonth);
+
+    const handleExportCSV = () => {
+        if (!selectedUser) {
+            alert("ユーザーが選択されていません。ユーザーを選択してからエクスポートしてください。");
+            return;
+        }
+        if (!monthData) {
+            alert("勤怠データが読み込まれていません。しばらく待ってから再度お試しください。");
+            return;
+        }
+        exportMonthlyAttendanceCSV(monthData, selectedUser.name);
+    };
 
     return (
         <div className="space-y-6">
@@ -66,25 +79,37 @@ export function MonthlyAttendanceView() {
                         </span>
                     </div>
 
-                    {/* 個人選択 */}
-                    <Select
-                        value={selectedUser?.employeeId}
-                        onValueChange={(employeeId) => {
-                            const user = users.find((u) => u.employeeId === employeeId);
-                            if (user) setSelectedUser(user);
-                        }}
-                    >
-                        <SelectTrigger className="w-40">
-                            <SelectValue placeholder="ユーザーを選択" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {users.map((u) => (
-                                <SelectItem key={u.employeeId} value={u.employeeId}>
-                                    {u.name}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-2">
+                        {/* 個人選択 */}
+                        <Select
+                            value={selectedUser?.employeeId}
+                            onValueChange={(employeeId) => {
+                                const user = users.find((u) => u.employeeId === employeeId);
+                                if (user) setSelectedUser(user);
+                            }}
+                        >
+                            <SelectTrigger className="w-40">
+                                <SelectValue placeholder="ユーザーを選択" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {users.map((u) => (
+                                    <SelectItem key={u.employeeId} value={u.employeeId}>
+                                        {u.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+
+                        {/* CSVダウンロードボタン */}
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={handleExportCSV}
+                            className="border-[#2563EB] text-[#2563EB] bg-white hover:bg-blue-50"
+                        >
+                            <Download className="h-4 w-4 mr-2" />CSVダウンロード
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
 
