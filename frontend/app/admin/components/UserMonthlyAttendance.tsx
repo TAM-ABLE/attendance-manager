@@ -77,7 +77,7 @@ export const UserMonthlyAttendance = ({ user, monthData, openEditDialog }: Props
                                         <TableCell className="whitespace-nowrap">{dayData.hasData ? formatDurationMsToHM(dayData.breakTotalHours) : '-'}</TableCell>
                                         <TableCell className="whitespace-nowrap">{dayData.hasData ? formatDurationMsToHM(dayData.workTotalHours) : '-'}</TableCell>
                                         <TableCell>
-                                            <Button variant="outline" size="sm" className="h-7 px-2 sm:px-3" onClick={() => openEditDialog(dayData.date)}>
+                                            <Button size="sm" className="h-7 px-2 sm:px-3 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => openEditDialog(dayData.date)}>
                                                 <Edit className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                                                 <span className="hidden sm:inline">編集</span>
                                             </Button>
