@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import {
     Dialog,
     DialogContent,
@@ -9,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Loader } from "@/components/Loader";
+import { SuccessDialog } from "@/components/SuccessDialog";
 import { WorkSession, Break } from "../../../../shared/types/Attendance";
 import { formatClockTime, mergeDateAndTime } from "@/lib/time";
 
@@ -29,6 +34,24 @@ export function EditAttendanceDialog({
     sessions,
     setSessions,
 }: Props) {
+    const [mode, setMode] = useState<"form" | "loading" | "success">("form");
+
+    const handleSubmit = async () => {
+        try {
+            setMode("loading");
+            await onSave();
+            setMode("success");
+        } catch (e) {
+            console.error(e);
+            setMode("form");
+        }
+    };
+
+    const handleCloseSuccess = () => {
+        onClose();
+        setMode("form");
+    };
+
     const updateSession = (sessionId: string, field: "clockIn" | "clockOut", value: string) => {
         setSessions(
             sessions.map((s) =>
@@ -98,6 +121,30 @@ export function EditAttendanceDialog({
         );
     };
 
+    // --- Loading UI ---
+    if (mode === "loading") {
+        return (
+            <Dialog open={open} onOpenChange={onClose}>
+                <DialogContent className="flex justify-center py-12">
+                    <Loader size={50} border={4} />
+                </DialogContent>
+            </Dialog>
+        );
+    }
+
+    // --- Success UI ---
+    if (mode === "success") {
+        return (
+            <SuccessDialog
+                open={open}
+                title="保存完了"
+                description="勤怠データを保存しました。"
+                onClose={handleCloseSuccess}
+            />
+        );
+    }
+
+    // --- Form UI ---
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -215,7 +262,7 @@ export function EditAttendanceDialog({
                     <Button variant="outline" onClick={onClose}>
                         キャンセル
                     </Button>
-                    <Button onClick={onSave}>
+                    <Button onClick={handleSubmit}>
                         保存
                     </Button>
                 </DialogFooter>
