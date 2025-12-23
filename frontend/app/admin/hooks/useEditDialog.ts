@@ -26,10 +26,10 @@ export function useEditDialog(selectedUser: User | null, reloadMonthData: () => 
         const res = await updateWorkSessions(selectedUser.id, selectedDate, sessions);
 
         reloadMonthData();
-        closeDialog();
 
         if (!res.success) {
             console.error("Update-work-sessions failed:", res.error);
+            throw new Error(res.error);
         }
     };
 
