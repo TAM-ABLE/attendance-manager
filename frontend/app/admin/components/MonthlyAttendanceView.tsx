@@ -47,37 +47,41 @@ export function MonthlyAttendanceView() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
             {/* 月移動＆ユーザー選択 */}
             <Card>
-                <CardContent className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" onClick={() => setCurrentMonth(prev => {
-                            const d = new Date(prev);
-                            d.setMonth(prev.getMonth() - 1);
-                            return d;
-                        })}>
-                            <ChevronLeft className="h-4 w-4" />
-                        </Button>
+                <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    {/* 月移動 */}
+                    <div className="flex items-center justify-between sm:justify-start gap-2">
+                        <div className="flex items-center gap-1 sm:gap-2">
+                            <Button variant="outline" size="sm" onClick={() => setCurrentMonth(prev => {
+                                const d = new Date(prev);
+                                d.setMonth(prev.getMonth() - 1);
+                                return d;
+                            })}>
+                                <ChevronLeft className="h-4 w-4" />
+                            </Button>
 
-                        <Button variant="outline" size="sm" onClick={() => setCurrentMonth(new Date())}>
-                            <CalendarIcon className="h-4 w-4 mr-2" />
-                            今月
-                        </Button>
+                            <Button variant="outline" size="sm" onClick={() => setCurrentMonth(new Date())}>
+                                <CalendarIcon className="h-4 w-4 sm:mr-2" />
+                                <span className="hidden sm:inline">今月</span>
+                            </Button>
 
-                        <Button variant="outline" size="sm" onClick={() => setCurrentMonth(prev => {
-                            const d = new Date(prev);
-                            d.setMonth(prev.getMonth() + 1);
-                            return d;
-                        })}>
-                            <ChevronRight className="h-4 w-4" />
-                        </Button>
+                            <Button variant="outline" size="sm" onClick={() => setCurrentMonth(prev => {
+                                const d = new Date(prev);
+                                d.setMonth(prev.getMonth() + 1);
+                                return d;
+                            })}>
+                                <ChevronRight className="h-4 w-4" />
+                            </Button>
+                        </div>
 
-                        <span className="ml-2 text-lg font-semibold">
+                        <span className="ml-2 text-base sm:text-lg font-semibold whitespace-nowrap">
                             {currentMonth.getFullYear()}年{currentMonth.getMonth() + 1}月
                         </span>
                     </div>
 
+                    {/* ユーザー選択 & CSV */}
                     <div className="flex items-center gap-2">
                         {/* 個人選択 */}
                         <Select
@@ -87,7 +91,7 @@ export function MonthlyAttendanceView() {
                                 if (user) setSelectedUser(user);
                             }}
                         >
-                            <SelectTrigger className="w-40">
+                            <SelectTrigger className="flex-1 sm:flex-none sm:w-40">
                                 <SelectValue placeholder="ユーザーを選択" />
                             </SelectTrigger>
                             <SelectContent>
@@ -100,13 +104,14 @@ export function MonthlyAttendanceView() {
                         </Select>
 
                         {/* CSVダウンロードボタン */}
-                        <Button 
-                            variant="outline" 
-                            size="sm" 
+                        <Button
+                            variant="outline"
+                            size="sm"
                             onClick={handleExportCSV}
-                            className="border-[#2563EB] text-[#2563EB] bg-white hover:bg-blue-50"
+                            className="border-[#2563EB] text-[#2563EB] bg-white hover:bg-blue-50 whitespace-nowrap"
                         >
-                            <Download className="h-4 w-4 mr-2" />CSVダウンロード
+                            <Download className="h-4 w-4 sm:mr-2" />
+                            <span className="hidden sm:inline">CSVダウンロード</span>
                         </Button>
                     </div>
                 </CardContent>
