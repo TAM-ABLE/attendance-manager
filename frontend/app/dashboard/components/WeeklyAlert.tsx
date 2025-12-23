@@ -14,8 +14,8 @@ export function WeeklyAlert({ weeklyMs }: { weeklyMs: number }) {
             <CardHeader>
                 <CardTitle>今週の勤務時間</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 text-center">
-                <p className="text-3xl">{formatDurationMs(weeklyMs)}</p>
+            <CardContent className="space-y-4 text-center px-4">
+                <p className="text-2xl sm:text-3xl">{formatDurationMs(weeklyMs)}</p>
                 {weeklyMs >= HOURS_18_MS && weeklyMs < HOURS_20_MS && (
                     <Alert className="bg-yellow-50 border-yellow-200">
                         <AlertCircle className="h-4 w-4 text-yellow-600" />

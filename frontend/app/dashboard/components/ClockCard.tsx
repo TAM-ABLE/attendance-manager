@@ -20,11 +20,11 @@ export function ClockCard() {
 
     return (
         <Card>
-            <CardContent className="pt-6 text-center">
-                <div className="text-4xl mb-2">
+            <CardContent className="pt-6 text-center px-4">
+                <div className="text-3xl sm:text-4xl mb-2">
                     {currentTime.toLocaleTimeString("ja-JP")}
                 </div>
-                <p className="text-muted-foreground">
+                <p className="text-sm sm:text-base text-muted-foreground">
                     {currentTime.toLocaleDateString("ja-JP", {
                         year: "numeric",
                         month: "long",
