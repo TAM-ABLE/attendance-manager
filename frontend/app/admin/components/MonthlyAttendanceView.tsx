@@ -105,10 +105,9 @@ export function MonthlyAttendanceView() {
 
                         {/* CSVダウンロードボタン */}
                         <Button
-                            variant="outline"
                             size="sm"
                             onClick={handleExportCSV}
-                            className="border-[#2563EB] text-[#2563EB] bg-white hover:bg-blue-50 whitespace-nowrap"
+                            className="bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap"
                         >
                             <Download className="h-4 w-4 sm:mr-2" />
                             <span className="hidden sm:inline">CSVダウンロード</span>
