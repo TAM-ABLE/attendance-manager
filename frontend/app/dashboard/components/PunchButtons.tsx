@@ -60,7 +60,7 @@ export function PunchButtons({
                         disabled={isWorking || sessionCount >= 3}
                         size="lg"
                         className={`h-20 sm:h-24 flex-col gap-2 w-full sm:w-[300px] md:w-[400px] text-lg sm:text-xl font-semibold ${!isWorking && !onBreak
-                            ? "bg-emerald-600 text-white hover:bg-emerald-700"
+                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
                             : "bg-gray-300 text-gray-500"
                             }`}
                     >
@@ -74,7 +74,7 @@ export function PunchButtons({
                         disabled={!isWorking || onBreak}
                         size="lg"
                         className={`h-20 sm:h-24 flex-col gap-2 w-full sm:w-[300px] md:w-[400px] text-lg sm:text-xl font-semibold ${isWorking && !onBreak
-                            ? "bg-red-500 text-white hover:bg-red-600"
+                            ? "bg-pink-400 text-white hover:bg-pink-500"
                             : "bg-gray-200 text-gray-400"
                             }`}
                     >
@@ -92,7 +92,7 @@ export function PunchButtons({
                             disabled={!isWorking}
                             size="lg"
                             className={`h-20 sm:h-24 flex-col gap-2 w-full sm:w-[300px] md:w-[400px] text-lg sm:text-xl font-semibold ${isWorking
-                                ? "bg-gray-900 text-white hover:bg-gray-800"
+                                ? "bg-lime-500 text-white hover:bg-lime-600"
                                 : "bg-gray-200 text-gray-400"
                                 }`}
                         >
@@ -103,7 +103,7 @@ export function PunchButtons({
                         <Button
                             onClick={() => onBreakEnd()}
                             size="lg"
-                            className="h-20 sm:h-24 flex-col gap-2 w-full sm:w-[300px] md:w-[400px] text-lg sm:text-xl font-semibold bg-gray-900 text-white hover:bg-gray-800"
+                            className="h-20 sm:h-24 flex-col gap-2 w-full sm:w-[300px] md:w-[400px] text-lg sm:text-xl font-semibold bg-green-500 text-white hover:bg-green-600"
                         >
                             <Play className="h-8 w-8 sm:h-12 sm:w-12" />
                             休憩終了
