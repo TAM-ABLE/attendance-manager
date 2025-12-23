@@ -1,11 +1,13 @@
 "use server";
 
-//app/actions/break-end.ts
-
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
 
-export async function breakEnd() {
+interface WeekTotalResponse {
+    netWorkMs: number;
+}
+
+export async function getWeekTotal(): Promise<WeekTotalResponse | null> {
     const session = await getServerSession(authOptions);
     const token = session?.user?.apiToken;
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -13,18 +15,18 @@ export async function breakEnd() {
     if (!token) throw new Error("Unauthorized");
 
     try {
-        const res = await fetch(`${apiUrl}/break-end`, {
-            method: "POST",
+        const res = await fetch(`${apiUrl}/get-week-total`, {
             headers: { Authorization: `Bearer ${token}` },
+            cache: "no-store",
         });
 
         if (!res.ok) {
-            throw new Error(`Break-end failed: ${res.status}`);
+            throw new Error(`Get week total failed: ${res.status}`);
         }
 
-        return { success: true };
+        return await res.json();
     } catch (err) {
-        console.error("breakStart Error:", err);
-        return { success: false, error: err instanceof Error ? err.message : String(err) };
+        console.error("getWeekTotal Error:", err);
+        return null;
     }
 }

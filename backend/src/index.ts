@@ -25,18 +25,29 @@ app.use('*', cors());
 app.route('/auth', authRoute);
 
 // 認証が必要なルート
+app.use('/clock-in', authMiddleware);
 app.use('/clock-in/*', authMiddleware);
+app.use('/clock-out', authMiddleware);
 app.use('/clock-out/*', authMiddleware);
+app.use('/break-start', authMiddleware);
 app.use('/break-start/*', authMiddleware);
+app.use('/break-end', authMiddleware);
 app.use('/break-end/*', authMiddleware);
+app.use('/get-day', authMiddleware);
 app.use('/get-day/*', authMiddleware);
+app.use('/month', authMiddleware);
 app.use('/month/*', authMiddleware);
+app.use('/get-week-total', authMiddleware);
 app.use('/get-week-total/*', authMiddleware);
 
 // 認証 + 管理者権限が必要なルート
+app.use('/get-user-month', authMiddleware, adminMiddleware);
 app.use('/get-user-month/*', authMiddleware, adminMiddleware);
+app.use('/get-users', authMiddleware, adminMiddleware);
 app.use('/get-users/*', authMiddleware, adminMiddleware);
+app.use('/get-user-date-work-sessions', authMiddleware, adminMiddleware);
 app.use('/get-user-date-work-sessions/*', authMiddleware, adminMiddleware);
+app.use('/update-user-date-work-sessions', authMiddleware, adminMiddleware);
 app.use('/update-user-date-work-sessions/*', authMiddleware, adminMiddleware);
 
 // ルートをマウント

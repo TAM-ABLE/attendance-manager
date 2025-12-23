@@ -14,18 +14,7 @@ export async function clockOutWithTasks(actualTasks: Task[], summary: string, is
     if (!token) throw new Error("Unauthorized");
 
     try {
-        // DB側 clock-out
-        const dbRes = await fetch(`${apiUrl}/database/attendance/clock-out`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!dbRes.ok) {
-            throw new Error(`Database clock-out failed: ${dbRes.status}`);
-        }
-
-        // Slack通知
-        const slackRes = await fetch(`${apiUrl}/slack/clock-out-report`, {
+        const res = await fetch(`${apiUrl}/clock-out`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -36,12 +25,12 @@ export async function clockOutWithTasks(actualTasks: Task[], summary: string, is
                 actualTasks,
                 summary,
                 issues,
-                notes
+                notes,
             }),
         });
 
-        if (!slackRes.ok) {
-            throw new Error(`Slack notification failed: ${slackRes.status}`);
+        if (!res.ok) {
+            throw new Error(`Clock-out failed: ${res.status}`);
         }
 
         return { success: true };
