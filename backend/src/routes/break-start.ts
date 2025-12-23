@@ -1,32 +1,14 @@
-// backend/src/routes/database/attendance/break-start.ts
+// backend/src/routes/break-start.ts
 import { Hono } from 'hono';
-import { getSupabaseClient } from '../../../../lib/supabase';
-import { verify } from 'hono/jwt';
-import { todayJSTString } from '../../../../lib/time';
-import { Env } from '../../../types/env';
+import { getSupabaseClient } from '../../lib/supabase';
+import { todayJSTString } from '../../lib/time';
+import { Env } from '../types/env';
+import { AuthVariables } from '../middleware/auth';
 
-const attendanceBreakStartRouter = new Hono<{ Bindings: Env }>();
+const breakStartRouter = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
-attendanceBreakStartRouter.post('/', async (c) => {
-    const authHeader = c.req.header('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-        return c.json({ error: 'Unauthorized' }, 401);
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    // JWT 検証
-    let payload: { id: string; role: 'admin' | 'user' };
-    try {
-        payload = await verify(token, c.env.JWT_SECRET) as {
-            id: string;
-            role: 'admin' | 'user';
-        };
-    } catch {
-        return c.json({ error: 'Invalid token' }, 401);
-    }
-
-    const userId = payload.id;
+breakStartRouter.post('/', async (c) => {
+    const { id: userId } = c.get('jwtPayload');
     const supabase = getSupabaseClient(c.env);
 
     const date = todayJSTString();
@@ -83,4 +65,4 @@ attendanceBreakStartRouter.post('/', async (c) => {
     return c.json({ success: true });
 });
 
-export default attendanceBreakStartRouter;
+export default breakStartRouter;
