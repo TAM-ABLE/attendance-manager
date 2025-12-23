@@ -1,9 +1,9 @@
-// backend/src/routes/database/attendance/month.ts
+// backend/src/routes/month.ts
 import { Hono } from 'hono';
-import { getSupabaseClient } from '../../../../lib/supabase';
-import type { Database } from '../../../types/supabase';
-import { verify } from 'hono/jwt';
-import { Env } from '../../../types/env';
+import { getSupabaseClient } from '../../lib/supabase';
+import type { Database } from '../types/supabase';
+import { Env } from '../types/env';
+import { AuthVariables } from '../middleware/auth';
 
 // attendance_records + work_sessions + breaks の型
 type DbAttendanceRecord = Database['public']['Tables']['attendance_records']['Row'] & {
@@ -14,36 +14,12 @@ type DbAttendanceRecord = Database['public']['Tables']['attendance_records']['Ro
     >;
 };
 
-const attendanceMonthRouter = new Hono<{ Bindings: Env }>();
+const monthRouter = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
-attendanceMonthRouter.get('/', async (c) => {
-    // -------------------------
-    // 認証
-    // -------------------------
-    const authHeader = c.req.header("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-        return c.json({ error: "Unauthorized" }, 401);
-    }
+monthRouter.get('/', async (c) => {
+    const { id: userId } = c.get('jwtPayload');
 
-    const token = authHeader.split(" ")[1];
-
-    if (!c.env.JWT_SECRET) {
-        console.error("JWT_SECRET missing");
-        return c.json({ error: "Server configuration error" }, 500);
-    }
-
-    let payload: { id: string; role: "admin" | "user" };
-    try {
-        payload = await verify(token, c.env.JWT_SECRET) as { id: string; role: "admin" | "user" };
-    } catch {
-        return c.json({ error: "Invalid token" }, 401);
-    }
-
-    const userId = payload.id;
-
-    // -------------------------
     // クエリパラメータ取得
-    // -------------------------
     const year = c.req.query("year");
     const month = c.req.query("month");
 
@@ -107,4 +83,4 @@ attendanceMonthRouter.get('/', async (c) => {
     return c.json(formatted);
 });
 
-export default attendanceMonthRouter;
+export default monthRouter;

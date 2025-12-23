@@ -1,36 +1,14 @@
-// backend/src/routes/database/attendance/update-user-date-work-sessions.ts
-
+// backend/src/routes/update-user-date-work-sessions.ts
 import { Hono } from 'hono';
-import { verify } from 'hono/jwt';
-import { getSupabaseClient } from '../../../../lib/supabase';
-import { WorkSession } from '../../../../../shared/types/Attendance';
-import { Env } from '../../../types/env';
+import { getSupabaseClient } from '../../lib/supabase';
+import { WorkSession } from '../../../shared/types/Attendance';
+import { Env } from '../types/env';
+import { AuthVariables } from '../middleware/auth';
 
-const attendanceUpdateUserDateSessions = new Hono<{ Bindings: Env }>();
+const updateUserDateWorkSessionsRouter = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
-attendanceUpdateUserDateSessions.put("/", async (c) => {
-
-    // --- 1. Authorization ---
-    const authHeader = c.req.header('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-        return c.json({ error: 'Unauthorized' }, 401);
-    }
-
-    const token = authHeader.split(' ')[1];
-    let payload: { id: string; role: 'admin' | 'user' };
-
-    try {
-        payload = await verify(token, c.env.JWT_SECRET) as { id: string; role: 'admin' | 'user' };
-    } catch {
-        return c.json({ error: "Invalid token" }, 401);
-    }
-
-    // --- 管理者のみ更新可能 ---
-    if (payload.role !== "admin") {
-        return c.json({ error: "Forbidden (admin only)" }, 403);
-    }
-
-    // --- 2. Body ---
+updateUserDateWorkSessionsRouter.put("/", async (c) => {
+    // Body
     const { userId, date, sessions }: { userId: string; date: string; sessions: WorkSession[] } = await c.req.json();
 
     if (!userId || !date || !sessions) {
@@ -114,4 +92,4 @@ attendanceUpdateUserDateSessions.put("/", async (c) => {
     return c.json({ ok: true });
 });
 
-export default attendanceUpdateUserDateSessions;
+export default updateUserDateWorkSessionsRouter;

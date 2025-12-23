@@ -1,9 +1,9 @@
-// backend/src/routes/database/attendance/week-total-hours.ts
+// backend/src/routes/week-total-hours.ts
 import { Hono } from 'hono';
-import { getSupabaseClient } from '../../../../lib/supabase';
-import type { Database } from '../../../types/supabase';
-import { verify } from 'hono/jwt';
-import { Env } from '../../../types/env';
+import { getSupabaseClient } from '../../lib/supabase';
+import type { Database } from '../types/supabase';
+import { Env } from '../types/env';
+import { AuthVariables } from '../middleware/auth';
 
 type DbAttendanceRecord = Database['public']['Tables']['attendance_records']['Row'] & {
     work_sessions: Array<
@@ -13,24 +13,10 @@ type DbAttendanceRecord = Database['public']['Tables']['attendance_records']['Ro
     >;
 };
 
-const attendanceWeekTotalHoursRouter = new Hono<{ Bindings: Env }>();
+const weekTotalHoursRouter = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
-attendanceWeekTotalHoursRouter.get('/', async (c) => {
-    const authHeader = c.req.header('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-        return c.json({ error: 'Unauthorized' }, 401);
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    let payload: { id: string; role: 'admin' | 'user' };
-    try {
-        payload = await verify(token, c.env.JWT_SECRET) as { id: string; role: 'admin' | 'user' };
-    } catch {
-        return c.json({ error: 'Invalid token' }, 401);
-    }
-
-    const userId = payload.id;
+weekTotalHoursRouter.get('/', async (c) => {
+    const { id: userId } = c.get('jwtPayload');
 
     // 今日の日付
     const date = new Date();
@@ -105,4 +91,4 @@ attendanceWeekTotalHoursRouter.get('/', async (c) => {
     return c.json({ netWorkMs });
 });
 
-export default attendanceWeekTotalHoursRouter;
+export default weekTotalHoursRouter;
