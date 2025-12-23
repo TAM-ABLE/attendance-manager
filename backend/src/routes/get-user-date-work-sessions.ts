@@ -1,9 +1,9 @@
-// backend/src/routes/database/attendance/get-user-date-work-sessions.ts
+// backend/src/routes/get-user-date-work-sessions.ts
 import { Hono } from 'hono';
-import { verify } from 'hono/jwt';
-import { getSupabaseClient } from '../../../../lib/supabase';
-import type { Database } from '../../../types/supabase';
-import { Env } from '../../../types/env';
+import { getSupabaseClient } from '../../lib/supabase';
+import type { Database } from '../types/supabase';
+import { Env } from '../types/env';
+import { AuthVariables } from '../middleware/auth';
 
 // DB row 型
 type DbRecord = Database["public"]["Tables"]["attendance_records"]["Row"] & {
@@ -14,33 +14,10 @@ type DbRecord = Database["public"]["Tables"]["attendance_records"]["Row"] & {
     >;
 };
 
-const attendanceGetUserDateSessions = new Hono<{ Bindings: Env }>();
+const getUserDateWorkSessionsRouter = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
-attendanceGetUserDateSessions.get("/", async (c) => {
-    // --- 1. Authorization ---
-    const authHeader = c.req.header('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-        return c.json({ error: 'Unauthorized' }, 401);
-    }
-
-    const token = authHeader.split(' ')[1];
-    let payload: { id: string; role: 'admin' | 'user' };
-
-    try {
-        payload = await verify(token, c.env.JWT_SECRET) as {
-            id: string;
-            role: 'admin' | 'user';
-        };
-    } catch {
-        return c.json({ error: 'Invalid token' }, 401);
-    }
-
-    // --- 管理者のみ ---
-    if (payload.role !== 'admin') {
-        return c.json({ error: 'Forbidden (admin only)' }, 403);
-    }
-
-    // --- 2. クエリ取得 ---
+getUserDateWorkSessionsRouter.get("/", async (c) => {
+    // クエリ取得
     const userId = c.req.query("userId");
     const date = c.req.query("date");
 
@@ -97,4 +74,4 @@ attendanceGetUserDateSessions.get("/", async (c) => {
     return c.json(sessions, 200);
 });
 
-export default attendanceGetUserDateSessions;
+export default getUserDateWorkSessionsRouter;

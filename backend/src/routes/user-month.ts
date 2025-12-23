@@ -1,38 +1,15 @@
-// backend/src/routes/database/attendance/month.ts
+// backend/src/routes/user-month.ts
 import { Hono } from 'hono';
-import { verify } from 'hono/jwt';
-import { getSupabaseClient } from '../../../../lib/supabase';
-import { DayAttendance } from '../../../../../shared/types/Attendance';
-import { formatJSTDate } from '../../../../lib/time';
-import { Env } from '../../../types/env';
+import { getSupabaseClient } from '../../lib/supabase';
+import { formatJSTDate } from '../../lib/time';
+import { DayAttendance } from '../../../shared/types/Attendance';
+import { Env } from '../types/env';
+import { AuthVariables } from '../middleware/auth';
 
-const attendanceUserMonthRouter = new Hono<{ Bindings: Env }>();
+const userMonthRouter = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
-attendanceUserMonthRouter.get('/', async (c) => {
-    // --- JWT 認証 ---
-    const authHeader = c.req.header('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-        return c.json({ error: 'Unauthorized' }, 401);
-    }
-
-    const token = authHeader.split(' ')[1];
-    let payload: { id: string; role: 'admin' | 'user' };
-
-    try {
-        payload = await verify(token, c.env.JWT_SECRET) as {
-            id: string;
-            role: 'admin' | 'user';
-        };
-    } catch {
-        return c.json({ error: 'Invalid token' }, 401);
-    }
-
-    // --- 管理者のみ ---
-    if (payload.role !== 'admin') {
-        return c.json({ error: 'Forbidden (admin only)' }, 403);
-    }
-
-    // --- クエリ取得 ---
+userMonthRouter.get('/', async (c) => {
+    // クエリ取得
     const userId = c.req.query('userId');
     const year = c.req.query('year');
     const month = c.req.query('month');
@@ -163,4 +140,4 @@ attendanceUserMonthRouter.get('/', async (c) => {
     return c.json(result);
 });
 
-export default attendanceUserMonthRouter;
+export default userMonthRouter;
