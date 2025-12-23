@@ -14,8 +14,7 @@ export async function updateWorkSessions(userId: string, date: string, sessions:
     if (!token) throw new Error("Unauthorized");
 
     try {
-        // DB側 update-work-sessions
-        const dbRes = await fetch(`${apiUrl}/database/attendance/update-user-date-work-sessions`, {
+        const res = await fetch(`${apiUrl}/update-user-date-work-sessions`, {
             method: "PUT",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -24,8 +23,8 @@ export async function updateWorkSessions(userId: string, date: string, sessions:
             body: JSON.stringify({ userId, date, sessions }),
         });
 
-        if (!dbRes.ok) {
-            throw new Error(`Database update-work-sessions failed: ${dbRes.status}`);
+        if (!res.ok) {
+            throw new Error(`Update-work-sessions failed: ${res.status}`);
         }
 
         return { success: true };
