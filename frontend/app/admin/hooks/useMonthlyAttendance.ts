@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { DayAttendance, User } from "../../../../shared/types/Attendance";
+import { getUserMonth } from "@/app/actions/get-user-month";
 
 export function useMonthlyAttendance(user: User | null, date: Date) {
     const [monthData, setMonthData] = useState<DayAttendance[] | null>(null);
@@ -11,10 +12,7 @@ export function useMonthlyAttendance(user: User | null, date: Date) {
         if (!user) return;
 
         async function fetchData() {
-            const res = await fetch(
-                `/api/attendance/user-month?userId=${user?.id}&year=${date.getFullYear()}&month=${date.getMonth()}`
-            );
-            const data: DayAttendance[] = await res.json();
+            const data = await getUserMonth(user!.id, date.getFullYear(), date.getMonth());
             setMonthData(data);
         }
 

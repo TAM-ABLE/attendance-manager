@@ -1,11 +1,10 @@
 "use server";
 
-//app/actions/break-end.ts
-
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
+import { AttendanceRecord } from "../../../shared/types/Attendance";
 
-export async function breakEnd() {
+export async function getDay(): Promise<AttendanceRecord | null> {
     const session = await getServerSession(authOptions);
     const token = session?.user?.apiToken;
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
@@ -13,18 +12,18 @@ export async function breakEnd() {
     if (!token) throw new Error("Unauthorized");
 
     try {
-        const res = await fetch(`${apiUrl}/break-end`, {
-            method: "POST",
+        const res = await fetch(`${apiUrl}/get-day`, {
             headers: { Authorization: `Bearer ${token}` },
+            cache: "no-store",
         });
 
         if (!res.ok) {
-            throw new Error(`Break-end failed: ${res.status}`);
+            throw new Error(`Get day failed: ${res.status}`);
         }
 
-        return { success: true };
+        return await res.json();
     } catch (err) {
-        console.error("breakStart Error:", err);
-        return { success: false, error: err instanceof Error ? err.message : String(err) };
+        console.error("getDay Error:", err);
+        return null;
     }
 }

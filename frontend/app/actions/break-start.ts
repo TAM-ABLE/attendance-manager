@@ -13,14 +13,13 @@ export async function breakStart() {
     if (!token) throw new Error("Unauthorized");
 
     try {
-        // DB側 break-start
-        const dbRes = await fetch(`${apiUrl}/database/attendance/break-start`, {
+        const res = await fetch(`${apiUrl}/break-start`, {
             method: "POST",
             headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (!dbRes.ok) {
-            throw new Error(`Database break-start failed: ${dbRes.status}`);
+        if (!res.ok) {
+            throw new Error(`Break-start failed: ${res.status}`);
         }
 
         return { success: true };

@@ -12,11 +12,12 @@ export async function getWorkSessions(userId: string, date: string): Promise<Wor
     if (!token) throw new Error("Unauthorized");
 
     const res = await fetch(
-        `${apiUrl}/database/attendance/get-user-date-work-sessions?userId=${userId}&date=${date}`,
+        `${apiUrl}/get-user-date-work-sessions?userId=${userId}&date=${date}`,
         {
             headers: {
                 Authorization: `Bearer ${token}`,
             },
+            cache: "no-store",
         }
     );
 
