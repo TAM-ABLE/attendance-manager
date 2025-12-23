@@ -8,6 +8,8 @@ import { clockInWithTasks } from "@/app/actions/clock-in";
 import { clockOutWithTasks } from "@/app/actions/clock-out";
 import { breakStart } from "@/app/actions/break-start";
 import { breakEnd } from "@/app/actions/break-end";
+import { getDay } from "@/app/actions/get-day";
+import { getWeekTotal } from "@/app/actions/get-week-total";
 
 
 // セッション検出（出勤中かどうか）
@@ -33,15 +35,15 @@ export function useAttendance() {
     // 初期読み込み
     const loadAll = async () => {
         try {
-            const todayData: AttendanceRecord = await fetch("/api/attendance/day").then(r => r.json());
-            const weekly = await fetch("/api/attendance/week-total-hours").then(r => r.json());
+            const todayData = await getDay();
+            const weekly = await getWeekTotal();
 
             const session = detectCurrentSession(todayData);
 
             setAttendance(todayData);
             setCurrentSession(session);
             setOnBreak(detectOnBreak(session));
-            setWeekTotalMs(weekly.netWorkMs);
+            setWeekTotalMs(weekly?.netWorkMs ?? 0);
         } catch (e) {
             console.error("Failed to load attendance:", e);
         }

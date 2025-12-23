@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { AttendanceRecord } from "../../../../shared/types/Attendance";
 import { toJSTDateString } from "../../../lib/time";
+import { getMonth } from "@/app/actions/get-month";
 
 export function useAttendance() {
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date);
@@ -16,16 +17,7 @@ export function useAttendance() {
                 const year = currentMonth.getFullYear();
                 const month = currentMonth.getMonth() + 1;
 
-                const res = await fetch(
-                    `/api/attendance/month?year=${year}&month=${month}`
-                );
-
-                if (!res.ok) {
-                    throw new Error("Failed to fetch attendance");
-                }
-
-                const data: AttendanceRecord[] = await res.json();
-
+                const data = await getMonth(year, month);
                 setAttendanceData(data);
 
             } catch (err: unknown) {

@@ -14,18 +14,7 @@ export async function clockInWithTasks(plannedTasks: Task[]) {
     if (!token) throw new Error("Unauthorized");
 
     try {
-        // DB側 clock-in
-        const dbRes = await fetch(`${apiUrl}/database/attendance/clock-in`, {
-            method: "POST",
-            headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!dbRes.ok) {
-            throw new Error(`Database clock-in failed: ${dbRes.status}`);
-        }
-
-        // Slack通知
-        const slackRes = await fetch(`${apiUrl}/slack/clock-in-report`, {
+        const res = await fetch(`${apiUrl}/clock-in`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -37,8 +26,8 @@ export async function clockInWithTasks(plannedTasks: Task[]) {
             }),
         });
 
-        if (!slackRes.ok) {
-            throw new Error(`Slack notification failed: ${slackRes.status}`);
+        if (!res.ok) {
+            throw new Error(`Clock-in failed: ${res.status}`);
         }
 
         return { success: true };
