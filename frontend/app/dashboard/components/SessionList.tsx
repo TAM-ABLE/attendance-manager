@@ -75,13 +75,13 @@ export function SessionList({
                                 </p>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                                     <div className="flex items-center gap-2 mb-1">
                                         <Clock className="h-4 w-4 text-blue-600" />
                                         <p className="text-xs text-blue-600">勤務時間</p>
                                     </div>
-                                    <p className="text-lg text-blue-900">
+                                    <p className="text-base sm:text-lg text-blue-900">
                                         {formatDurationMs(work - breakMs)}
                                     </p>
                                 </div>
@@ -92,7 +92,7 @@ export function SessionList({
                                             <Coffee className="h-4 w-4 text-orange-600" />
                                             <p className="text-xs text-orange-600">休憩時間</p>
                                         </div>
-                                        <p className="text-lg text-orange-900">
+                                        <p className="text-base sm:text-lg text-orange-900">
                                             {formatDurationMs(breakMs)}
                                         </p>
                                     </div>
