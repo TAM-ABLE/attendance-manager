@@ -9,6 +9,7 @@ import {
     LayoutDashboard,
     History,
     Users,
+    FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -29,7 +30,10 @@ export function Header({ currentUser }: { currentUser: Session["user"] | null })
     const navigation = [
         { href: "/dashboard", label: "ダッシュボード", icon: LayoutDashboard },
         { href: "/attendance-history", label: "勤怠履歴", icon: History },
-        ...(isAdmin ? [{ href: "/admin", label: "管理者", icon: Users }] : []),
+        ...(isAdmin ? [
+            { href: "/report-list", label: "日報一覧", icon: FileText },
+            { href: "/admin", label: "管理者", icon: Users },
+        ] : []),
     ];
 
     const getInitials = (name: string | null | undefined) =>
