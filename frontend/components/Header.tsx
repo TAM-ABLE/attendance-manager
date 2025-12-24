@@ -13,15 +13,17 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import type { Session } from "next-auth";
-import { signOut } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 
 // Headerコンポーネント
-export function Header({ currentUser }: { currentUser: Session["user"] | null }) {
+export function Header() {
     const [isOpen, setIsOpen] = useState(false);
     const pathname = usePathname();
+    const { data: session, status } = useSession();
+    const currentUser = session?.user;
 
     // ログインしていない場合はHeaderを非表示
+    if (status === "loading") return null;
     if (!currentUser) return null;
 
     // ここを role ベースで判定

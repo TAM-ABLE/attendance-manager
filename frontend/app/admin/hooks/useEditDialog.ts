@@ -3,8 +3,7 @@
 
 import { useState } from "react";
 import { WorkSession, User } from "../../../../shared/types/Attendance";
-import { updateWorkSessions } from "@/app/actions/update-work-sessions";
-import { getWorkSessions } from "@/app/actions/get-work-sessions";
+import { updateUserDateSessions, getUserDateSessions } from "@/app/actions/admin";
 
 export function useEditDialog(selectedUser: User | null, reloadMonthData: () => void) {
     const [showEditDialog, setShowEditDialog] = useState(false);
@@ -14,7 +13,7 @@ export function useEditDialog(selectedUser: User | null, reloadMonthData: () => 
     const openDialog = async (date: string) => {
         if (!selectedUser) return;
         setSelectedDate(date);
-        setSessions(await getWorkSessions(selectedUser.id, date));
+        setSessions(await getUserDateSessions(selectedUser.id, date));
         setShowEditDialog(true);
     };
 
@@ -23,7 +22,7 @@ export function useEditDialog(selectedUser: User | null, reloadMonthData: () => 
     const saveSessions = async () => {
         if (!selectedUser || !selectedDate) return;
 
-        const res = await updateWorkSessions(selectedUser.id, selectedDate, sessions);
+        const res = await updateUserDateSessions(selectedUser.id, selectedDate, sessions);
 
         reloadMonthData();
 

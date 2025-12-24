@@ -1,35 +1,36 @@
 // lib/exportCsv.ts
-import { DayAttendance } from "../../shared/types/Attendance";
-import { formatClockTime, formatDurationMsToHM } from "./time";
+import { AttendanceRecord } from "../../shared/types/Attendance";
+import { formatClockTime, formatDurationMsToHM, getWeekdayLabel, getDateLabel } from "./time";
 
-export const exportMonthlyAttendanceCSV = (monthData: DayAttendance[], userName: string) => {
+export const exportMonthlyAttendanceCSV = (monthData: AttendanceRecord[], userName: string) => {
     // CSVヘッダー
     const headers = [
         "日付",
         "曜日",
-        "出勤①",
-        "退勤①",
-        "出勤②",
-        "退勤②",
-        "出勤③",
-        "退勤③",
+        "セッション",
         "休憩合計",
         "合計勤務時間",
     ];
 
     // CSVの行を作成
-    const rows = monthData.map(d => [
-        d.dateLabel,
-        d.weekday,
-        d.session1ClockIn != null ? formatClockTime(d.session1ClockIn) : "-",
-        d.session1ClockOut != null ? formatClockTime(d.session1ClockOut) : "-",
-        d.session2ClockIn != null ? formatClockTime(d.session2ClockIn) : "-",
-        d.session2ClockOut != null ? formatClockTime(d.session2ClockOut) : "-",
-        d.session3ClockIn != null ? formatClockTime(d.session3ClockIn) : "-",
-        d.session3ClockOut != null ? formatClockTime(d.session3ClockOut) : "-",
-        d.hasData ? formatDurationMsToHM(d.breakTotalHours) : "-",
-        d.hasData ? formatDurationMsToHM(d.workTotalHours) : "-",
-    ]);
+    const rows = monthData.map(d => {
+        const hasData = d.sessions.length > 0;
+        const dateLabel = getDateLabel(d.date);
+        const weekday = getWeekdayLabel(d.date);
+
+        // セッション情報をテキスト化
+        const sessionsText = d.sessions.map((s, i) =>
+            `${i + 1}. ${formatClockTime(s.clockIn ?? undefined)}-${formatClockTime(s.clockOut ?? undefined)}`
+        ).join(' / ') || '-';
+
+        return [
+            dateLabel,
+            weekday,
+            sessionsText,
+            hasData ? formatDurationMsToHM(d.breakTotalMs) : "-",
+            hasData ? formatDurationMsToHM(d.workTotalMs) : "-",
+        ];
+    });
 
     // CSV文字列を結合
     const csvContent =

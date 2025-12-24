@@ -2,7 +2,7 @@
 
 export interface Break {
     id: string;
-    start?: number; // timestamp などで扱う場合は number か Date
+    start?: number; // timestamp (ms)
     end?: number;
 }
 
@@ -16,21 +16,8 @@ export interface WorkSession {
 export interface AttendanceRecord {
     date: string; // 'YYYY-MM-DD'
     sessions: WorkSession[];
-}
-
-export interface DayAttendance {
-    date: string; // 'YYYY-MM-DD'
-    weekday: string;
-    dateLabel: string;
-    hasData: boolean;
-    session1ClockIn?: number | null;
-    session1ClockOut?: number | null;
-    session2ClockIn?: number | null;
-    session2ClockOut?: number | null;
-    session3ClockIn?: number | null;
-    session3ClockOut?: number | null;
-    workTotalHours: number; //ms
-    breakTotalHours: number; //ms
+    workTotalMs: number;   // 計算済み勤務時間 (ms)
+    breakTotalMs: number;  // 計算済み休憩時間 (ms)
 }
 
 export interface User {
@@ -38,7 +25,7 @@ export interface User {
     name: string;
     email: string;
     employeeId: string; //社員ID
-};
+}
 
 export interface Task {
     task: string;
