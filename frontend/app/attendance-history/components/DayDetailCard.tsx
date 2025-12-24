@@ -3,7 +3,6 @@ import { Badge } from "@/components/ui/badge";
 import { AttendanceRecord } from "../../../../shared/types/Attendance";
 import { SessionItem } from "./SessionItem";
 import { formatDurationMs } from "@/lib/time";
-import { calculateDayWorkHours } from "@/lib/calculation";
 
 interface Props {
     selectedDate: Date | undefined;
@@ -35,7 +34,7 @@ export function DayDetailCard({
                             <div className="flex justify-between items-center pb-2 border-b">
                                 <span>総勤務時間</span>
                                 <span className="text-xl">
-                                    {formatDurationMs(calculateDayWorkHours(selectedDayData.sessions))}
+                                    {formatDurationMs(selectedDayData.workTotalMs)}
                                 </span>
                             </div>
                             <div className="flex justify-between items-center">

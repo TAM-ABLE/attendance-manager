@@ -4,18 +4,18 @@ import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/com
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Edit } from "lucide-react";
-import { formatClockTime, formatDurationMs, formatDurationMsToHM } from "@/lib/time";
-import { DayAttendance, User } from "../../../../shared/types/Attendance";
+import { formatClockTime, formatDurationMs, formatDurationMsToHM, getWeekdayLabel, getDateLabel } from "@/lib/time";
+import { AttendanceRecord, User } from "../../../../shared/types/Attendance";
 
 interface Props {
     user: User;
-    monthData: DayAttendance[];
+    monthData: AttendanceRecord[];
     openEditDialog: (date: string) => void;
 }
 
 export const UserMonthlyAttendance = ({ user, monthData, openEditDialog }: Props) => {
-    const workMonthDays = monthData.filter(d => d.hasData).length;
-    const totalMonthHours = monthData.reduce((acc, d) => acc + d.workTotalHours, 0);
+    const workMonthDays = monthData.filter(d => d.sessions.length > 0).length;
+    const totalMonthHours = monthData.reduce((acc, d) => acc + d.workTotalMs, 0);
 
     const getInitials = (name: string) => name.slice(0, 2);
 
@@ -46,17 +46,12 @@ export const UserMonthlyAttendance = ({ user, monthData, openEditDialog }: Props
             </CardHeader>
             <CardContent className="px-2 sm:px-6">
                 <div className="overflow-x-auto -mx-2 sm:mx-0">
-                    <Table className="text-xs sm:text-sm min-w-[800px]">
+                    <Table className="text-xs sm:text-sm min-w-[600px]">
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="whitespace-nowrap">日付</TableHead>
                                 <TableHead className="whitespace-nowrap">曜日</TableHead>
-                                <TableHead className="whitespace-nowrap">出勤①</TableHead>
-                                <TableHead className="whitespace-nowrap">退勤①</TableHead>
-                                <TableHead className="whitespace-nowrap">出勤②</TableHead>
-                                <TableHead className="whitespace-nowrap">退勤②</TableHead>
-                                <TableHead className="whitespace-nowrap">出勤③</TableHead>
-                                <TableHead className="whitespace-nowrap">退勤③</TableHead>
+                                <TableHead className="whitespace-nowrap">セッション</TableHead>
                                 <TableHead className="whitespace-nowrap">休憩</TableHead>
                                 <TableHead className="whitespace-nowrap">合計</TableHead>
                                 <TableHead className="whitespace-nowrap"></TableHead>
@@ -64,18 +59,26 @@ export const UserMonthlyAttendance = ({ user, monthData, openEditDialog }: Props
                         </TableHeader>
                         <TableBody>
                             {monthData.map(dayData => {
+                                const hasData = dayData.sessions.length > 0;
+                                const dateLabel = getDateLabel(dayData.date);
+                                const weekday = getWeekdayLabel(dayData.date);
+
+                                // セッションの出退勤時間を表示用にフォーマット
+                                const sessionsDisplay = dayData.sessions.map((s, i) => (
+                                    <div key={s.id} className="text-xs">
+                                        {i + 1}. {formatClockTime(s.clockIn ?? undefined)} - {formatClockTime(s.clockOut ?? undefined)}
+                                    </div>
+                                ));
+
                                 return (
-                                    <TableRow key={dayData.dateLabel}>
-                                        <TableCell className="whitespace-nowrap">{dayData.dateLabel}</TableCell>
-                                        <TableCell className="whitespace-nowrap">{dayData.weekday}</TableCell>
-                                        <TableCell className="whitespace-nowrap">{dayData.session1ClockIn != null ? formatClockTime(dayData.session1ClockIn) : '-'}</TableCell>
-                                        <TableCell className="whitespace-nowrap">{dayData.session1ClockOut != null ? formatClockTime(dayData.session1ClockOut) : '-'}</TableCell>
-                                        <TableCell className="whitespace-nowrap">{dayData.session2ClockIn != null ? formatClockTime(dayData.session2ClockIn) : '-'}</TableCell>
-                                        <TableCell className="whitespace-nowrap">{dayData.session2ClockOut != null ? formatClockTime(dayData.session2ClockOut) : '-'}</TableCell>
-                                        <TableCell className="whitespace-nowrap">{dayData.session3ClockIn != null ? formatClockTime(dayData.session3ClockIn) : '-'}</TableCell>
-                                        <TableCell className="whitespace-nowrap">{dayData.session3ClockOut != null ? formatClockTime(dayData.session3ClockOut) : '-'}</TableCell>
-                                        <TableCell className="whitespace-nowrap">{dayData.hasData ? formatDurationMsToHM(dayData.breakTotalHours) : '-'}</TableCell>
-                                        <TableCell className="whitespace-nowrap">{dayData.hasData ? formatDurationMsToHM(dayData.workTotalHours) : '-'}</TableCell>
+                                    <TableRow key={dayData.date}>
+                                        <TableCell className="whitespace-nowrap">{dateLabel}</TableCell>
+                                        <TableCell className="whitespace-nowrap">{weekday}</TableCell>
+                                        <TableCell className="whitespace-nowrap">
+                                            {hasData ? sessionsDisplay : '-'}
+                                        </TableCell>
+                                        <TableCell className="whitespace-nowrap">{hasData ? formatDurationMsToHM(dayData.breakTotalMs) : '-'}</TableCell>
+                                        <TableCell className="whitespace-nowrap">{hasData ? formatDurationMsToHM(dayData.workTotalMs) : '-'}</TableCell>
                                         <TableCell>
                                             <Button size="sm" className="h-7 px-2 sm:px-3 bg-primary text-primary-foreground hover:bg-primary/90" onClick={() => openEditDialog(dayData.date)}>
                                                 <Edit className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />

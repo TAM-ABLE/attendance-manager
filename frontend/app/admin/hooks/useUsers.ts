@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { User } from "../../../../shared/types/Attendance";
-import { getUsers } from "@/app/actions/get-users";
+import { getUsers } from "@/app/actions/admin";
 
 export function useUsers() {
     const [users, setUsers] = useState<User[]>([]);
