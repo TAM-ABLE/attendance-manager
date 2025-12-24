@@ -6,6 +6,7 @@ import breakEndRoute from './routes/break-end';
 import breakStartRoute from './routes/break-start';
 import clockInRoute from './routes/clock-in';
 import clockOutRoute from './routes/clock-out';
+import dailyReportsRoute from './routes/daily-reports';
 import dayRoute from './routes/day';
 import getUserDateWorkSessionsRoute from './routes/get-user-date-work-sessions';
 import monthRoute from './routes/month';
@@ -49,6 +50,8 @@ app.use('/get-user-date-work-sessions', authMiddleware, adminMiddleware);
 app.use('/get-user-date-work-sessions/*', authMiddleware, adminMiddleware);
 app.use('/update-user-date-work-sessions', authMiddleware, adminMiddleware);
 app.use('/update-user-date-work-sessions/*', authMiddleware, adminMiddleware);
+app.use('/daily-reports', authMiddleware, adminMiddleware);
+app.use('/daily-reports/*', authMiddleware, adminMiddleware);
 
 // ルートをマウント
 app.route('/clock-in', clockInRoute);
@@ -62,5 +65,6 @@ app.route('/get-users', usersRoute);
 app.route('/get-week-total', weekTotalHoursRoute);
 app.route('/get-user-date-work-sessions', getUserDateWorkSessionsRoute);
 app.route('/update-user-date-work-sessions', updateUserDateWorkSessionsRoute);
+app.route('/daily-reports', dailyReportsRoute);
 
 export default app;

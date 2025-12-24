@@ -77,7 +77,44 @@ clockInRouter.post('/', async (c) => {
     }
 
     // ========================================
-    // 2. Slack に通知を送信
+    // 2. 日報を作成し、予定タスクを保存
+    // ========================================
+    const { data: dailyReport, error: reportErr } = await supabase
+        .from('daily_reports')
+        .insert({
+            user_id: userId,
+            date: date,
+        })
+        .select('id')
+        .single();
+
+    if (reportErr) {
+        console.error(reportErr);
+        return c.json({ error: reportErr.message }, 500);
+    }
+
+    // 予定タスクを保存
+    if (plannedTasks.length > 0) {
+        const taskInserts = plannedTasks.map((task, index) => ({
+            daily_report_id: dailyReport.id,
+            task_type: 'planned',
+            task_name: task.task,
+            hours: task.hours ? parseFloat(task.hours) : null,
+            sort_order: index,
+        }));
+
+        const { error: tasksErr } = await supabase
+            .from('daily_report_tasks')
+            .insert(taskInserts);
+
+        if (tasksErr) {
+            console.error(tasksErr);
+            // タスク保存失敗しても出勤は成功とする
+        }
+    }
+
+    // ========================================
+    // 3. Slack に通知を送信
     // ========================================
     const now = new Date();
     const timeString = now.toLocaleTimeString('ja-JP', {
