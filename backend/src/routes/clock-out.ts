@@ -82,7 +82,63 @@ clockOutRouter.post('/', async (c) => {
     }
 
     // ========================================
-    // 2. Slack に通知を送信
+    // 2. 日報を更新し、実績タスクを保存
+    // ========================================
+    // 今日の未提出の最新日報を取得
+    const { data: dailyReport, error: reportFetchErr } = await supabase
+        .from('daily_reports')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('date', date)
+        .is('submitted_at', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    if (reportFetchErr) {
+        console.error(reportFetchErr);
+        // 日報取得失敗しても退勤は成功とする
+    }
+
+    if (dailyReport) {
+        // 日報を更新（summary, issues, notes, submitted_at）
+        const { error: reportUpdateErr } = await supabase
+            .from('daily_reports')
+            .update({
+                summary: summary || null,
+                issues: issues || null,
+                notes: notes || null,
+                submitted_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            })
+            .eq('id', dailyReport.id);
+
+        if (reportUpdateErr) {
+            console.error(reportUpdateErr);
+        }
+
+        // 実績タスクを保存
+        if (actualTasks.length > 0) {
+            const taskInserts = actualTasks.map((task, index) => ({
+                daily_report_id: dailyReport.id,
+                task_type: 'actual',
+                task_name: task.task,
+                hours: task.hours ? parseFloat(task.hours) : null,
+                sort_order: index,
+            }));
+
+            const { error: tasksErr } = await supabase
+                .from('daily_report_tasks')
+                .insert(taskInserts);
+
+            if (tasksErr) {
+                console.error(tasksErr);
+            }
+        }
+    }
+
+    // ========================================
+    // 3. Slack に通知を送信
     // ========================================
     const now = new Date();
     const timeString = now.toLocaleTimeString('ja-JP', {

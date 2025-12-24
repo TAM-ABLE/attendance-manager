@@ -75,6 +75,88 @@ export type Database = {
           },
         ]
       }
+      daily_reports: {
+        Row: {
+          id: string
+          user_id: string
+          date: string
+          summary: string | null
+          issues: string | null
+          notes: string | null
+          submitted_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          date: string
+          summary?: string | null
+          issues?: string | null
+          notes?: string | null
+          submitted_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          date?: string
+          summary?: string | null
+          issues?: string | null
+          notes?: string | null
+          submitted_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_reports_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_report_tasks: {
+        Row: {
+          id: string
+          daily_report_id: string
+          task_type: string
+          task_name: string
+          hours: number | null
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          daily_report_id: string
+          task_type: string
+          task_name: string
+          hours?: number | null
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          daily_report_id?: string
+          task_type?: string
+          task_name?: string
+          hours?: number | null
+          sort_order?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_report_tasks_daily_report_id_fkey"
+            columns: ["daily_report_id"]
+            isOneToOne: false
+            referencedRelation: "daily_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           created_at: string
