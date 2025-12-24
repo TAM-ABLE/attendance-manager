@@ -2,7 +2,6 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import "./globals.css"
-import { getCurrentUser } from "@/lib/auth"
 import { Header } from "@/components/Header"
 import { Footer } from "@/components/Footer"
 import { Providers } from "./providers";
@@ -15,18 +14,16 @@ export const metadata: Metadata = {
   description: "Next.js + NextAuth Sample",
 }
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const user = await getCurrentUser()
-
   return (
     <html lang="ja">
       <body className={`min-h-screen bg-background ${geistSans.variable} ${geistMono.variable}`}>
         <Providers>
-          <Header currentUser={user} />
+          <Header />
           <main className="container mx-auto p-6 max-w-7xl">{children}</main>
         </Providers>
         <Footer />

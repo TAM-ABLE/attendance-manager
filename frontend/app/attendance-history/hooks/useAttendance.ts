@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { AttendanceRecord } from "../../../../shared/types/Attendance";
 import { toJSTDateString } from "../../../lib/time";
-import { getMonth } from "@/app/actions/get-month";
+import { getMonth } from "@/app/actions/attendance";
 
 export function useAttendance() {
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date);

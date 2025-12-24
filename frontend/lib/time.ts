@@ -78,3 +78,16 @@ export const formatTimeForCSV = (timestamp?: number) => {
         hour12: false
     });
 };
+
+// 日付文字列から曜日ラベルを取得 (日, 月, 火...)
+const JP_WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
+export const getWeekdayLabel = (dateStr: string): string => {
+    const date = new Date(dateStr);
+    return JP_WEEKDAYS[date.getDay()];
+};
+
+// 日付文字列からラベルを取得 (M月D日)
+export const getDateLabel = (dateStr: string): string => {
+    const date = new Date(dateStr);
+    return `${date.getMonth() + 1}月${date.getDate()}日`;
+};

@@ -1,11 +1,23 @@
 import { Badge } from "@/components/ui/badge";
 import { WorkSession } from "../../../../shared/types/Attendance";
 import { formatDurationMs, formatClockTime } from "@/lib/time";
-import { calculateSessionWorkHours } from "@/lib/calculation";
 
 interface Props {
     session: WorkSession;
     index: number;
+}
+
+// セッション単位の勤務時間を計算 (フロントエンドでのUI表示用)
+function calculateSessionWorkMs(session: WorkSession): number {
+    if (!session.clockIn || !session.clockOut) return 0;
+
+    const totalMs = session.clockOut - session.clockIn;
+    const breakMs = session.breaks.reduce((sum, b) => {
+        if (!b.start || !b.end) return sum;
+        return sum + (b.end - b.start);
+    }, 0);
+
+    return Math.max(0, totalMs - breakMs);
 }
 
 export function SessionItem({ session, index }: Props) {
@@ -13,7 +25,7 @@ export function SessionItem({ session, index }: Props) {
         <div className="bg-muted/30 rounded-lg p-3 space-y-2">
             <div className="flex items-center justify-between">
                 <Badge variant="outline">セッション {index + 1}</Badge>
-                <span className="text-sm">{formatDurationMs(calculateSessionWorkHours(session))}</span>
+                <span className="text-sm">{formatDurationMs(calculateSessionWorkMs(session))}</span>
             </div>
 
             <div className="text-sm space-y-1">
