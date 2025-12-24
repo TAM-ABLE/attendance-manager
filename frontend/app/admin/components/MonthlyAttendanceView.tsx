@@ -18,7 +18,7 @@ import { useUsers } from "../hooks/useUsers";
 import { useMonthlyAttendance } from "../hooks/useMonthlyAttendance";
 import { useEditDialog } from "../hooks/useEditDialog";
 import { exportMonthlyAttendanceCSV } from "@/lib/exportCsv";
-import { getUserMonth } from "@/app/actions/get-user-month";
+import { getUserMonthlyAttendance } from "@/app/actions/admin";
 
 export function MonthlyAttendanceView() {
 
@@ -28,7 +28,7 @@ export function MonthlyAttendanceView() {
 
     const reloadMonth = async () => {
         if (!selectedUser) return;
-        const data = await getUserMonth(selectedUser.id, currentMonth.getFullYear(), currentMonth.getMonth());
+        const data = await getUserMonthlyAttendance(selectedUser.id, currentMonth.getFullYear(), currentMonth.getMonth());
         setMonthData(data);
     };
 

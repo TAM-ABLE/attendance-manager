@@ -4,11 +4,13 @@ import { useAttendance } from "@/app/attendance-history/hooks/useAttendance";
 import { CalendarPanel } from "@/app/attendance-history/components/CalendarPanel";
 import { DayDetailCard } from "@/app/attendance-history/components/DayDetailCard";
 import { MonthlySummaryCard } from "@/app/attendance-history/components/MonthlySummaryCard";
-import { calculateMonthWorkHours } from "@/lib/calculation";
 
 export default function AttendanceHistory() {
 
     const { attendanceData, currentMonth, selectedDate, selectedDayData, setCurrentMonth, setSelectedDate } = useAttendance();
+
+    // バックエンドから返された計算済みの値を合計
+    const totalMonthWorkMs = attendanceData.reduce((acc, d) => acc + d.workTotalMs, 0);
 
     return (
         <div className="space-y-6">
@@ -32,7 +34,7 @@ export default function AttendanceHistory() {
                 </div>
             </div>
 
-            <MonthlySummaryCard totalDays={attendanceData.length} totalHours={calculateMonthWorkHours(attendanceData)} />
+            <MonthlySummaryCard totalDays={attendanceData.length} totalHours={totalMonthWorkMs} />
         </div>
     );
 }

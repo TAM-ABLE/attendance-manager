@@ -1,7 +1,6 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { formatDurationMs } from "@/lib/time";
 import { AttendanceRecord } from "../../../../shared/types/Attendance";
-import { calculateDayWorkHours, calculateDayBreakHours } from "@/lib/calculation";
 
 export function SummaryCard({ attendance }: { attendance: AttendanceRecord | null }) {
 
@@ -9,11 +8,9 @@ export function SummaryCard({ attendance }: { attendance: AttendanceRecord | nul
 
     const sessionCount = attendance.sessions.length;
 
-    // 勤務時間（ms）
-    const work = calculateDayWorkHours(attendance.sessions);
-
-    // 休憩時間（ms）
-    const breaks = calculateDayBreakHours(attendance.sessions);
+    // バックエンドで計算済みの値を使用
+    const work = attendance.workTotalMs;
+    const breaks = attendance.breakTotalMs;
 
     return (
         <Card>
