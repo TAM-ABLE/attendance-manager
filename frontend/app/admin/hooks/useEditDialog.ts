@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import { WorkSession, User } from "../../../../shared/types/Attendance";
+import { isValidUUID } from "../../../../shared/lib/constants";
 import { updateUserDateSessions, getUserDateSessions } from "@/app/actions/admin";
 
 export function useEditDialog(selectedUser: User | null, reloadMonthData: () => void) {
@@ -11,7 +12,8 @@ export function useEditDialog(selectedUser: User | null, reloadMonthData: () => 
     const [sessions, setSessions] = useState<WorkSession[]>([]);
 
     const openDialog = async (date: string) => {
-        if (!selectedUser) return;
+        // selectedUserまたはそのidが無効な場合はAPIを呼び出さない
+        if (!selectedUser || !selectedUser.id || !isValidUUID(selectedUser.id)) return;
         setSelectedDate(date);
         const result = await getUserDateSessions(selectedUser.id, date);
         if (result.success) {
@@ -26,7 +28,7 @@ export function useEditDialog(selectedUser: User | null, reloadMonthData: () => 
     const closeDialog = () => setShowEditDialog(false);
 
     const saveSessions = async () => {
-        if (!selectedUser || !selectedDate) return;
+        if (!selectedUser || !selectedUser.id || !isValidUUID(selectedUser.id) || !selectedDate) return;
 
         const res = await updateUserDateSessions(selectedUser.id, selectedDate, sessions);
 

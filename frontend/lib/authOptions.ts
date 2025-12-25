@@ -21,7 +21,8 @@ export const authOptions: NextAuthOptions = {
 
                 if (!res.ok) return null;
 
-                const { token, user } = await res.json();
+                const json = await res.json();
+                const { token, user } = json.data;
 
                 return { ...user, token };
             }

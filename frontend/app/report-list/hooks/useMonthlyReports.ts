@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { DailyReportListItem, UserForSelect } from "../../../../shared/types/DailyReport";
 import { getUserMonthlyReports } from "@/app/actions/daily-reports";
+import { formatYearMonthFromDate } from "../../../../shared/lib/time";
 
 export function useMonthlyReports(user: UserForSelect | null, currentMonth: Date) {
     const [reports, setReports] = useState<DailyReportListItem[]>([]);
@@ -10,7 +11,8 @@ export function useMonthlyReports(user: UserForSelect | null, currentMonth: Date
     const [error, setError] = useState<string | null>(null);
 
     const fetchReports = useCallback(async () => {
-        if (!user) {
+        // userまたはそのidが空の場合はAPIを呼び出さない
+        if (!user || !user.id || user.id.trim() === "") {
             setReports([]);
             return;
         }
@@ -18,9 +20,7 @@ export function useMonthlyReports(user: UserForSelect | null, currentMonth: Date
         try {
             setIsLoading(true);
             setError(null);
-            const year = currentMonth.getFullYear();
-            const month = String(currentMonth.getMonth() + 1).padStart(2, "0");
-            const yearMonth = `${year}-${month}`;
+            const yearMonth = formatYearMonthFromDate(currentMonth);
 
             const result = await getUserMonthlyReports(user.id, yearMonth);
             if (result.success) {

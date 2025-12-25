@@ -1,8 +1,9 @@
 // backend/lib/formatters.ts
 // 共通フォーマットユーティリティ
 
-import { calculateDayTotals } from './calculation';
+import { calculateSessionsTotals } from '../../shared/lib/calculation';
 import type { Database } from '../src/types/supabase';
+import type { WorkSession } from '../../shared/types/Attendance';
 
 // 共通の型定義: DBから取得した勤怠レコード（ネスト付き）
 export type DbAttendanceRecord = Database['public']['Tables']['attendance_records']['Row'] & {
@@ -35,7 +36,8 @@ export interface FormattedAttendanceRecord {
  * snake_case → camelCase、ISO文字列 → タイムスタンプ
  */
 export function formatAttendanceRecord(record: DbAttendanceRecord): FormattedAttendanceRecord {
-    const sessions = record.work_sessions.map((s) => ({
+    // DBレコード → WorkSession形式に変換
+    const sessions: WorkSession[] = record.work_sessions.map((s) => ({
         id: s.id,
         clockIn: s.clock_in ? new Date(s.clock_in).getTime() : null,
         clockOut: s.clock_out ? new Date(s.clock_out).getTime() : null,
@@ -46,7 +48,8 @@ export function formatAttendanceRecord(record: DbAttendanceRecord): FormattedAtt
         })),
     }));
 
-    const { workTotalMs, breakTotalMs } = calculateDayTotals(record.work_sessions);
+    // 共通の計算関数を使用
+    const { workTotalMs, breakTotalMs } = calculateSessionsTotals(sessions);
 
     return {
         date: record.date,

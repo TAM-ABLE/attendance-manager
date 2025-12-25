@@ -1,29 +1,53 @@
 // backend/src/routes/daily-reports.ts
-import { Hono } from "hono";
-import { z } from "zod";
+import { createRoute, z } from "@hono/zod-openapi";
 import { getSupabaseClient } from "../../lib/supabase";
 import { parseYearMonth } from "../../lib/time";
+import { databaseError, notFoundError, validationError, successResponse } from "../../lib/errors";
 import { Env } from "../types/env";
 import { AuthVariables } from "../middleware/auth";
 import { DailyReport, DailyReportListItem, DailyReportTask, UserForSelect } from "../../../shared/types/DailyReport";
-import { successResponse, databaseError, notFoundError, validationError } from "../../lib/errors";
-import { validateParams } from "../middleware/validation";
-import { uuidSchema, yearMonthParamsSchema } from "../../lib/schemas";
+import {
+    usersForSelectResponseSchema,
+    dailyReportListResponseSchema,
+    dailyReportDetailResponseSchema,
+    uuidSchema,
+    yearMonthSchema,
+    errorResponseSchema,
+    successResponseSchema,
+} from "../../lib/openapi-schemas";
+import { createOpenAPIHono } from "../../lib/openapi-hono";
 
-const dailyReportsRouter = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
-
-// パラメータスキーマ
-const userMonthParamsSchema = z.object({
-    userId: uuidSchema,
-    yearMonth: yearMonthParamsSchema.shape.yearMonth,
-});
-
-const reportIdParamsSchema = z.object({
-    id: uuidSchema,
-});
+const dailyReportsRouter = createOpenAPIHono<{ Bindings: Env; Variables: AuthVariables }>();
 
 // GET /daily-reports/users - ユーザー一覧取得（ユーザー選択用）
-dailyReportsRouter.get("/users", async (c) => {
+const getUsersRoute = createRoute({
+    method: "get",
+    path: "/users",
+    tags: ["日報"],
+    summary: "ユーザー一覧取得（日報用）",
+    description: "日報閲覧用のユーザー一覧を取得します。",
+    security: [{ Bearer: [] }],
+    responses: {
+        200: {
+            content: {
+                "application/json": {
+                    schema: successResponseSchema(usersForSelectResponseSchema),
+                },
+            },
+            description: "取得成功",
+        },
+        500: {
+            content: {
+                "application/json": {
+                    schema: errorResponseSchema,
+                },
+            },
+            description: "サーバーエラー",
+        },
+    },
+});
+
+dailyReportsRouter.openapi(getUsersRoute, async (c) => {
     const supabase = getSupabaseClient(c.env);
 
     const { data, error } = await supabase
@@ -41,12 +65,61 @@ dailyReportsRouter.get("/users", async (c) => {
         employeeNumber: user.employee_number,
     }));
 
-    return successResponse(c, { users });
+    return successResponse(c, users);
 });
 
 // GET /daily-reports/user/:userId/month/:yearMonth - 特定ユーザーの月別日報一覧取得
-dailyReportsRouter.get("/user/:userId/month/:yearMonth", validateParams(userMonthParamsSchema), async (c) => {
-    const { userId, yearMonth } = c.get("validatedParams") as { userId: string; yearMonth: string };
+const getUserMonthlyReportsRoute = createRoute({
+    method: "get",
+    path: "/user/{userId}/month/{yearMonth}",
+    tags: ["日報"],
+    summary: "ユーザーの月別日報一覧取得",
+    description: "指定ユーザーの月別日報一覧を取得します。",
+    security: [{ Bearer: [] }],
+    request: {
+        params: z.object({
+            userId: uuidSchema,
+            yearMonth: yearMonthSchema,
+        }),
+    },
+    responses: {
+        200: {
+            content: {
+                "application/json": {
+                    schema: successResponseSchema(dailyReportListResponseSchema),
+                },
+            },
+            description: "取得成功",
+        },
+        400: {
+            content: {
+                "application/json": {
+                    schema: errorResponseSchema,
+                },
+            },
+            description: "バリデーションエラー",
+        },
+        404: {
+            content: {
+                "application/json": {
+                    schema: errorResponseSchema,
+                },
+            },
+            description: "ユーザーが見つかりません",
+        },
+        500: {
+            content: {
+                "application/json": {
+                    schema: errorResponseSchema,
+                },
+            },
+            description: "サーバーエラー",
+        },
+    },
+});
+
+dailyReportsRouter.openapi(getUserMonthlyReportsRoute, async (c) => {
+    const { userId, yearMonth } = c.req.valid("param");
 
     const parsed = parseYearMonth(yearMonth);
     if (!parsed) {
@@ -142,8 +215,48 @@ dailyReportsRouter.get("/user/:userId/month/:yearMonth", validateParams(userMont
 });
 
 // GET /daily-reports/:id - 日報詳細取得
-dailyReportsRouter.get("/:id", validateParams(reportIdParamsSchema), async (c) => {
-    const { id } = c.get("validatedParams") as { id: string };
+const getReportDetailRoute = createRoute({
+    method: "get",
+    path: "/{id}",
+    tags: ["日報"],
+    summary: "日報詳細取得",
+    description: "指定された日報の詳細を取得します。",
+    security: [{ Bearer: [] }],
+    request: {
+        params: z.object({
+            id: uuidSchema,
+        }),
+    },
+    responses: {
+        200: {
+            content: {
+                "application/json": {
+                    schema: successResponseSchema(dailyReportDetailResponseSchema),
+                },
+            },
+            description: "取得成功",
+        },
+        404: {
+            content: {
+                "application/json": {
+                    schema: errorResponseSchema,
+                },
+            },
+            description: "日報が見つかりません",
+        },
+        500: {
+            content: {
+                "application/json": {
+                    schema: errorResponseSchema,
+                },
+            },
+            description: "サーバーエラー",
+        },
+    },
+});
+
+dailyReportsRouter.openapi(getReportDetailRoute, async (c) => {
+    const { id } = c.req.valid("param");
     const supabase = getSupabaseClient(c.env);
 
     // 日報とタスクを取得
@@ -213,7 +326,7 @@ dailyReportsRouter.get("/:id", validateParams(reportIdParamsSchema), async (c) =
         updatedAt: new Date(report.updated_at).getTime(),
     };
 
-    return successResponse(c, { report: dailyReport });
+    return successResponse(c, dailyReport);
 });
 
 export default dailyReportsRouter;

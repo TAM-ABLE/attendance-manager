@@ -7,7 +7,7 @@ import { authOptions } from "@/lib/authOptions";
 import { apiClient, apiClientNoCache } from "@/lib/api-client";
 import type { Task, AttendanceRecord } from "../../../shared/types/Attendance";
 import type { ApiResult } from "../../../shared/types/ApiResponse";
-import { isCurrentMonth } from "../../../shared/lib/time";
+import { isCurrentMonth, formatYearMonth } from "../../../shared/lib/time";
 import { CACHE_CURRENT_MONTH_SEC, CACHE_PAST_MONTH_SEC } from "../../../shared/lib/constants";
 
 // ============ Clock Operations ============
@@ -54,7 +54,7 @@ export async function getToday(): Promise<ApiResult<AttendanceRecord | null>> {
 }
 
 export async function getMonth(year: number, month: number): Promise<ApiResult<AttendanceRecord[]>> {
-    const yearMonth = `${year}-${String(month).padStart(2, "0")}`;
+    const yearMonth = formatYearMonth(year, month);
     const revalidate = isCurrentMonth(year, month) ? CACHE_CURRENT_MONTH_SEC : CACHE_PAST_MONTH_SEC;
 
     return apiClient(`/attendance/month/${yearMonth}`, { revalidate });

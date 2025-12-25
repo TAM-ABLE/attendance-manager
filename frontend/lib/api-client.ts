@@ -3,13 +3,18 @@
 
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/authOptions";
-import type { ApiResult, ApiError } from "../../shared/types/ApiResponse";
+import { ErrorCodes, failure, type ApiResult, type ApiError } from "../../shared/types/ApiResponse";
+
+/** デフォルトタイムアウト（30秒） */
+const DEFAULT_TIMEOUT = 30000;
 
 interface FetchOptions {
     method?: "GET" | "POST" | "PUT" | "DELETE";
     body?: unknown;
     cache?: RequestCache;
     revalidate?: number;
+    /** リクエストタイムアウト（ミリ秒） */
+    timeout?: number;
 }
 
 /**
@@ -36,13 +41,14 @@ export async function apiClient<T>(endpoint: string, options: FetchOptions = {})
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
     if (!token) {
-        return {
-            success: false,
-            error: { code: "UNAUTHORIZED", message: "Not authenticated" },
-        };
+        return failure(ErrorCodes.UNAUTHORIZED, "Not authenticated");
     }
 
-    const { method = "GET", body, cache, revalidate } = options;
+    const { method = "GET", body, cache, revalidate, timeout = DEFAULT_TIMEOUT } = options;
+
+    // タイムアウト用のAbortController
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
         const headers: HeadersInit = {
@@ -55,6 +61,7 @@ export async function apiClient<T>(endpoint: string, options: FetchOptions = {})
         const fetchOptions: RequestInit & { next?: { revalidate?: number } } = {
             method,
             headers,
+            signal: controller.signal,
         };
 
         if (body) {
@@ -74,38 +81,26 @@ export async function apiClient<T>(endpoint: string, options: FetchOptions = {})
         const data = await res.json();
 
         if (!res.ok) {
-            // バックエンドからのエラーレスポンス
-            let error: ApiError;
-
-            if (data.error && typeof data.error === "object" && "code" in data.error) {
-                // 新形式: { success: false, error: { code, message } }
-                error = data.error;
-            } else if (typeof data.error === "string") {
-                // 旧形式: { error: "message" }
-                error = { code: "INTERNAL_ERROR", message: data.error };
-            } else {
-                error = { code: "INTERNAL_ERROR", message: `Request failed: ${res.status}` };
-            }
+            // バックエンドからのエラーレスポンス: { success: false, error: { code, message } }
+            const error: ApiError = data.error && typeof data.error === "object" && "code" in data.error
+                ? data.error
+                : { code: ErrorCodes.INTERNAL_ERROR, message: `Request failed: ${res.status}` };
 
             return { success: false, error };
         }
 
-        // 新しい形式: { success: true, data: ... }
-        if (data.success === true && "data" in data) {
-            return { success: true, data: data.data as T };
+        // 成功レスポンス: { success: true, data: ... }
+        return { success: true, data: data.data as T };
+    } catch (err) {
+        // タイムアウトエラーの処理
+        if (err instanceof DOMException && err.name === "AbortError") {
+            return failure(ErrorCodes.TIMEOUT, "Request timed out");
         }
 
-        // 後方互換性: 直接データが返ってくる場合
-        return { success: true, data: data as T };
-    } catch (err) {
         console.error(`API Error [${endpoint}]:`, err);
-        return {
-            success: false,
-            error: {
-                code: "INTERNAL_ERROR",
-                message: err instanceof Error ? err.message : "Unknown error",
-            },
-        };
+        return failure(ErrorCodes.INTERNAL_ERROR, err instanceof Error ? err.message : "Unknown error");
+    } finally {
+        clearTimeout(timeoutId);
     }
 }
 

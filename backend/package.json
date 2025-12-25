@@ -8,10 +8,12 @@
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
+    "@hono/swagger-ui": "^0.5.2",
+    "@hono/zod-openapi": "^1.2.0",
     "@supabase/supabase-js": "^2.83.0",
     "bcryptjs": "^3.0.3",
     "hono": "^4.10.4",
-    "zod": "^3.23.8"
+    "zod": "^4.2.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
