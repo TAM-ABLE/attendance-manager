@@ -2,6 +2,7 @@
 import { Context, Next } from 'hono';
 import { verify } from 'hono/jwt';
 import { Env } from '../types/env';
+import { unauthorizedError, forbiddenError, internalError } from '../../lib/errors';
 
 export type JwtPayload = {
     id: string;
@@ -24,14 +25,14 @@ export const authMiddleware = async (
 ) => {
     const authHeader = c.req.header('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
-        return c.json({ error: 'Unauthorized' }, 401);
+        return unauthorizedError(c, 'Missing or invalid Authorization header');
     }
 
     const token = authHeader.split(' ')[1];
 
     if (!c.env.JWT_SECRET) {
         console.error('JWT_SECRET is missing');
-        return c.json({ error: 'Server configuration error' }, 500);
+        return internalError(c, 'JWT_SECRET is missing');
     }
 
     try {
@@ -39,7 +40,7 @@ export const authMiddleware = async (
         c.set('jwtPayload', payload);
         await next();
     } catch {
-        return c.json({ error: 'Invalid token' }, 401);
+        return unauthorizedError(c, 'Invalid token');
     }
 };
 
@@ -55,7 +56,7 @@ export const adminMiddleware = async (
     const payload = c.get('jwtPayload');
 
     if (payload.role !== 'admin') {
-        return c.json({ error: 'Forbidden (admin only)' }, 403);
+        return forbiddenError(c, 'Admin access required');
     }
 
     await next();

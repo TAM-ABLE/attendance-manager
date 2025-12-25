@@ -1,37 +1,73 @@
 // ClockInDialog.tsx
-"use client"
+"use client";
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Plus, X } from "lucide-react";
 import { Loader } from "@/components/Loader";
 import { SuccessDialog } from "@/components/SuccessDialog";
-import { Task } from "../../../../shared/types/Attendance";
+import type { Task } from "../../../../shared/types/Attendance";
+import type { ApiResult } from "../../../../shared/types/ApiResponse";
 
-export const ClockInDialog = ({ open, onClose, onSubmit }: { open: boolean; onClose: () => void; onSubmit: (tasks: Task[]) => Promise<void>; }) => {
+// UI用のフォーム状態
+interface TaskFormItem {
+    taskName: string;
+    hours: string;
+}
 
-    const [plannedTasks, setPlannedTasks] = useState<{ task: string, hours: string }[]>([
-        { task: "", hours: "" },
-    ]);
+// フォーム状態をTask型に変換
+function toTasks(items: TaskFormItem[]): Task[] {
+    return items
+        .filter((item) => item.taskName.trim() !== "")
+        .map((item) => ({
+            taskName: item.taskName.trim(),
+            hours: item.hours ? parseFloat(item.hours) : null,
+        }));
+}
+
+interface ClockInDialogProps {
+    open: boolean;
+    onClose: () => void;
+    onSubmit: (tasks: Task[]) => Promise<ApiResult<unknown>>;
+}
+
+export const ClockInDialog = ({ open, onClose, onSubmit }: ClockInDialogProps) => {
+    const [plannedTasks, setPlannedTasks] = useState<TaskFormItem[]>([{ taskName: "", hours: "" }]);
     const [mode, setMode] = useState<"form" | "loading" | "success">("form");
+    const [error, setError] = useState<string | null>(null);
 
     const handleSubmit = async () => {
         try {
             setMode("loading");
-            await onSubmit(plannedTasks);
-            setMode("success");
+            setError(null);
+            const result = await onSubmit(toTasks(plannedTasks));
+
+            if (result.success) {
+                setMode("success");
+            } else {
+                setError(result.error.message);
+                setMode("form");
+            }
         } catch (e) {
             console.error(e);
+            setError(e instanceof Error ? e.message : "Unknown error");
             setMode("form");
         }
     };
 
     const handleCloseSuccess = () => {
         onClose();
-        setPlannedTasks([{ task: "", hours: "" }]);
+        setPlannedTasks([{ taskName: "", hours: "" }]);
         setMode("form");
     };
 
@@ -48,12 +84,7 @@ export const ClockInDialog = ({ open, onClose, onSubmit }: { open: boolean; onCl
 
     // --- Success UI ---
     if (mode === "success") {
-        return (
-            <SuccessDialog
-                open={open}
-                onClose={handleCloseSuccess}
-            />
-        );
+        return <SuccessDialog open={open} onClose={handleCloseSuccess} />;
     }
 
     // --- Form UI ---
@@ -65,6 +96,8 @@ export const ClockInDialog = ({ open, onClose, onSubmit }: { open: boolean; onCl
                     <DialogDescription>本日の予定を入力してください</DialogDescription>
                 </DialogHeader>
 
+                {error && <div className="text-red-500 text-sm p-2 bg-red-50 rounded">{error}</div>}
+
                 <div className="space-y-4 py-4">
                     <div>
                         <Label className="text-base">実施予定タスクと予定工数（時間）</Label>
@@ -74,10 +107,10 @@ export const ClockInDialog = ({ open, onClose, onSubmit }: { open: boolean; onCl
                                     <div className="flex-1">
                                         <Input
                                             placeholder="タスク名"
-                                            value={task.task}
+                                            value={task.taskName}
                                             onChange={(e) => {
                                                 const newList = [...plannedTasks];
-                                                newList[index].task = e.target.value;
+                                                newList[index].taskName = e.target.value;
                                                 setPlannedTasks(newList);
                                             }}
                                         />
@@ -109,7 +142,9 @@ export const ClockInDialog = ({ open, onClose, onSubmit }: { open: boolean; onCl
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setPlannedTasks([...plannedTasks, { task: "", hours: "" }])}
+                                onClick={() =>
+                                    setPlannedTasks([...plannedTasks, { taskName: "", hours: "" }])
+                                }
                                 className="w-full"
                             >
                                 <Plus className="h-4 w-4 mr-2" />

@@ -43,8 +43,13 @@ export function ReportDetailDialog({ open, reportId, onClose }: ReportDetailDial
             const fetchReport = async () => {
                 setIsLoading(true);
                 try {
-                    const data = await getDailyReportDetail(reportId);
-                    setReport(data);
+                    const result = await getDailyReportDetail(reportId);
+                    if (result.success) {
+                        setReport(result.data);
+                    } else {
+                        console.error("Failed to fetch report detail:", result.error.message);
+                        setReport(null);
+                    }
                 } catch (err) {
                     console.error("Failed to fetch report detail:", err);
                     setReport(null);

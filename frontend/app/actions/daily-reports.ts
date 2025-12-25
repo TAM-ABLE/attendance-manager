@@ -1,98 +1,51 @@
 "use server";
 
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
-import {
-    DailyReport,
-    DailyReportListItem,
-    UserForSelect,
-} from "../../../shared/types/DailyReport";
+// frontend/app/actions/daily-reports.ts
+
+import { apiClient, apiClientNoCache } from "@/lib/api-client";
+import type { DailyReport, DailyReportListItem, UserForSelect } from "../../../shared/types/DailyReport";
+import type { ApiResult } from "../../../shared/types/ApiResponse";
+import { parseYearMonth, isCurrentMonth } from "../../../shared/lib/time";
+import { CACHE_CURRENT_MONTH_SEC, CACHE_PAST_MONTH_SEC } from "../../../shared/lib/constants";
 
 // ユーザー一覧取得（日報用）
-export async function getDailyReportUsers(): Promise<UserForSelect[]> {
-    const session = await getServerSession(authOptions);
-    const token = session?.user?.apiToken;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+export async function getDailyReportUsers(): Promise<ApiResult<UserForSelect[]>> {
+    const result = await apiClientNoCache<{ users: UserForSelect[] }>("/daily-reports/users");
 
-    if (!token) throw new Error("Unauthorized");
-
-    try {
-        const res = await fetch(`${apiUrl}/daily-reports/users`, {
-            headers: { Authorization: `Bearer ${token}` },
-            cache: "no-store",
-        });
-
-        if (!res.ok) {
-            throw new Error(`Get daily report users failed: ${res.status}`);
-        }
-
-        const data = await res.json();
-        return data.users;
-    } catch (err) {
-        console.error("getDailyReportUsers Error:", err);
-        return [];
+    if (!result.success) {
+        return result;
     }
+
+    return { success: true, data: result.data.users };
+}
+
+// 特定ユーザーの月別日報一覧レスポンス型
+interface UserMonthlyReportsResponse {
+    user: UserForSelect | null;
+    yearMonth: string;
+    reports: DailyReportListItem[];
 }
 
 // 特定ユーザーの月別日報一覧取得
 export async function getUserMonthlyReports(
     userId: string,
     yearMonth: string // 'YYYY-MM'
-): Promise<{
-    user: UserForSelect | null;
-    yearMonth: string;
-    reports: DailyReportListItem[];
-}> {
-    const session = await getServerSession(authOptions);
-    const token = session?.user?.apiToken;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+): Promise<ApiResult<UserMonthlyReportsResponse>> {
+    const parsed = parseYearMonth(yearMonth);
+    const revalidate = parsed && isCurrentMonth(parsed.year, parsed.month)
+        ? CACHE_CURRENT_MONTH_SEC
+        : CACHE_PAST_MONTH_SEC;
 
-    if (!token) throw new Error("Unauthorized");
-
-    try {
-        const res = await fetch(
-            `${apiUrl}/daily-reports/user/${userId}/month/${yearMonth}`,
-            {
-                headers: { Authorization: `Bearer ${token}` },
-                cache: "no-store",
-            }
-        );
-
-        if (!res.ok) {
-            throw new Error(`Get user monthly reports failed: ${res.status}`);
-        }
-
-        return await res.json();
-    } catch (err) {
-        console.error("getUserMonthlyReports Error:", err);
-        return { user: null, yearMonth, reports: [] };
-    }
+    return apiClient(`/daily-reports/user/${userId}/month/${yearMonth}`, { revalidate });
 }
 
 // 日報詳細取得
-export async function getDailyReportDetail(
-    reportId: string
-): Promise<DailyReport | null> {
-    const session = await getServerSession(authOptions);
-    const token = session?.user?.apiToken;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+export async function getDailyReportDetail(reportId: string): Promise<ApiResult<DailyReport>> {
+    const result = await apiClientNoCache<{ report: DailyReport }>(`/daily-reports/${reportId}`);
 
-    if (!token) throw new Error("Unauthorized");
-
-    try {
-        const res = await fetch(`${apiUrl}/daily-reports/${reportId}`, {
-            headers: { Authorization: `Bearer ${token}` },
-            cache: "no-store",
-        });
-
-        if (!res.ok) {
-            throw new Error(`Get daily report detail failed: ${res.status}`);
-        }
-
-        const data = await res.json();
-        return data.report;
-    } catch (err) {
-        console.error("getDailyReportDetail Error:", err);
-        return null;
+    if (!result.success) {
+        return result;
     }
+
+    return { success: true, data: result.data.report };
 }

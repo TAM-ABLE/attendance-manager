@@ -27,7 +27,30 @@ export interface User {
     employeeId: string; //社員ID
 }
 
+/**
+ * タスク（予定/実績）
+ * NOTE: hours は number | null に統一（以前は string だった）
+ */
 export interface Task {
+    taskName: string;
+    hours: number | null;
+}
+
+/**
+ * レガシーTask型（移行用）
+ * @deprecated 新しいTaskインターフェースを使用してください
+ */
+export interface LegacyTask {
     task: string;
     hours: string;
+}
+
+/**
+ * レガシーTask を新しいTask に変換
+ */
+export function migrateLegacyTask(legacy: LegacyTask): Task {
+    return {
+        taskName: legacy.task,
+        hours: legacy.hours ? parseFloat(legacy.hours) : null,
+    };
 }
