@@ -5,19 +5,13 @@
 import { apiClient, apiClientNoCache } from "@/lib/api-client";
 import type { User, AttendanceRecord, WorkSession } from "../../../shared/types/Attendance";
 import type { ApiResult } from "../../../shared/types/ApiResponse";
-import { isCurrentMonth } from "../../../shared/lib/time";
+import { isCurrentMonth, formatYearMonth } from "../../../shared/lib/time";
 import { CACHE_CURRENT_MONTH_SEC, CACHE_PAST_MONTH_SEC } from "../../../shared/lib/constants";
 
 // ============ User Operations ============
 
 export async function getUsers(): Promise<ApiResult<User[]>> {
-    const result = await apiClientNoCache<{ users: User[] }>("/admin/users");
-
-    if (!result.success) {
-        return result;
-    }
-
-    return { success: true, data: result.data.users };
+    return apiClientNoCache("/admin/users");
 }
 
 // ============ Attendance Operations ============
@@ -29,7 +23,7 @@ export async function getUserMonthlyAttendance(
 ): Promise<ApiResult<AttendanceRecord[]>> {
     // month は 0-indexed (Date.getMonth() から) なので +1 して YYYY-MM 形式に変換
     const actualMonth = month + 1;
-    const yearMonth = `${year}-${String(actualMonth).padStart(2, "0")}`;
+    const yearMonth = formatYearMonth(year, actualMonth);
     const revalidate = isCurrentMonth(year, actualMonth) ? CACHE_CURRENT_MONTH_SEC : CACHE_PAST_MONTH_SEC;
 
     return apiClient(`/admin/users/${userId}/attendance/month/${yearMonth}`, { revalidate });

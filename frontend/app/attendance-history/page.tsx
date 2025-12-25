@@ -1,13 +1,13 @@
 "use client";
 
-import { useAttendance } from "@/app/attendance-history/hooks/useAttendance";
+import { useAttendanceHistory } from "@/app/attendance-history/hooks/useAttendanceHistory";
 import { CalendarPanel } from "@/app/attendance-history/components/CalendarPanel";
 import { DayDetailCard } from "@/app/attendance-history/components/DayDetailCard";
 import { MonthlySummaryCard } from "@/app/attendance-history/components/MonthlySummaryCard";
 
 export default function AttendanceHistory() {
 
-    const { attendanceData, currentMonth, selectedDate, selectedDayData, setCurrentMonth, setSelectedDate } = useAttendance();
+    const { attendanceData, currentMonth, selectedDate, selectedDayData, setCurrentMonth, setSelectedDate } = useAttendanceHistory();
 
     // バックエンドから返された計算済みの値を合計
     const totalMonthWorkMs = attendanceData.reduce((acc, d) => acc + d.workTotalMs, 0);

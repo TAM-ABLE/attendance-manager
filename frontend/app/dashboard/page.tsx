@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useAttendance } from "./hooks/useAttendance";
+import { useDashboardAttendance } from "./hooks/useDashboardAttendance";
 import { ClockCard } from "./components/ClockCard";
 import { PunchButtons } from "./components/PunchButtons";
 import { SummaryCard } from "./components/SummaryCard";
@@ -23,7 +23,7 @@ export default function Dashboard() {
         handleClockOut,
         handleBreakStart,
         handleBreakEnd,
-    } = useAttendance();
+    } = useDashboardAttendance();
 
     const {
         showClockInDialog,

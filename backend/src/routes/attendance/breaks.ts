@@ -1,15 +1,54 @@
 // backend/src/routes/attendance/breaks.ts
-import { Hono } from "hono";
+import { createRoute, z } from "@hono/zod-openapi";
 import { getSupabaseClient } from "../../../lib/supabase";
 import { todayJSTString } from "../../../lib/time";
+import { databaseError, validationError, successResponse } from "../../../lib/errors";
 import { Env } from "../../types/env";
 import { AuthVariables } from "../../middleware/auth";
-import { successResponse, databaseError, validationError } from "../../../lib/errors";
+import { errorResponseSchema, successResponseSchema } from "../../../lib/openapi-schemas";
+import { createOpenAPIHono } from "../../../lib/openapi-hono";
 
-const breaksRouter = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
+const breaksRouter = createOpenAPIHono<{ Bindings: Env; Variables: AuthVariables }>();
+
+const nullResponseSchema = z.null().openapi({ description: "null" });
 
 // POST /attendance/breaks/start
-breaksRouter.post("/start", async (c) => {
+const breakStartRoute = createRoute({
+    method: "post",
+    path: "/start",
+    tags: ["勤怠"],
+    summary: "休憩開始",
+    description: "休憩を開始します。",
+    security: [{ Bearer: [] }],
+    responses: {
+        200: {
+            content: {
+                "application/json": {
+                    schema: successResponseSchema(nullResponseSchema),
+                },
+            },
+            description: "休憩開始成功",
+        },
+        400: {
+            content: {
+                "application/json": {
+                    schema: errorResponseSchema,
+                },
+            },
+            description: "バリデーションエラー",
+        },
+        500: {
+            content: {
+                "application/json": {
+                    schema: errorResponseSchema,
+                },
+            },
+            description: "サーバーエラー",
+        },
+    },
+});
+
+breaksRouter.openapi(breakStartRoute, async (c) => {
     const { id: userId } = c.get("jwtPayload");
     const supabase = getSupabaseClient(c.env);
     const date = todayJSTString();
@@ -82,7 +121,42 @@ breaksRouter.post("/start", async (c) => {
 });
 
 // POST /attendance/breaks/end
-breaksRouter.post("/end", async (c) => {
+const breakEndRoute = createRoute({
+    method: "post",
+    path: "/end",
+    tags: ["勤怠"],
+    summary: "休憩終了",
+    description: "休憩を終了します。",
+    security: [{ Bearer: [] }],
+    responses: {
+        200: {
+            content: {
+                "application/json": {
+                    schema: successResponseSchema(nullResponseSchema),
+                },
+            },
+            description: "休憩終了成功",
+        },
+        400: {
+            content: {
+                "application/json": {
+                    schema: errorResponseSchema,
+                },
+            },
+            description: "バリデーションエラー",
+        },
+        500: {
+            content: {
+                "application/json": {
+                    schema: errorResponseSchema,
+                },
+            },
+            description: "サーバーエラー",
+        },
+    },
+});
+
+breaksRouter.openapi(breakEndRoute, async (c) => {
     const { id: userId } = c.get("jwtPayload");
     const supabase = getSupabaseClient(c.env);
     const date = todayJSTString();

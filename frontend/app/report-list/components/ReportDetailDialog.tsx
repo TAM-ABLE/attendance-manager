@@ -39,7 +39,8 @@ export function ReportDetailDialog({ open, reportId, onClose }: ReportDetailDial
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        if (open && reportId) {
+        // reportIdが空文字や無効な値の場合はAPIを呼び出さない
+        if (open && reportId && reportId.trim() !== "") {
             const fetchReport = async () => {
                 setIsLoading(true);
                 try {

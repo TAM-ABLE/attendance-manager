@@ -1,20 +1,72 @@
 // backend/src/routes/attendance/clock.ts
-import { Hono } from "hono";
+import { createRoute } from "@hono/zod-openapi";
 import { getSupabaseClient } from "../../../lib/supabase";
 import { todayJSTString } from "../../../lib/time";
 import { getSlackConfig, sendClockInNotification, sendClockOutNotification } from "../../../lib/slack";
+import { databaseError, validationError, successResponse } from "../../../lib/errors";
 import { Env } from "../../types/env";
 import { AuthVariables } from "../../middleware/auth";
-import { validateBody } from "../../middleware/validation";
-import { clockInRequestSchema, clockOutRequestSchema, type ClockInRequest, type ClockOutRequest, type TaskInput } from "../../../lib/schemas";
-import { successResponse, databaseError, validationError } from "../../../lib/errors";
+import {
+    clockInRequestSchema,
+    clockOutRequestSchema,
+    clockResponseSchema,
+    errorResponseSchema,
+    successResponseSchema,
+    type Task,
+} from "../../../lib/openapi-schemas";
+import { createOpenAPIHono } from "../../../lib/openapi-hono";
 
-const clockRouter = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
+const clockRouter = createOpenAPIHono<{ Bindings: Env; Variables: AuthVariables }>();
 
 // POST /attendance/clock-in
-clockRouter.post("/clock-in", validateBody(clockInRequestSchema), async (c) => {
+const clockInRoute = createRoute({
+    method: "post",
+    path: "/clock-in",
+    tags: ["勤怠"],
+    summary: "出勤",
+    description: "出勤を記録し、Slack通知を送信します。",
+    security: [{ Bearer: [] }],
+    request: {
+        body: {
+            content: {
+                "application/json": {
+                    schema: clockInRequestSchema,
+                },
+            },
+            required: true,
+        },
+    },
+    responses: {
+        200: {
+            content: {
+                "application/json": {
+                    schema: successResponseSchema(clockResponseSchema),
+                },
+            },
+            description: "出勤成功",
+        },
+        400: {
+            content: {
+                "application/json": {
+                    schema: errorResponseSchema,
+                },
+            },
+            description: "バリデーションエラー",
+        },
+        500: {
+            content: {
+                "application/json": {
+                    schema: errorResponseSchema,
+                },
+            },
+            description: "サーバーエラー",
+        },
+    },
+});
+
+clockRouter.openapi(clockInRoute, async (c) => {
     const { id: userId } = c.get("jwtPayload");
-    const { userName, plannedTasks } = c.get("validatedBody") as ClockInRequest;
+    const { userName, plannedTasks } = c.req.valid("json");
 
     const supabase = getSupabaseClient(c.env);
     const date = todayJSTString();
@@ -69,7 +121,7 @@ clockRouter.post("/clock-in", validateBody(clockInRequestSchema), async (c) => {
     }
 
     if (plannedTasks.length > 0) {
-        const taskInserts = plannedTasks.map((task: TaskInput, index: number) => ({
+        const taskInserts = plannedTasks.map((task: Task, index: number) => ({
             daily_report_id: dailyReport.id,
             task_type: "planned",
             task_name: task.taskName,
@@ -80,8 +132,8 @@ clockRouter.post("/clock-in", validateBody(clockInRequestSchema), async (c) => {
         const { error: tasksErr } = await supabase.from("daily_report_tasks").insert(taskInserts);
 
         if (tasksErr) {
+            // タスク保存失敗は警告として記録するが、出勤処理は成功扱い
             console.error("Failed to insert planned tasks:", tasksErr);
-            // タスク保存失敗は致命的ではないので続行
         }
     }
 
@@ -93,9 +145,54 @@ clockRouter.post("/clock-in", validateBody(clockInRequestSchema), async (c) => {
 });
 
 // POST /attendance/clock-out
-clockRouter.post("/clock-out", validateBody(clockOutRequestSchema), async (c) => {
+const clockOutRoute = createRoute({
+    method: "post",
+    path: "/clock-out",
+    tags: ["勤怠"],
+    summary: "退勤",
+    description: "退勤を記録し、日報を提出し、Slack通知を送信します。",
+    security: [{ Bearer: [] }],
+    request: {
+        body: {
+            content: {
+                "application/json": {
+                    schema: clockOutRequestSchema,
+                },
+            },
+            required: true,
+        },
+    },
+    responses: {
+        200: {
+            content: {
+                "application/json": {
+                    schema: successResponseSchema(clockResponseSchema),
+                },
+            },
+            description: "退勤成功",
+        },
+        400: {
+            content: {
+                "application/json": {
+                    schema: errorResponseSchema,
+                },
+            },
+            description: "バリデーションエラー",
+        },
+        500: {
+            content: {
+                "application/json": {
+                    schema: errorResponseSchema,
+                },
+            },
+            description: "サーバーエラー",
+        },
+    },
+});
+
+clockRouter.openapi(clockOutRoute, async (c) => {
     const { id: userId } = c.get("jwtPayload");
-    const { userName, actualTasks, summary, issues, notes } = c.get("validatedBody") as ClockOutRequest;
+    const { userName, actualTasks, summary, issues, notes } = c.req.valid("json");
 
     const supabase = getSupabaseClient(c.env);
     const date = todayJSTString();
@@ -158,6 +255,7 @@ clockRouter.post("/clock-out", validateBody(clockOutRequestSchema), async (c) =>
         .maybeSingle();
 
     if (reportFetchErr) {
+        // 日報取得失敗は警告として記録するが、退勤処理は続行
         console.error("Failed to fetch daily report:", reportFetchErr);
     }
 
@@ -178,7 +276,7 @@ clockRouter.post("/clock-out", validateBody(clockOutRequestSchema), async (c) =>
         }
 
         if (actualTasks.length > 0) {
-            const taskInserts = actualTasks.map((task: TaskInput, index: number) => ({
+            const taskInserts = actualTasks.map((task: Task, index: number) => ({
                 daily_report_id: dailyReport.id,
                 task_type: "actual",
                 task_name: task.taskName,
