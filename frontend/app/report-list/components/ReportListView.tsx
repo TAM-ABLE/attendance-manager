@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
+import { useState, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
     Select,
     SelectContent,
@@ -12,10 +11,15 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
+import { MonthNavigator } from "@/components/MonthNavigator";
 import { ReportTable } from "./ReportTable";
-import { ReportDetailDialog } from "./ReportDetailDialog";
 import { useReportUsers } from "../hooks/useReportUsers";
 import { useMonthlyReports } from "../hooks/useMonthlyReports";
+
+const ReportDetailDialog = dynamic(() =>
+    import("./ReportDetailDialog").then((mod) => mod.ReportDetailDialog),
+    { ssr: false }
+);
 
 export function ReportListView() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -36,25 +40,25 @@ export function ReportListView() {
         setDetailReportId(null);
     };
 
-    const handlePrevMonth = () => {
+    const handlePrevMonth = useCallback(() => {
         setCurrentMonth((prev) => {
             const d = new Date(prev);
             d.setMonth(prev.getMonth() - 1);
             return d;
         });
-    };
+    }, []);
 
-    const handleNextMonth = () => {
+    const handleNextMonth = useCallback(() => {
         setCurrentMonth((prev) => {
             const d = new Date(prev);
             d.setMonth(prev.getMonth() + 1);
             return d;
         });
-    };
+    }, []);
 
-    const handleToday = () => {
+    const handleToday = useCallback(() => {
         setCurrentMonth(new Date());
-    };
+    }, []);
 
     return (
         <div className="space-y-4 sm:space-y-6">
@@ -62,26 +66,12 @@ export function ReportListView() {
             <Card>
                 <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     {/* 月移動 */}
-                    <div className="flex items-center justify-between sm:justify-start gap-2">
-                        <div className="flex items-center gap-1 sm:gap-2">
-                            <Button variant="outline" size="sm" onClick={handlePrevMonth}>
-                                <ChevronLeft className="h-4 w-4" />
-                            </Button>
-
-                            <Button variant="outline" size="sm" onClick={handleToday}>
-                                <CalendarIcon className="h-4 w-4 sm:mr-2" />
-                                <span className="hidden sm:inline">今月</span>
-                            </Button>
-
-                            <Button variant="outline" size="sm" onClick={handleNextMonth}>
-                                <ChevronRight className="h-4 w-4" />
-                            </Button>
-                        </div>
-
-                        <span className="ml-2 text-base sm:text-lg font-semibold whitespace-nowrap">
-                            {currentMonth.getFullYear()}年{currentMonth.getMonth() + 1}月
-                        </span>
-                    </div>
+                    <MonthNavigator
+                        currentMonth={currentMonth}
+                        onPrevMonth={handlePrevMonth}
+                        onNextMonth={handleNextMonth}
+                        onToday={handleToday}
+                    />
 
                     {/* ユーザー選択 */}
                     <div className="flex items-center gap-2">

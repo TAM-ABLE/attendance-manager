@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Download } from "lucide-react";
+import { useState, useCallback } from "react";
+import dynamic from "next/dynamic";
+import { Download } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,27 +13,45 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
+import { MonthNavigator } from "@/components/MonthNavigator";
 import { UserMonthlyAttendance } from "./UserMonthlyAttendance";
-import { EditAttendanceDialog } from "./EditAttendanceDialog";
 import { useUsers } from "../hooks/useUsers";
 import { useMonthlyAttendance } from "../hooks/useMonthlyAttendance";
 import { useEditDialog } from "../hooks/useEditDialog";
 import { exportMonthlyAttendanceCSV } from "@/lib/exportCsv";
-import { getUserMonthlyAttendance } from "@/app/actions/admin";
+
+const EditAttendanceDialog = dynamic(() =>
+    import("./EditAttendanceDialog").then((mod) => mod.EditAttendanceDialog),
+    { ssr: false }
+);
 
 export function MonthlyAttendanceView() {
 
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const { users, selectedUser, setSelectedUser } = useUsers();
-    const { monthData, setMonthData } = useMonthlyAttendance(selectedUser, currentMonth);
+    const { monthData, refetch } = useMonthlyAttendance(selectedUser, currentMonth);
 
-    const reloadMonth = async () => {
-        if (!selectedUser) return;
-        const data = await getUserMonthlyAttendance(selectedUser.id, currentMonth.getFullYear(), currentMonth.getMonth());
-        setMonthData(data);
-    };
+    const editDialog = useEditDialog(selectedUser, refetch);
 
-    const editDialog = useEditDialog(selectedUser, reloadMonth);
+    const handlePrevMonth = useCallback(() => {
+        setCurrentMonth((prev) => {
+            const d = new Date(prev);
+            d.setMonth(prev.getMonth() - 1);
+            return d;
+        });
+    }, []);
+
+    const handleNextMonth = useCallback(() => {
+        setCurrentMonth((prev) => {
+            const d = new Date(prev);
+            d.setMonth(prev.getMonth() + 1);
+            return d;
+        });
+    }, []);
+
+    const handleToday = useCallback(() => {
+        setCurrentMonth(new Date());
+    }, []);
 
     const handleExportCSV = () => {
         if (!selectedUser) {
@@ -52,34 +71,12 @@ export function MonthlyAttendanceView() {
             <Card>
                 <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     {/* 月移動 */}
-                    <div className="flex items-center justify-between sm:justify-start gap-2">
-                        <div className="flex items-center gap-1 sm:gap-2">
-                            <Button variant="outline" size="sm" onClick={() => setCurrentMonth(prev => {
-                                const d = new Date(prev);
-                                d.setMonth(prev.getMonth() - 1);
-                                return d;
-                            })}>
-                                <ChevronLeft className="h-4 w-4" />
-                            </Button>
-
-                            <Button variant="outline" size="sm" onClick={() => setCurrentMonth(new Date())}>
-                                <CalendarIcon className="h-4 w-4 sm:mr-2" />
-                                <span className="hidden sm:inline">今月</span>
-                            </Button>
-
-                            <Button variant="outline" size="sm" onClick={() => setCurrentMonth(prev => {
-                                const d = new Date(prev);
-                                d.setMonth(prev.getMonth() + 1);
-                                return d;
-                            })}>
-                                <ChevronRight className="h-4 w-4" />
-                            </Button>
-                        </div>
-
-                        <span className="ml-2 text-base sm:text-lg font-semibold whitespace-nowrap">
-                            {currentMonth.getFullYear()}年{currentMonth.getMonth() + 1}月
-                        </span>
-                    </div>
+                    <MonthNavigator
+                        currentMonth={currentMonth}
+                        onPrevMonth={handlePrevMonth}
+                        onNextMonth={handleNextMonth}
+                        onToday={handleToday}
+                    />
 
                     {/* ユーザー選択 & CSV */}
                     <div className="flex items-center gap-2">

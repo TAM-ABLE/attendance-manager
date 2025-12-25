@@ -1,13 +1,24 @@
-export const todayJSTString = () => {
-    const d = new Date();
-    const jst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
-    return jst.toISOString().split("T")[0];
-};
+// backend/lib/time.ts
+// 後方互換性のため shared/lib/time から再エクスポート
 
-//JSTとして扱うDateをYYYY-MM-DD形式に変換
-export const formatJSTDate = (date: Date): string => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-};
+export {
+    // 定数
+    JST_OFFSET_MS,
+    MS_PER_SECOND,
+    MS_PER_MINUTE,
+    MS_PER_HOUR,
+    // 関数
+    nowJST,
+    toJST,
+    todayJSTString,
+    toJSTDateString,
+    formatJSTDate,
+    formatDurationMs,
+    formatDurationMsToHM,
+    formatClockTime,
+    mergeDateAndTime,
+    getWeekdayLabel,
+    getDateLabel,
+    parseYearMonth,
+    isCurrentMonth,
+} from "../../shared/lib/time";

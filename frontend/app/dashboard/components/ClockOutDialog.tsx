@@ -1,5 +1,5 @@
 // ClockOutDialog.tsx
-"use client"
+"use client";
 
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -10,36 +10,66 @@ import { Label } from "@/components/ui/label";
 import { Plus, X } from "lucide-react";
 import { Loader } from "@/components/Loader";
 import { SuccessDialog } from "@/components/SuccessDialog";
-import { Task } from "../../../../shared/types/Attendance";
+import type { Task } from "../../../../shared/types/Attendance";
+import type { ApiResult } from "../../../../shared/types/ApiResponse";
 
+// UI用のフォーム状態
+interface TaskFormItem {
+    taskName: string;
+    hours: string;
+}
 
-export const ClockOutDialog = ({ open, onClose, onSubmit }: { open: boolean; onClose: () => void; onSubmit: (actualTasks: Task[], summary: string, issues: string, notes: string) => Promise<void>; }) => {
+// フォーム状態をTask型に変換
+function toTasks(items: TaskFormItem[]): Task[] {
+    return items
+        .filter((item) => item.taskName.trim() !== "")
+        .map((item) => ({
+            taskName: item.taskName.trim(),
+            hours: item.hours ? parseFloat(item.hours) : null,
+        }));
+}
 
-    const [actualTasks, setActualTasks] = useState<{ task: string, hours: string }[]>([{ task: "", hours: "" }]);
+interface ClockOutDialogProps {
+    open: boolean;
+    onClose: () => void;
+    onSubmit: (actualTasks: Task[], summary: string, issues: string, notes: string) => Promise<ApiResult<unknown>>;
+}
+
+export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps) => {
+    const [actualTasks, setActualTasks] = useState<TaskFormItem[]>([{ taskName: "", hours: "" }]);
     const [summary, setSummary] = useState<string>("");
     const [issues, setIssues] = useState<string>("");
     const [notes, setNotes] = useState<string>("");
     const [mode, setMode] = useState<"form" | "loading" | "success">("form");
+    const [error, setError] = useState<string | null>(null);
 
     const handleSubmit = async () => {
         try {
             setMode("loading");
-            await onSubmit(actualTasks, summary, issues, notes);
-            setMode("success");
+            setError(null);
+            const result = await onSubmit(toTasks(actualTasks), summary, issues, notes);
 
+            if (result.success) {
+                setMode("success");
+            } else {
+                setError(result.error.message);
+                setMode("form");
+            }
         } catch (e) {
             console.error(e);
+            setError(e instanceof Error ? e.message : "Unknown error");
             setMode("form");
         }
     };
 
     const handleCloseSuccess = () => {
         onClose();
-        setActualTasks([{ task: "", hours: "" }]);
+        setActualTasks([{ taskName: "", hours: "" }]);
         setSummary("");
         setIssues("");
         setNotes("");
         setMode("form");
+        setError(null);
     };
 
     // --- Loading UI ---
@@ -72,6 +102,8 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: { open: boolean; onC
                     <DialogDescription>本日の業務報告を入力してください</DialogDescription>
                 </DialogHeader>
 
+                {error && <div className="text-red-500 text-sm p-2 bg-red-50 rounded">{error}</div>}
+
                 <div className="space-y-4 py-4">
                     <div>
                         <Label className="text-base">実施タスクと実工数（時間）</Label>
@@ -81,10 +113,10 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: { open: boolean; onC
                                     <div className="flex-1">
                                         <Input
                                             placeholder="タスク名"
-                                            value={task.task}
+                                            value={task.taskName}
                                             onChange={(e) => {
                                                 const newList = [...actualTasks];
-                                                newList[index].task = e.target.value;
+                                                newList[index].taskName = e.target.value;
                                                 setActualTasks(newList);
                                             }}
                                         />
@@ -116,7 +148,7 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: { open: boolean; onC
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setActualTasks([...actualTasks, { task: "", hours: "" }])}
+                                onClick={() => setActualTasks([...actualTasks, { taskName: "", hours: "" }])}
                                 className="w-full"
                             >
                                 <Plus className="h-4 w-4 mr-2" />

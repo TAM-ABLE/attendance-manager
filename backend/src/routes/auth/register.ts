@@ -1,10 +1,11 @@
 // /routes/auth/register.ts
 import { Hono } from "hono";
 import bcrypt from "bcryptjs";
-import { getSupabaseClient } from "..../../../lib/supabase";
+import { getSupabaseClient } from "../../../lib/supabase";
 import { Env } from '../../types/env';
+import { databaseError, successResponse } from '../../../lib/errors';
 
-const authRegister = new Hono<{ Bindings: Env }>;
+const authRegister = new Hono<{ Bindings: Env }>();
 
 authRegister.post("/", async (c) => {
     const supabase = getSupabaseClient(c.env);
@@ -28,8 +29,8 @@ authRegister.post("/", async (c) => {
         .select("*")
         .single();
 
-    if (error) return c.json({ error: error.message }, 500);
-    return c.json({ user: data });
+    if (error) return databaseError(c, error.message);
+    return successResponse(c, { user: data });
 });
 
 export default authRegister;

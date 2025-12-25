@@ -1,99 +1,28 @@
 // backend/src/routes/attendance/queries.ts
-import { Hono } from 'hono';
-import { getSupabaseClient } from '../../../lib/supabase';
-import { todayJSTString } from '../../../lib/time';
-import { calculateDayTotals } from '../../../lib/calculation';
-import type { Database } from '../../types/supabase';
-import { Env } from '../../types/env';
-import { AuthVariables } from '../../middleware/auth';
-
-// 型安全なネスト付きレコード型
-type DbAttendanceRecord = Database['public']['Tables']['attendance_records']['Row'] & {
-    work_sessions: Array<
-        Database['public']['Tables']['work_sessions']['Row'] & {
-            breaks: Database['public']['Tables']['breaks']['Row'][];
-        }
-    >;
-};
-
-// DBレコードをAPIレスポンス形式に変換
-function formatAttendanceRecord(record: DbAttendanceRecord) {
-    const sessions = record.work_sessions.map((s) => ({
-        id: s.id,
-        clockIn: s.clock_in ? new Date(s.clock_in).getTime() : null,
-        clockOut: s.clock_out ? new Date(s.clock_out).getTime() : null,
-        breaks: s.breaks.map((b) => ({
-            id: b.id,
-            start: b.break_start ? new Date(b.break_start).getTime() : null,
-            end: b.break_end ? new Date(b.break_end).getTime() : null,
-        })),
-    }));
-
-    // バックエンドで計算
-    const { workTotalMs, breakTotalMs } = calculateDayTotals(record.work_sessions);
-
-    return {
-        date: record.date,
-        sessions,
-        workTotalMs,
-        breakTotalMs,
-    };
-}
+import { Hono } from "hono";
+import { getSupabaseClient } from "../../../lib/supabase";
+import { todayJSTString, parseYearMonth } from "../../../lib/time";
+import { formatAttendanceRecord, DbAttendanceRecord } from "../../../lib/formatters";
+import { calculateDayTotals } from "../../../lib/calculation";
+import { Env } from "../../types/env";
+import { AuthVariables } from "../../middleware/auth";
+import { successResponse, databaseError, validationError } from "../../../lib/errors";
+import { validateParams } from "../../middleware/validation";
+import { yearMonthParamsSchema, type YearMonthParams } from "../../../lib/schemas";
 
 const queriesRouter = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
 // GET /attendance/today
-queriesRouter.get('/today', async (c) => {
-    const { id: userId } = c.get('jwtPayload');
+queriesRouter.get("/today", async (c) => {
+    const { id: userId } = c.get("jwtPayload");
     const date = todayJSTString();
-
-    const supabase = getSupabaseClient(c.env);
-
-    const { data } = await supabase
-        .from('attendance_records')
-        .select(`
-            id,
-            date,
-            work_sessions (
-                id,
-                clock_in,
-                clock_out,
-                breaks (
-                    id,
-                    break_start,
-                    break_end
-                )
-            )
-        `)
-        .eq('user_id', userId)
-        .eq('date', date)
-        .maybeSingle<DbAttendanceRecord>();
-
-    if (!data) return c.json(null);
-
-    return c.json(formatAttendanceRecord(data));
-});
-
-// GET /attendance/month
-queriesRouter.get('/month', async (c) => {
-    const { id: userId } = c.get('jwtPayload');
-
-    const year = c.req.query("year");
-    const month = c.req.query("month");
-
-    if (!year || !month) {
-        return c.json({ error: "Missing parameters" }, 400);
-    }
-
-    const start = `${year}-${month.padStart(2, "0")}-01`;
-    const endDate = new Date(Number(year), Number(month), 0).getDate();
-    const end = `${year}-${month.padStart(2, "0")}-${endDate}`;
 
     const supabase = getSupabaseClient(c.env);
 
     const { data, error } = await supabase
         .from("attendance_records")
-        .select(`
+        .select(
+            `
             id,
             date,
             work_sessions (
@@ -106,7 +35,59 @@ queriesRouter.get('/month', async (c) => {
                     break_end
                 )
             )
-        `)
+        `
+        )
+        .eq("user_id", userId)
+        .eq("date", date)
+        .maybeSingle<DbAttendanceRecord>();
+
+    if (error) {
+        return databaseError(c, error.message);
+    }
+
+    if (!data) {
+        return successResponse(c, null);
+    }
+
+    return successResponse(c, formatAttendanceRecord(data));
+});
+
+// GET /attendance/month/:yearMonth
+queriesRouter.get("/month/:yearMonth", validateParams(yearMonthParamsSchema), async (c) => {
+    const { id: userId } = c.get("jwtPayload");
+    const { yearMonth } = c.get("validatedParams") as YearMonthParams;
+
+    const parsed = parseYearMonth(yearMonth);
+    if (!parsed) {
+        return validationError(c, "Invalid year-month format");
+    }
+    const { year, month } = parsed;
+
+    // 月の開始日と終了日を計算
+    const start = `${year}-${String(month).padStart(2, "0")}-01`;
+    const lastDay = new Date(year, month, 0).getDate();
+    const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+    const supabase = getSupabaseClient(c.env);
+
+    const { data, error } = await supabase
+        .from("attendance_records")
+        .select(
+            `
+            id,
+            date,
+            work_sessions (
+                id,
+                clock_in,
+                clock_out,
+                breaks (
+                    id,
+                    break_start,
+                    break_end
+                )
+            )
+        `
+        )
         .eq("user_id", userId)
         .gte("date", start)
         .lte("date", end)
@@ -114,17 +95,17 @@ queriesRouter.get('/month', async (c) => {
         .returns<DbAttendanceRecord[]>();
 
     if (error) {
-        console.error(error);
-        return c.json({ error: "Database error" }, 500);
+        return databaseError(c, error.message);
     }
 
-    return c.json(data.map(formatAttendanceRecord));
+    return successResponse(c, data.map(formatAttendanceRecord));
 });
 
 // GET /attendance/week/total
-queriesRouter.get('/week/total', async (c) => {
-    const { id: userId } = c.get('jwtPayload');
+queriesRouter.get("/week/total", async (c) => {
+    const { id: userId } = c.get("jwtPayload");
 
+    // 今週の月曜日と日曜日を計算
     const date = new Date();
     const dayOfWeek = date.getDay();
     const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
@@ -135,14 +116,15 @@ queriesRouter.get('/week/total', async (c) => {
     const sunday = new Date(monday);
     sunday.setDate(monday.getDate() + 6);
 
-    const startDate = monday.toISOString().split('T')[0];
-    const endDate = sunday.toISOString().split('T')[0];
+    const startDate = monday.toISOString().split("T")[0];
+    const endDate = sunday.toISOString().split("T")[0];
 
     const supabase = getSupabaseClient(c.env);
 
     const { data, error } = await supabase
-        .from('attendance_records')
-        .select(`
+        .from("attendance_records")
+        .select(
+            `
             id,
             date,
             work_sessions (
@@ -155,14 +137,14 @@ queriesRouter.get('/week/total', async (c) => {
                     break_end
                 )
             )
-        `)
-        .eq('user_id', userId)
-        .gte('date', startDate)
-        .lte('date', endDate);
+        `
+        )
+        .eq("user_id", userId)
+        .gte("date", startDate)
+        .lte("date", endDate);
 
     if (error) {
-        console.error(error);
-        return c.json({ error: error.message }, 500);
+        return databaseError(c, error.message);
     }
 
     const dbRecords = data as DbAttendanceRecord[];
@@ -173,7 +155,7 @@ queriesRouter.get('/week/total', async (c) => {
         netWorkMs += workTotalMs;
     }
 
-    return c.json({ netWorkMs });
+    return successResponse(c, { netWorkMs });
 });
 
 export default queriesRouter;

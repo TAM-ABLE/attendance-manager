@@ -3,6 +3,7 @@ import { getSupabaseClient } from '../../../lib/supabase';
 import bcrypt from 'bcryptjs';
 import { sign } from 'hono/jwt';
 import { Env } from '../../types/env';
+import { validationError, unauthorizedError } from '../../../lib/errors';
 
 const loginRouter = new Hono<{ Bindings: Env }>();
 
@@ -13,7 +14,7 @@ loginRouter.post('/', async (c) => {
 
     // 入力チェック
     if (!email || !password) {
-        return c.json({ error: "Missing email or password" }, 400);
+        return validationError(c, "Missing email or password");
     }
 
     // 1. ユーザー取得
@@ -24,13 +25,13 @@ loginRouter.post('/', async (c) => {
         .single();
 
     if (error || !user) {
-        return c.json({ error: "Invalid credentials" }, 401);
+        return unauthorizedError(c, "Invalid credentials");
     }
 
     // 2. パスワード検証
     const isValid = bcrypt.compareSync(password, user.hashed_password);
     if (!isValid) {
-        return c.json({ error: "Invalid credentials" }, 401);
+        return unauthorizedError(c, "Invalid credentials");
     }
 
     // 3. ここで JWT を作成！
