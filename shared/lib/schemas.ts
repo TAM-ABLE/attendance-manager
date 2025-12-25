@@ -37,30 +37,30 @@ export const taskSchema = z.object({
     hours: z.number().min(MIN_TASK_HOURS).max(MAX_TASK_HOURS).nullable(),
 });
 
-export type TaskInput = z.infer<typeof taskSchema>;
+export type Task = z.infer<typeof taskSchema>;
 
 // ===== 休憩関連 =====
 
-/** 休憩 - shared/types/Attendance.ts の Break 型に対応 */
+/** 休憩 */
 export const breakSchema = z.object({
     id: uuidSchema,
-    start: timestampSchema.nullable().optional(),
-    end: timestampSchema.nullable().optional(),
+    start: z.number().nullable(),
+    end: z.number().nullable(),
 });
 
-export type BreakInput = z.infer<typeof breakSchema>;
+export type Break = z.infer<typeof breakSchema>;
 
 // ===== 勤務セッション関連 =====
 
-/** 勤務セッション - shared/types/Attendance.ts の WorkSession 型に対応 */
+/** 勤務セッション */
 export const workSessionSchema = z.object({
     id: uuidSchema,
-    clockIn: timestampSchema.optional(),
-    clockOut: timestampSchema.optional(),
+    clockIn: z.number().nullable(),
+    clockOut: z.number().nullable(),
     breaks: z.array(breakSchema),
 });
 
-export type WorkSessionInput = z.infer<typeof workSessionSchema>;
+export type WorkSession = z.infer<typeof workSessionSchema>;
 
 /** 勤務セッション（更新用） - clockIn/clockOut の前後関係をバリデーション */
 export const workSessionUpdateSchema = z
@@ -80,7 +80,7 @@ export const workSessionUpdateSchema = z
         { message: "clockOut must be after clockIn" }
     );
 
-export type WorkSessionUpdateInput = z.infer<typeof workSessionUpdateSchema>;
+export type WorkSessionUpdate = z.infer<typeof workSessionUpdateSchema>;
 
 // ===== 勤怠記録関連 =====
 
@@ -92,14 +92,14 @@ export const attendanceRecordSchema = z.object({
     breakTotalMs: z.number().nonnegative(),
 });
 
-export type AttendanceRecordInput = z.infer<typeof attendanceRecordSchema>;
+export type AttendanceRecord = z.infer<typeof attendanceRecordSchema>;
 
 // ===== 日報関連 =====
 
 /** タスク種別 */
 export const taskTypeSchema = z.enum(["planned", "actual"]);
 
-export type TaskTypeInput = z.infer<typeof taskTypeSchema>;
+export type TaskType = z.infer<typeof taskTypeSchema>;
 
 /** 日報タスク - shared/types/DailyReport.ts の DailyReportTask 型に対応 */
 export const dailyReportTaskSchema = z.object({
@@ -110,7 +110,47 @@ export const dailyReportTaskSchema = z.object({
     sortOrder: z.number().int().nonnegative(),
 });
 
-export type DailyReportTaskInput = z.infer<typeof dailyReportTaskSchema>;
+export type DailyReportTask = z.infer<typeof dailyReportTaskSchema>;
+
+/** 日報 */
+export const dailyReportSchema = z.object({
+    id: uuidSchema,
+    userId: uuidSchema,
+    date: dateSchema,
+    summary: z.string().nullable(),
+    issues: z.string().nullable(),
+    notes: z.string().nullable(),
+    submittedAt: z.number().nullable(),
+    plannedTasks: z.array(dailyReportTaskSchema),
+    actualTasks: z.array(dailyReportTaskSchema),
+    createdAt: z.number(),
+    updatedAt: z.number(),
+});
+
+export type DailyReport = z.infer<typeof dailyReportSchema>;
+
+/** 日報一覧用の軽量型 */
+export const dailyReportListItemSchema = z.object({
+    id: uuidSchema,
+    userId: uuidSchema,
+    userName: z.string(),
+    employeeNumber: z.string(),
+    date: dateSchema,
+    submittedAt: z.number().nullable(),
+    plannedTaskCount: z.number(),
+    actualTaskCount: z.number(),
+});
+
+export type DailyReportListItem = z.infer<typeof dailyReportListItemSchema>;
+
+/** ユーザー選択用 */
+export const userForSelectSchema = z.object({
+    id: uuidSchema,
+    name: z.string(),
+    employeeNumber: z.string(),
+});
+
+export type UserForSelect = z.infer<typeof userForSelectSchema>;
 
 /** 日報テキストフィールド（summary, issues, notes）*/
 export const reportTextFieldSchema = z.string().max(MAX_TEXT_FIELD_LENGTH).nullable();
@@ -122,7 +162,7 @@ export const userSchema = z.object({
     id: uuidSchema,
     name: z.string().min(1),
     email: z.string().email(),
-    employeeId: z.string().min(1),
+    employeeNumber: z.string().min(1),
 });
 
-export type UserInput = z.infer<typeof userSchema>;
+export type User = z.infer<typeof userSchema>;

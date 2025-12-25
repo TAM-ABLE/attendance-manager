@@ -1,19 +1,51 @@
 // backend/src/routes/attendance/queries.ts
-import { Hono } from "hono";
+import { createRoute, z } from "@hono/zod-openapi";
 import { getSupabaseClient } from "../../../lib/supabase";
 import { todayJSTString, parseYearMonth } from "../../../lib/time";
 import { formatAttendanceRecord, DbAttendanceRecord } from "../../../lib/formatters";
-import { calculateDayTotals } from "../../../lib/calculation";
+import { databaseError, validationError, successResponse } from "../../../lib/errors";
 import { Env } from "../../types/env";
 import { AuthVariables } from "../../middleware/auth";
-import { successResponse, databaseError, validationError } from "../../../lib/errors";
-import { validateParams } from "../../middleware/validation";
-import { yearMonthParamsSchema, type YearMonthParams } from "../../../lib/schemas";
+import {
+    attendanceRecordSchema,
+    weekTotalResponseSchema,
+    yearMonthSchema,
+    errorResponseSchema,
+    successResponseSchema,
+} from "../../../lib/openapi-schemas";
+import { createOpenAPIHono } from "../../../lib/openapi-hono";
 
-const queriesRouter = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
+const queriesRouter = createOpenAPIHono<{ Bindings: Env; Variables: AuthVariables }>();
 
 // GET /attendance/today
-queriesRouter.get("/today", async (c) => {
+const todayRoute = createRoute({
+    method: "get",
+    path: "/today",
+    tags: ["勤怠"],
+    summary: "本日の勤怠取得",
+    description: "本日の勤怠記録を取得します。",
+    security: [{ Bearer: [] }],
+    responses: {
+        200: {
+            content: {
+                "application/json": {
+                    schema: successResponseSchema(attendanceRecordSchema.nullable()),
+                },
+            },
+            description: "取得成功",
+        },
+        500: {
+            content: {
+                "application/json": {
+                    schema: errorResponseSchema,
+                },
+            },
+            description: "サーバーエラー",
+        },
+    },
+});
+
+queriesRouter.openapi(todayRoute, async (c) => {
     const { id: userId } = c.get("jwtPayload");
     const date = todayJSTString();
 
@@ -53,9 +85,49 @@ queriesRouter.get("/today", async (c) => {
 });
 
 // GET /attendance/month/:yearMonth
-queriesRouter.get("/month/:yearMonth", validateParams(yearMonthParamsSchema), async (c) => {
+const monthRoute = createRoute({
+    method: "get",
+    path: "/month/{yearMonth}",
+    tags: ["勤怠"],
+    summary: "月別勤怠取得",
+    description: "指定月の勤怠記録を取得します。",
+    security: [{ Bearer: [] }],
+    request: {
+        params: z.object({
+            yearMonth: yearMonthSchema,
+        }),
+    },
+    responses: {
+        200: {
+            content: {
+                "application/json": {
+                    schema: successResponseSchema(z.array(attendanceRecordSchema)),
+                },
+            },
+            description: "取得成功",
+        },
+        400: {
+            content: {
+                "application/json": {
+                    schema: errorResponseSchema,
+                },
+            },
+            description: "バリデーションエラー",
+        },
+        500: {
+            content: {
+                "application/json": {
+                    schema: errorResponseSchema,
+                },
+            },
+            description: "サーバーエラー",
+        },
+    },
+});
+
+queriesRouter.openapi(monthRoute, async (c) => {
     const { id: userId } = c.get("jwtPayload");
-    const { yearMonth } = c.get("validatedParams") as YearMonthParams;
+    const { yearMonth } = c.req.valid("param");
 
     const parsed = parseYearMonth(yearMonth);
     if (!parsed) {
@@ -63,7 +135,6 @@ queriesRouter.get("/month/:yearMonth", validateParams(yearMonthParamsSchema), as
     }
     const { year, month } = parsed;
 
-    // 月の開始日と終了日を計算
     const start = `${year}-${String(month).padStart(2, "0")}-01`;
     const lastDay = new Date(year, month, 0).getDate();
     const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
@@ -102,7 +173,34 @@ queriesRouter.get("/month/:yearMonth", validateParams(yearMonthParamsSchema), as
 });
 
 // GET /attendance/week/total
-queriesRouter.get("/week/total", async (c) => {
+const weekTotalRoute = createRoute({
+    method: "get",
+    path: "/week/total",
+    tags: ["勤怠"],
+    summary: "週間勤務時間取得",
+    description: "今週の勤務時間合計を取得します。",
+    security: [{ Bearer: [] }],
+    responses: {
+        200: {
+            content: {
+                "application/json": {
+                    schema: successResponseSchema(weekTotalResponseSchema),
+                },
+            },
+            description: "取得成功",
+        },
+        500: {
+            content: {
+                "application/json": {
+                    schema: errorResponseSchema,
+                },
+            },
+            description: "サーバーエラー",
+        },
+    },
+});
+
+queriesRouter.openapi(weekTotalRoute, async (c) => {
     const { id: userId } = c.get("jwtPayload");
 
     // 今週の月曜日と日曜日を計算
@@ -149,11 +247,11 @@ queriesRouter.get("/week/total", async (c) => {
 
     const dbRecords = data as DbAttendanceRecord[];
 
-    let netWorkMs = 0;
-    for (const rec of dbRecords) {
-        const { workTotalMs } = calculateDayTotals(rec.work_sessions);
-        netWorkMs += workTotalMs;
-    }
+    // formatAttendanceRecordで変換・計算し、workTotalMsを集計
+    const netWorkMs = dbRecords.reduce((sum, rec) => {
+        const formatted = formatAttendanceRecord(rec);
+        return sum + formatted.workTotalMs;
+    }, 0);
 
     return successResponse(c, { netWorkMs });
 });

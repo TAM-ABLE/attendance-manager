@@ -82,9 +82,9 @@ export function MonthlyAttendanceView() {
                     <div className="flex items-center gap-2">
                         {/* 個人選択 */}
                         <Select
-                            value={selectedUser?.employeeId}
-                            onValueChange={(employeeId) => {
-                                const user = users.find((u) => u.employeeId === employeeId);
+                            value={selectedUser?.employeeNumber}
+                            onValueChange={(employeeNumber) => {
+                                const user = users.find((u) => u.employeeNumber === employeeNumber);
                                 if (user) setSelectedUser(user);
                             }}
                         >
@@ -93,7 +93,7 @@ export function MonthlyAttendanceView() {
                             </SelectTrigger>
                             <SelectContent>
                                 {users.map((u) => (
-                                    <SelectItem key={u.employeeId} value={u.employeeId}>
+                                    <SelectItem key={u.employeeNumber} value={u.employeeNumber}>
                                         {u.name}
                                     </SelectItem>
                                 ))}

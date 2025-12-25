@@ -82,7 +82,7 @@ export function formatDurationMsToHM(ms: number): string {
 /**
  * タイムスタンプを「HH:MM」形式に変換
  */
-export function formatClockTime(timestamp?: number): string {
+export function formatClockTime(timestamp: number | null | undefined): string {
     if (timestamp == null) return "--:--";
 
     const date = new Date(timestamp);
@@ -97,8 +97,8 @@ export function formatClockTime(timestamp?: number): string {
  * @param date "YYYY-MM-DD"
  * @param time "HH:MM"
  */
-export function mergeDateAndTime(date: string | null, time: string): number | undefined {
-    if (!date || !time) return undefined;
+export function mergeDateAndTime(date: string | null, time: string): number | null {
+    if (!date || !time) return null;
 
     const [h, m] = time.split(":").map(Number);
 
@@ -145,4 +145,20 @@ export function parseYearMonth(yearMonth: string): { year: number; month: number
 export function isCurrentMonth(year: number, month: number): boolean {
     const now = new Date();
     return now.getFullYear() === year && now.getMonth() + 1 === month;
+}
+
+/**
+ * 年と月からYYYY-MM形式の文字列を生成
+ * @param year 年（4桁）
+ * @param month 月（1-12）
+ */
+export function formatYearMonth(year: number, month: number): string {
+    return `${year}-${String(month).padStart(2, "0")}`;
+}
+
+/**
+ * DateオブジェクトからYYYY-MM形式の文字列を生成
+ */
+export function formatYearMonthFromDate(date: Date): string {
+    return formatYearMonth(date.getFullYear(), date.getMonth() + 1);
 }
