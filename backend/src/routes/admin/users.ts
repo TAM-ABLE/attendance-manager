@@ -7,24 +7,19 @@ import { formatAttendanceRecord, DbAttendanceRecord } from "../../../lib/formatt
 import { WorkSession, Break } from "../../../../shared/types/Attendance";
 import { Env } from "../../types/env";
 import { AuthVariables } from "../../middleware/auth";
-import { successResponse, databaseError, validationError, notFoundError } from "../../../lib/errors";
+import { successResponse, databaseError, validationError } from "../../../lib/errors";
 import { validateParams, validateBody } from "../../middleware/validation";
 import {
     dateSchema,
     uuidSchema,
     yearMonthParamsSchema,
     updateSessionsRequestSchema,
-    type YearMonthParams,
     type UpdateSessionsRequest,
 } from "../../../lib/schemas";
 
 const usersRouter = new Hono<{ Bindings: Env; Variables: AuthVariables }>();
 
 // パラメータスキーマ
-const userIdParamsSchema = z.object({
-    userId: uuidSchema,
-});
-
 const userDateParamsSchema = z.object({
     userId: uuidSchema,
     date: dateSchema,

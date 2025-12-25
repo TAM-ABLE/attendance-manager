@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
+import useSWR from "swr";
 import type { AttendanceRecord, WorkSession, Task } from "../../../../shared/types/Attendance";
 import { clockIn, clockOut, startBreak, endBreak, getToday, getWeekTotal } from "@/app/actions/attendance";
 
@@ -18,67 +19,64 @@ function detectOnBreak(currentSession: WorkSession | null): boolean {
     return !lastBreak.end; // end が null → 休憩中
 }
 
+// SWR fetchers
+async function fetchToday() {
+    const result = await getToday();
+    if (result.success) {
+        return result.data;
+    }
+    throw new Error(result.error.message);
+}
+
+async function fetchWeekTotal() {
+    const result = await getWeekTotal();
+    if (result.success) {
+        return result.data?.netWorkMs ?? 0;
+    }
+    throw new Error(result.error.message);
+}
+
 export function useAttendance() {
-    const [attendance, setAttendance] = useState<AttendanceRecord | null>(null);
-    const [currentSession, setCurrentSession] = useState<WorkSession | null>(null);
-    const [onBreak, setOnBreak] = useState<boolean>(false);
-    const [weekTotalMs, setWeekTotalMs] = useState<number>(0);
     const [error, setError] = useState<string | null>(null);
 
-    // 今日のデータと週合計を両方取得
+    // 今日のデータを取得
+    const {
+        data: attendance,
+        mutate: mutateToday,
+        error: todayError,
+    } = useSWR("attendance-today", fetchToday, {
+        onError: (err) => {
+            console.error("Failed to load today:", err);
+            setError(err.message);
+        },
+    });
+
+    // 週合計を取得
+    const {
+        data: weekTotalMs,
+        mutate: mutateWeekTotal,
+        error: weekError,
+    } = useSWR("attendance-week-total", fetchWeekTotal, {
+        onError: (err) => {
+            console.error("Failed to load week total:", err);
+        },
+    });
+
+    // 派生状態を計算
+    const currentSession = useMemo(() => detectCurrentSession(attendance ?? null), [attendance]);
+    const onBreak = useMemo(() => detectOnBreak(currentSession), [currentSession]);
+
+    // 全データ再取得
     const loadAll = useCallback(async () => {
         setError(null);
-        try {
-            const [todayResult, weeklyResult] = await Promise.all([getToday(), getWeekTotal()]);
+        await Promise.all([mutateToday(), mutateWeekTotal()]);
+    }, [mutateToday, mutateWeekTotal]);
 
-            if (todayResult.success) {
-                const todayData = todayResult.data;
-                const session = detectCurrentSession(todayData);
-                setAttendance(todayData);
-                setCurrentSession(session);
-                setOnBreak(detectOnBreak(session));
-            } else {
-                console.error("Failed to load today:", todayResult.error);
-                setError(todayResult.error.message);
-            }
-
-            if (weeklyResult.success) {
-                setWeekTotalMs(weeklyResult.data?.netWorkMs ?? 0);
-            } else {
-                console.error("Failed to load week total:", weeklyResult.error);
-            }
-        } catch (e) {
-            console.error("Failed to load attendance:", e);
-            setError(e instanceof Error ? e.message : "Unknown error");
-        }
-    }, []);
-
-    // 今日のデータのみ取得（休憩操作用 - 週合計は変わらない）
+    // 今日のデータのみ再取得
     const refreshToday = useCallback(async () => {
         setError(null);
-        try {
-            const result = await getToday();
-
-            if (result.success) {
-                const todayData = result.data;
-                const session = detectCurrentSession(todayData);
-                setAttendance(todayData);
-                setCurrentSession(session);
-                setOnBreak(detectOnBreak(session));
-            } else {
-                console.error("Failed to refresh today:", result.error);
-                setError(result.error.message);
-            }
-        } catch (e) {
-            console.error("Failed to refresh attendance:", e);
-            setError(e instanceof Error ? e.message : "Unknown error");
-        }
-    }, []);
-
-    // 初期読み込み
-    useEffect(() => {
-        loadAll();
-    }, [loadAll]);
+        await mutateToday();
+    }, [mutateToday]);
 
     // 出勤 - 週合計が変わるので全データ再取得
     const handleClockIn = useCallback(
@@ -147,11 +145,11 @@ export function useAttendance() {
     }, [refreshToday]);
 
     return {
-        attendance,
+        attendance: attendance ?? null,
         currentSession,
         onBreak,
-        weekTotalMs,
-        error,
+        weekTotalMs: weekTotalMs ?? 0,
+        error: error ?? todayError?.message ?? weekError?.message ?? null,
         handleClockIn,
         handleClockOut,
         handleBreakStart,
