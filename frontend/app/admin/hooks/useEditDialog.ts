@@ -13,7 +13,13 @@ export function useEditDialog(selectedUser: User | null, reloadMonthData: () => 
     const openDialog = async (date: string) => {
         if (!selectedUser) return;
         setSelectedDate(date);
-        setSessions(await getUserDateSessions(selectedUser.id, date));
+        const result = await getUserDateSessions(selectedUser.id, date);
+        if (result.success) {
+            setSessions(result.data);
+        } else {
+            console.error("Failed to load sessions:", result.error.message);
+            setSessions([]);
+        }
         setShowEditDialog(true);
     };
 
@@ -28,7 +34,7 @@ export function useEditDialog(selectedUser: User | null, reloadMonthData: () => 
 
         if (!res.success) {
             console.error("Update-work-sessions failed:", res.error);
-            throw new Error(res.error);
+            throw new Error(res.error.message);
         }
     };
 

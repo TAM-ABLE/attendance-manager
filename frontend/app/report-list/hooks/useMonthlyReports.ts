@@ -7,7 +7,7 @@ import { getUserMonthlyReports } from "@/app/actions/daily-reports";
 export function useMonthlyReports(user: UserForSelect | null, currentMonth: Date) {
     const [reports, setReports] = useState<DailyReportListItem[]>([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<Error | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const fetchReports = useCallback(async () => {
         if (!user) {
@@ -17,14 +17,22 @@ export function useMonthlyReports(user: UserForSelect | null, currentMonth: Date
 
         try {
             setIsLoading(true);
+            setError(null);
             const year = currentMonth.getFullYear();
             const month = String(currentMonth.getMonth() + 1).padStart(2, "0");
             const yearMonth = `${year}-${month}`;
 
-            const data = await getUserMonthlyReports(user.id, yearMonth);
-            setReports(data.reports);
+            const result = await getUserMonthlyReports(user.id, yearMonth);
+            if (result.success) {
+                setReports(result.data.reports);
+            } else {
+                console.error("Failed to fetch reports:", result.error.message);
+                setError(result.error.message);
+                setReports([]);
+            }
         } catch (err) {
-            setError(err instanceof Error ? err : new Error(String(err)));
+            const message = err instanceof Error ? err.message : String(err);
+            setError(message);
             setReports([]);
         } finally {
             setIsLoading(false);
