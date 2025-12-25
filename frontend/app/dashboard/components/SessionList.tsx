@@ -4,8 +4,9 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Coffee } from "lucide-react";
 import { AttendanceRecord, WorkSession } from "../../../../shared/types/Attendance";
+import { calculateCompletedSession, calculateActiveSession } from "../../../../shared/lib/calculation";
 import { formatClockTime, formatDurationMs } from "@/lib/time";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 
 export function SessionList({
     attendance,
@@ -16,16 +17,34 @@ export function SessionList({
     currentSession: WorkSession | null;
     onBreak: boolean;
 }) {
-    // 現在時刻を state 管理（Date.now() を直接使わない）
+    // 現在時刻を state 管理（進行中セッションのみに使用）
     const [now, setNow] = useState(() => Date.now());
 
+    // 進行中セッションがある場合のみタイマーを動かす
+    const hasActiveSession = currentSession != null && currentSession.clockOut == null;
+
     useEffect(() => {
+        if (!hasActiveSession) return;
+
         const id = setInterval(() => {
-            setNow(Date.now()); // 1秒おきに更新
+            setNow(Date.now());
         }, 1000);
 
         return () => clearInterval(id);
-    }, []);
+    }, [hasActiveSession]);
+
+    // 完了済みセッションの計算結果をメモ化（毎秒再計算されない）
+    const completedSessionsData = useMemo(() => {
+        if (!attendance?.sessions) return new Map<string, { workMs: number; breakMs: number }>();
+
+        const map = new Map<string, { workMs: number; breakMs: number }>();
+        for (const s of attendance.sessions) {
+            if (s.clockOut != null) {
+                map.set(s.id, calculateCompletedSession(s));
+            }
+        }
+        return map;
+    }, [attendance?.sessions]);
 
     if (!attendance || !attendance.sessions?.length) return null;
 
@@ -36,32 +55,24 @@ export function SessionList({
             </CardHeader>
             <CardContent className="space-y-3">
                 {attendance.sessions.map((s, i) => {
-                    // セッション終了時間
-                    let end: number;
+                    let workMs: number;
+                    let breakMs: number;
+
                     if (s.clockOut != null) {
-                        end = s.clockOut;                           // 退勤済み
+                        // 完了済みセッション: メモ化された値を使用
+                        const cached = completedSessionsData.get(s.id);
+                        workMs = cached?.workMs ?? 0;
+                        breakMs = cached?.breakMs ?? 0;
                     } else if (currentSession?.id === s.id) {
-                        end = now;                                  // 今勤務中（Date.now() → now に置換）
+                        // 進行中セッション: リアルタイム計算（shared計算関数を使用）
+                        const active = calculateActiveSession(s, now, onBreak);
+                        workMs = active.workMs;
+                        breakMs = active.breakMs;
                     } else {
-                        end = s.clockIn ?? 0;                       // 過去セッションの未終了 → 0扱い
+                        // 未完了だが進行中でないセッション（異常ケース）
+                        workMs = 0;
+                        breakMs = 0;
                     }
-
-                    const work = end - (s.clockIn ?? 0);
-
-                    // 休憩時間合計
-                    const breakMs = s.breaks.reduce((sum, b) => {
-                        let breakEnd: number;
-
-                        if (b.end != null) {
-                            breakEnd = b.end;                       // 休憩終了済み
-                        } else if (currentSession?.id === s.id && onBreak) {
-                            breakEnd = now;                         // 休憩中（Date.now() → now）
-                        } else {
-                            breakEnd = b.start ?? 0;                // 休憩してない扱い
-                        }
-
-                        return sum + (breakEnd - (b.start ?? 0));
-                    }, 0);
 
                     return (
                         <div key={s.id} className="border rounded-lg p-4 space-y-3">
@@ -82,7 +93,7 @@ export function SessionList({
                                         <p className="text-xs text-primary">勤務時間</p>
                                     </div>
                                     <p className="text-base sm:text-lg text-primary">
-                                        {formatDurationMs(work - breakMs)}
+                                        {formatDurationMs(workMs)}
                                     </p>
                                 </div>
 

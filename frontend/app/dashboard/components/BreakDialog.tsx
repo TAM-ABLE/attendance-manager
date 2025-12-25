@@ -5,33 +5,35 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Loader } from "@/components/Loader";
 import { SuccessDialog } from "@/components/SuccessDialog";
+import type { ApiResult } from "../../../../shared/types/ApiResponse";
 
-export const BreakDialog = ({
-    open,
-    mode,
-    onClose,
-    onStart,
-    onEnd
-}: {
+interface BreakDialogProps {
     open: boolean;
     mode: "start" | "end";
     onClose: () => void;
-    onStart: () => Promise<void>;
-    onEnd: () => Promise<void>;
-}) => {
+    onStart: () => Promise<ApiResult<unknown>>;
+    onEnd: () => Promise<ApiResult<unknown>>;
+}
+
+export const BreakDialog = ({ open, mode, onClose, onStart, onEnd }: BreakDialogProps) => {
     const [status, setStatus] = useState<"form" | "loading" | "success">("form");
+    const [error, setError] = useState<string | null>(null);
 
     const handleSubmit = async () => {
         try {
             setStatus("loading");
-            if (mode === "start") {
-                await onStart();
+            setError(null);
+            const result = mode === "start" ? await onStart() : await onEnd();
+
+            if (result.success) {
+                setStatus("success");
             } else {
-                await onEnd();
+                setError(result.error.message);
+                setStatus("form");
             }
-            setStatus("success");
         } catch (e) {
             console.error(e);
+            setError(e instanceof Error ? e.message : "Unknown error");
             setStatus("form");
         }
     };
@@ -60,6 +62,8 @@ export const BreakDialog = ({
                         {mode === "start" ? "休憩を開始しますか？" : "休憩を終了しますか？"}
                     </DialogTitle>
                 </DialogHeader>
+
+                {error && <div className="text-red-500 text-sm p-2 bg-red-50 rounded">{error}</div>}
 
                 <DialogFooter>
                     <Button onClick={handleSubmit}>
