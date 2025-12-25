@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from "react";
 import useSWR from "swr";
-import type { AttendanceRecord } from "../../../../shared/types/Attendance";
 import { toJSTDateString } from "../../../lib/time";
 import { formatYearMonthFromDate } from "../../../../shared/lib/time";
 import { getMonth } from "@/app/actions/attendance";

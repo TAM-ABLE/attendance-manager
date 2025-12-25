@@ -33,21 +33,24 @@ export function SessionList({
         return () => clearInterval(id);
     }, [hasActiveSession]);
 
+    // sessionsを抽出（React Compilerの依存推論と一致させるため）
+    const sessions = attendance?.sessions;
+
     // 完了済みセッションの計算結果をメモ化（毎秒再計算されない）
     const completedSessionsData = useMemo(() => {
-        if (!attendance?.sessions) return new Map<string, { workMs: number; breakMs: number }>();
+        if (!sessions) return new Map<string, { workMs: number; breakMs: number }>();
 
         const map = new Map<string, { workMs: number; breakMs: number }>();
-        for (const s of attendance.sessions) {
+        for (const s of sessions) {
             if (s.clockOut != null) {
                 map.set(s.id, calculateCompletedSession(s));
             }
         }
         return map;
-    }, [attendance?.sessions]);
+    }, [sessions]);
 
     // Early return for null attendance
-    if (!attendance?.sessions?.length) return null;
+    if (!sessions?.length) return null;
 
     return (
         <Card>
@@ -55,7 +58,7 @@ export function SessionList({
                 <CardTitle>本日のセッション履歴</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-                {attendance.sessions.map((s, i) => {
+                {sessions.map((s, i) => {
                     let workMs: number;
                     let breakMs: number;
 
