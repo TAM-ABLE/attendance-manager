@@ -6,7 +6,7 @@ import { Clock, Coffee } from "lucide-react";
 import { AttendanceRecord, WorkSession } from "../../../../shared/types/Attendance";
 import { calculateCompletedSession, calculateActiveSession } from "../../../../shared/lib/calculation";
 import { formatClockTime, formatDurationMs } from "@/lib/time";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 
 export function SessionList({
     attendance,
@@ -33,20 +33,17 @@ export function SessionList({
         return () => clearInterval(id);
     }, [hasActiveSession]);
 
+    // Early return for null attendance
+    if (!attendance?.sessions?.length) return null;
+
     // 完了済みセッションの計算結果をメモ化（毎秒再計算されない）
-    const completedSessionsData = useMemo(() => {
-        if (!attendance?.sessions) return new Map<string, { workMs: number; breakMs: number }>();
-
-        const map = new Map<string, { workMs: number; breakMs: number }>();
-        for (const s of attendance.sessions) {
-            if (s.clockOut != null) {
-                map.set(s.id, calculateCompletedSession(s));
-            }
+    // Note: sessions is guaranteed to be defined after the early return above
+    const completedSessionsData = new Map<string, { workMs: number; breakMs: number }>();
+    for (const s of attendance.sessions) {
+        if (s.clockOut != null) {
+            completedSessionsData.set(s.id, calculateCompletedSession(s));
         }
-        return map;
-    }, [attendance?.sessions]);
-
-    if (!attendance || !attendance.sessions?.length) return null;
+    }
 
     return (
         <Card>
