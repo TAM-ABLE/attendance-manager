@@ -10,13 +10,7 @@ import { CACHE_CURRENT_MONTH_SEC, CACHE_PAST_MONTH_SEC } from "../../../shared/l
 
 // ユーザー一覧取得（日報用）
 export async function getDailyReportUsers(): Promise<ApiResult<UserForSelect[]>> {
-    const result = await apiClientNoCache<{ users: UserForSelect[] }>("/daily-reports/users");
-
-    if (!result.success) {
-        return result;
-    }
-
-    return { success: true, data: result.data.users };
+    return apiClientNoCache("/daily-reports/users");
 }
 
 // 特定ユーザーの月別日報一覧レスポンス型
@@ -41,11 +35,5 @@ export async function getUserMonthlyReports(
 
 // 日報詳細取得
 export async function getDailyReportDetail(reportId: string): Promise<ApiResult<DailyReport>> {
-    const result = await apiClientNoCache<{ report: DailyReport }>(`/daily-reports/${reportId}`);
-
-    if (!result.success) {
-        return result;
-    }
-
-    return { success: true, data: result.data.report };
+    return apiClientNoCache(`/daily-reports/${reportId}`);
 }

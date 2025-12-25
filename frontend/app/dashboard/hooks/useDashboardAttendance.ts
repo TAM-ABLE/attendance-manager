@@ -4,6 +4,7 @@ import { useState, useCallback, useMemo } from "react";
 import useSWR from "swr";
 import type { AttendanceRecord, WorkSession, Task } from "../../../../shared/types/Attendance";
 import { clockIn, clockOut, startBreak, endBreak, getToday, getWeekTotal } from "@/app/actions/attendance";
+import { SWR_KEYS } from "@/lib/swr-keys";
 
 // セッション検出（出勤中かどうか）
 function detectCurrentSession(attendance: AttendanceRecord | null): WorkSession | null {
@@ -36,7 +37,7 @@ async function fetchWeekTotal() {
     throw new Error(result.error.message);
 }
 
-export function useAttendance() {
+export function useDashboardAttendance() {
     const [error, setError] = useState<string | null>(null);
 
     // 今日のデータを取得
@@ -44,7 +45,7 @@ export function useAttendance() {
         data: attendance,
         mutate: mutateToday,
         error: todayError,
-    } = useSWR("attendance-today", fetchToday, {
+    } = useSWR(SWR_KEYS.ATTENDANCE_TODAY, fetchToday, {
         onError: (err) => {
             console.error("Failed to load today:", err);
             setError(err.message);
@@ -56,7 +57,7 @@ export function useAttendance() {
         data: weekTotalMs,
         mutate: mutateWeekTotal,
         error: weekError,
-    } = useSWR("attendance-week-total", fetchWeekTotal, {
+    } = useSWR(SWR_KEYS.ATTENDANCE_WEEK_TOTAL, fetchWeekTotal, {
         onError: (err) => {
             console.error("Failed to load week total:", err);
         },

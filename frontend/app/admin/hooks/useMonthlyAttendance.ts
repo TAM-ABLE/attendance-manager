@@ -4,13 +4,19 @@
 import { useState, useCallback } from "react";
 import useSWR from "swr";
 import { AttendanceRecord, User } from "../../../../shared/types/Attendance";
+import { isValidUUID } from "../../../../shared/lib/constants";
 import { getUserMonthlyAttendance } from "@/app/actions/admin";
+import { SWR_KEYS } from "@/lib/swr-keys";
 
 export function useMonthlyAttendance(user: User | null, date: Date) {
     const [monthData, setMonthData] = useState<AttendanceRecord[] | null>(null);
 
+    // userが存在し、かつ有効なUUIDを持つ場合のみtrue
+    const hasValidUser = user !== null && isValidUUID(user.id);
+
     const fetcher = useCallback(async () => {
-        if (!user) return null;
+        console.log("[useMonthlyAttendance] user:", user, "user.id:", user?.id, "isValidUUID:", user ? isValidUUID(user.id) : "N/A");
+        if (!user || !isValidUUID(user.id)) return null;
         const result = await getUserMonthlyAttendance(user.id, date.getFullYear(), date.getMonth());
         if (result.success) {
             return result.data;
@@ -19,7 +25,7 @@ export function useMonthlyAttendance(user: User | null, date: Date) {
     }, [user, date]);
 
     const { error, mutate } = useSWR(
-        user ? ["monthlyAttendance", user.id, date.getFullYear(), date.getMonth()] : null,
+        hasValidUser ? SWR_KEYS.monthlyAttendance(user.id, date.getFullYear(), date.getMonth()) : null,
         fetcher,
         {
             onSuccess: (data) => {
