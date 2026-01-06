@@ -2,9 +2,10 @@
 
 import { useState, useMemo } from "react";
 import useSWR from "swr";
-import { toJSTDateString } from "../../../lib/time";
-import { formatYearMonthFromDate } from "../../../../shared/lib/time";
+import { toJSTDateString } from "@attendance-manager/shared/lib/time";
+import { formatYearMonthFromDate } from "@attendance-manager/shared/lib/time";
 import { getMonth } from "@/app/actions/attendance";
+import { withRetry } from "@/lib/auth/with-retry";
 import { SWR_KEYS } from "@/lib/swr-keys";
 
 export function useAttendanceHistory() {
@@ -16,7 +17,7 @@ export function useAttendanceHistory() {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth() + 1;
 
-    // SWRでデータ取得（キャッシュ付き）
+    // SWRでデータ取得（キャッシュ付き、401 時は自動リフレッシュ）
     const {
         data: attendanceData,
         error: swrError,
@@ -25,7 +26,7 @@ export function useAttendanceHistory() {
     } = useSWR(
         SWR_KEYS.attendanceMonth(yearMonth),
         async () => {
-            const result = await getMonth(year, month);
+            const result = await withRetry(() => getMonth(year, month));
             if (result.success) {
                 return result.data;
             }

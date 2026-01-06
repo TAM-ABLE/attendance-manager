@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
     Menu,
     X,
@@ -13,21 +13,17 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { signOut, useSession } from "next-auth/react";
+import { useAuth } from "@/hooks/useAuth";
 
 // Headerコンポーネント
 export function Header() {
     const [isOpen, setIsOpen] = useState(false);
     const pathname = usePathname();
-    const { data: session, status } = useSession();
-    const currentUser = session?.user;
+    const router = useRouter();
+    const { user, isAuthenticated, isAdmin, logout } = useAuth();
 
     // ログインしていない場合はHeaderを非表示
-    if (status === "loading") return null;
-    if (!currentUser) return null;
-
-    // ここを role ベースで判定
-    const isAdmin = currentUser.role === "admin";
+    if (!isAuthenticated || !user) return null;
 
     const navigation = [
         { href: "/dashboard", label: "ダッシュボード", icon: LayoutDashboard },
@@ -84,13 +80,13 @@ export function Header() {
                 <div className="hidden md:flex items-center gap-3 ml-4 border-l pl-4">
                     <Avatar>
                         <AvatarFallback className="bg-primary text-white">
-                            {getInitials(currentUser.name)}
+                            {getInitials(user.name)}
                         </AvatarFallback>
                     </Avatar>
                     <div className="text-sm">
-                        <p>{currentUser.name ?? "未ログイン"}</p>
+                        <p>{user.name ?? "未ログイン"}</p>
                         <p className="text-xs text-muted-foreground">
-                            {currentUser.email ?? ""}
+                            {user.email ?? ""}
                         </p>
                     </div>
                     {/* ログアウトボタン */}
@@ -98,7 +94,11 @@ export function Header() {
                         variant="outline"
                         size="sm"
                         className="ml-4"
-                        onClick={() => signOut({ callbackUrl: "/login" })}
+                        onClick={async () => {
+                            await logout();
+                            router.refresh();
+                            router.push("/login");
+                        }}
                     >
                         ログアウト
                     </Button>
@@ -126,6 +126,32 @@ export function Header() {
                             </Button>
                         );
                     })}
+                    {/* モバイル用ログアウトボタン */}
+                    <div className="pt-2 border-t mt-2">
+                        <div className="flex items-center gap-2 px-2 py-2 mb-2">
+                            <Avatar className="h-8 w-8">
+                                <AvatarFallback className="bg-primary text-white text-sm">
+                                    {getInitials(user.name)}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div className="text-sm">
+                                <p className="font-medium">{user.name}</p>
+                                <p className="text-xs text-muted-foreground">{user.email}</p>
+                            </div>
+                        </div>
+                        <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={async () => {
+                                setIsOpen(false);
+                                await logout();
+                                router.refresh();
+                                router.push("/login");
+                            }}
+                        >
+                            ログアウト
+                        </Button>
+                    </div>
                 </nav>
             )}
         </header>

@@ -2,20 +2,18 @@
 
 // frontend/app/actions/attendance.ts
 
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
 import { apiClient, apiClientNoCache } from "@/lib/api-client";
-import type { Task, AttendanceRecord } from "../../../shared/types/Attendance";
-import type { ApiResult } from "../../../shared/types/ApiResponse";
-import { isCurrentMonth, formatYearMonth } from "../../../shared/lib/time";
-import { CACHE_CURRENT_MONTH_SEC, CACHE_PAST_MONTH_SEC } from "../../../shared/lib/constants";
+import type { Task, AttendanceRecord } from "@attendance-manager/shared/types/Attendance";
+import type { ApiResult } from "@attendance-manager/shared/types/ApiResponse";
+import { isCurrentMonth, formatYearMonth } from "@attendance-manager/shared/lib/time";
+import { CACHE_CURRENT_MONTH_SEC, CACHE_PAST_MONTH_SEC } from "@attendance-manager/shared/lib/constants";
 
 // ============ Clock Operations ============
 
-export async function clockIn(plannedTasks: Task[]): Promise<ApiResult<{ slack_ts?: string }>> {
-    const session = await getServerSession(authOptions);
-    const userName = session?.user?.name || "";
-
+export async function clockIn(
+    userName: string,
+    plannedTasks: Task[]
+): Promise<ApiResult<{ slack_ts?: string }>> {
     return apiClient("/attendance/clock-in", {
         method: "POST",
         body: { userName, plannedTasks },
@@ -23,14 +21,12 @@ export async function clockIn(plannedTasks: Task[]): Promise<ApiResult<{ slack_t
 }
 
 export async function clockOut(
+    userName: string,
     actualTasks: Task[],
     summary: string,
     issues: string,
     notes: string
 ): Promise<ApiResult<{ slack_ts?: string }>> {
-    const session = await getServerSession(authOptions);
-    const userName = session?.user?.name || "";
-
     return apiClient("/attendance/clock-out", {
         method: "POST",
         body: { userName, actualTasks, summary, issues, notes },

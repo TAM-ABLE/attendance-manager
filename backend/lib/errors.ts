@@ -2,7 +2,7 @@
 // 統一されたエラーレスポンスユーティリティ
 
 import type { Context } from "hono";
-import { ErrorCodes } from "../../shared/types/ApiResponse";
+import { ErrorCodes } from "@attendance-manager/shared/types/ApiResponse";
 
 // ===== 成功レスポンス =====
 

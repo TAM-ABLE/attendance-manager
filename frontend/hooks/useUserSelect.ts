@@ -3,7 +3,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import type { ApiResult } from "../../shared/types/ApiResponse";
+import type { ApiResult } from "@attendance-manager/shared/types/ApiResponse";
 
 interface UseUserSelectOptions<T> {
     fetchFn: () => Promise<ApiResult<T[]>>;

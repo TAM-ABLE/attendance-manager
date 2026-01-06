@@ -1,10 +1,8 @@
 // backend/src/routes/auth/login.ts
 import { createRoute } from "@hono/zod-openapi";
 import { getSupabaseClient } from "../../../lib/supabase";
-import bcrypt from "bcryptjs";
-import { sign } from "hono/jwt";
 import { unauthorizedError, successResponse } from "../../../lib/errors";
-import { JWT_EXPIRATION_SECONDS } from "../../../../shared/lib/constants";
+import { setAuthCookie } from "../../../lib/cookie";
 import { Env } from "../../types/env";
 import {
     loginRequestSchema,
@@ -64,40 +62,29 @@ loginRouter.openapi(loginRoute, async (c) => {
     const supabase = getSupabaseClient(c.env);
     const { email, password } = c.req.valid("json");
 
-    // 1. ユーザー取得
-    const { data: user, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("email", email)
-        .single();
+    // Supabase Auth でログイン
+    const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+    });
 
-    if (error || !user) {
+    if (error || !data.session) {
+        console.error("Login error:", error?.message, error?.status, error);
         return unauthorizedError(c, "Invalid credentials");
     }
 
-    // 2. パスワード検証
-    const isValid = bcrypt.compareSync(password, user.hashed_password);
-    if (!isValid) {
-        return unauthorizedError(c, "Invalid credentials");
-    }
+    const { user, session } = data;
 
-    // 3. JWT を作成
-    const payload = {
-        id: user.id,
-        role: user.role,
-        exp: Math.floor(Date.now() / 1000) + JWT_EXPIRATION_SECONDS,
-    };
+    // HttpOnly Cookie にトークンを設定
+    setAuthCookie(c, session.access_token);
 
-    const token = await sign(payload, c.env.JWT_SECRET);
-
-    // 4. レスポンス
     return successResponse(c, {
-        token,
+        accessToken: session.access_token,
         user: {
             id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role as "admin" | "user",
+            name: (user.user_metadata?.name as string) ?? "",
+            email: user.email ?? "",
+            role: (user.user_metadata?.role as "admin" | "user") ?? "user",
         },
     });
 });

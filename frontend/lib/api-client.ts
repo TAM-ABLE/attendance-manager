@@ -1,12 +1,25 @@
 // frontend/lib/api-client.ts
 // 共通APIクライアント - Server Action用
+// 401 エラー時は再ログインが必要
 
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/authOptions";
-import { ErrorCodes, failure, type ApiResult, type ApiError } from "../../shared/types/ApiResponse";
+import { cookies } from "next/headers";
+import { ErrorCodes, failure, type ApiResult, type ApiError } from "@attendance-manager/shared/types/ApiResponse";
 
 /** デフォルトタイムアウト（30秒） */
 const DEFAULT_TIMEOUT = 30000;
+
+/**
+ * Server Actions用のベースURL取得
+ * Server Actionsはサーバー側で実行されるため、絶対URLが必要
+ */
+function getServerBaseUrl(): string {
+    // Vercel環境
+    if (process.env.VERCEL_URL) {
+        return `https://${process.env.VERCEL_URL}`;
+    }
+    // 開発環境
+    return process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+}
 
 interface FetchOptions {
     method?: "GET" | "POST" | "PUT" | "DELETE";
@@ -15,6 +28,14 @@ interface FetchOptions {
     revalidate?: number;
     /** リクエストタイムアウト（ミリ秒） */
     timeout?: number;
+}
+
+/**
+ * Cookie からアクセストークンを取得
+ */
+async function getTokenFromCookie(): Promise<string | null> {
+    const cookieStore = await cookies();
+    return cookieStore.get("accessToken")?.value ?? null;
 }
 
 /**
@@ -36,14 +57,25 @@ interface FetchOptions {
  * });
  */
 export async function apiClient<T>(endpoint: string, options: FetchOptions = {}): Promise<ApiResult<T>> {
-    const session = await getServerSession(authOptions);
-    const token = session?.user?.apiToken;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+    const token = await getTokenFromCookie();
 
     if (!token) {
         return failure(ErrorCodes.UNAUTHORIZED, "Not authenticated");
     }
 
+    return executeRequest<T>(endpoint, token, options);
+}
+
+/**
+ * 実際の API リクエストを実行
+ */
+async function executeRequest<T>(
+    endpoint: string,
+    token: string,
+    options: FetchOptions
+): Promise<ApiResult<T>> {
+    // rewritesを経由するため、/api/backendプレフィックスを使用
+    const apiUrl = `${getServerBaseUrl()}/api/backend`;
     const { method = "GET", body, cache, revalidate, timeout = DEFAULT_TIMEOUT } = options;
 
     // タイムアウト用のAbortController
@@ -84,7 +116,7 @@ export async function apiClient<T>(endpoint: string, options: FetchOptions = {})
             // バックエンドからのエラーレスポンス: { success: false, error: { code, message } }
             const error: ApiError = data.error && typeof data.error === "object" && "code" in data.error
                 ? data.error
-                : { code: ErrorCodes.INTERNAL_ERROR, message: `Request failed: ${res.status}` };
+                : { code: res.status === 401 ? ErrorCodes.UNAUTHORIZED : ErrorCodes.INTERNAL_ERROR, message: `Request failed: ${res.status}` };
 
             return { success: false, error };
         }

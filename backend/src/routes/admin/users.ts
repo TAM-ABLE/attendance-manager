@@ -1,7 +1,7 @@
 // backend/src/routes/admin/users.ts
 import { createRoute, z } from "@hono/zod-openapi";
 import { getSupabaseClient } from "../../../lib/supabase";
-import { parseYearMonth } from "../../../lib/time";
+import { parseYearMonth } from "@attendance-manager/shared/lib/time";
 import { formatAttendanceRecord, DbAttendanceRecord } from "../../../lib/formatters";
 import { databaseError, validationError, successResponse } from "../../../lib/errors";
 import { Env } from "../../types/env";
@@ -55,7 +55,7 @@ usersRouter.openapi(getUsersRoute, async (c) => {
     const supabase = getSupabaseClient(c.env);
 
     const { data, error } = await supabase
-        .from("users")
+        .from("profiles")
         .select("id, name, email, employee_number")
         .order("employee_number", { ascending: true });
 

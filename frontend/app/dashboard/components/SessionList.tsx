@@ -3,9 +3,9 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Coffee } from "lucide-react";
-import { AttendanceRecord, WorkSession } from "../../../../shared/types/Attendance";
-import { calculateCompletedSession, calculateActiveSession } from "../../../../shared/lib/calculation";
-import { formatClockTime, formatDurationMs } from "@/lib/time";
+import { AttendanceRecord, WorkSession } from "@attendance-manager/shared/types/Attendance";
+import { calculateCompletedSession, calculateActiveSession } from "@attendance-manager/shared/lib/calculation";
+import { formatClockTime, formatDurationMs } from "@attendance-manager/shared/lib/time";
 import { useEffect, useState, useMemo } from "react";
 
 export function SessionList({
