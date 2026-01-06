@@ -1,11 +1,11 @@
 // backend/src/routes/daily-reports.ts
 import { createRoute, z } from "@hono/zod-openapi";
 import { getSupabaseClient } from "../../lib/supabase";
-import { parseYearMonth } from "../../lib/time";
+import { parseYearMonth } from "@attendance-manager/shared/lib/time";
 import { databaseError, notFoundError, validationError, successResponse } from "../../lib/errors";
 import { Env } from "../types/env";
 import { AuthVariables } from "../middleware/auth";
-import { DailyReport, DailyReportListItem, DailyReportTask, UserForSelect } from "../../../shared/types/DailyReport";
+import { DailyReport, DailyReportListItem, DailyReportTask, UserForSelect } from "@attendance-manager/shared/types/DailyReport";
 import {
     usersForSelectResponseSchema,
     dailyReportListResponseSchema,
@@ -51,7 +51,7 @@ dailyReportsRouter.openapi(getUsersRoute, async (c) => {
     const supabase = getSupabaseClient(c.env);
 
     const { data, error } = await supabase
-        .from("users")
+        .from("profiles")
         .select("id, name, employee_number")
         .order("employee_number", { ascending: true });
 
@@ -133,7 +133,18 @@ dailyReportsRouter.openapi(getUserMonthlyReportsRoute, async (c) => {
 
     const supabase = getSupabaseClient(c.env);
 
-    // 日報一覧とユーザー情報を1クエリで取得 (N+1解消)
+    // ユーザー情報を先に取得
+    const { data: userData, error: userError } = await supabase
+        .from("profiles")
+        .select("id, name, employee_number")
+        .eq("id", userId)
+        .single();
+
+    if (userError) {
+        return notFoundError(c, "User");
+    }
+
+    // 日報一覧を取得
     const { data: reports, error: reportsError } = await supabase
         .from("daily_reports")
         .select(
@@ -142,11 +153,6 @@ dailyReportsRouter.openapi(getUserMonthlyReportsRoute, async (c) => {
             user_id,
             date,
             submitted_at,
-            users!inner (
-                id,
-                name,
-                employee_number
-            ),
             daily_report_tasks (
                 id,
                 task_type
@@ -159,31 +165,7 @@ dailyReportsRouter.openapi(getUserMonthlyReportsRoute, async (c) => {
         .order("date", { ascending: true });
 
     if (reportsError) {
-        // ユーザーが見つからない場合
-        if (reportsError.code === "PGRST116") {
-            return notFoundError(c, "User");
-        }
         return databaseError(c, reportsError.message);
-    }
-
-    // ユーザー情報を取得（日報がない場合でもユーザー情報を返すため）
-    let userData: { id: string; name: string; employee_number: string } | null = null;
-
-    if (reports && reports.length > 0) {
-        const firstReport = reports[0] as { users: { id: string; name: string; employee_number: string } };
-        userData = firstReport.users;
-    } else {
-        // 日報がない場合、ユーザー情報を別途取得
-        const { data: user, error: userError } = await supabase
-            .from("users")
-            .select("id, name, employee_number")
-            .eq("id", userId)
-            .single();
-
-        if (userError) {
-            return notFoundError(c, "User");
-        }
-        userData = user;
     }
 
     const reportList: DailyReportListItem[] = (reports || []).map((report) => {

@@ -3,10 +3,10 @@
 // frontend/app/actions/daily-reports.ts
 
 import { apiClient, apiClientNoCache } from "@/lib/api-client";
-import type { DailyReport, DailyReportListItem, UserForSelect } from "../../../shared/types/DailyReport";
-import type { ApiResult } from "../../../shared/types/ApiResponse";
-import { parseYearMonth, isCurrentMonth } from "../../../shared/lib/time";
-import { CACHE_CURRENT_MONTH_SEC, CACHE_PAST_MONTH_SEC } from "../../../shared/lib/constants";
+import type { DailyReport, DailyReportListItem, UserForSelect } from "@attendance-manager/shared/types/DailyReport";
+import type { ApiResult } from "@attendance-manager/shared/types/ApiResponse";
+import { parseYearMonth, isCurrentMonth } from "@attendance-manager/shared/lib/time";
+import { CACHE_CURRENT_MONTH_SEC, CACHE_PAST_MONTH_SEC } from "@attendance-manager/shared/lib/constants";
 
 // ユーザー一覧取得（日報用）
 export async function getDailyReportUsers(): Promise<ApiResult<UserForSelect[]>> {

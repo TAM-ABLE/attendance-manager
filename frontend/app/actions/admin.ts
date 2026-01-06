@@ -3,10 +3,10 @@
 // frontend/app/actions/admin.ts
 
 import { apiClient, apiClientNoCache } from "@/lib/api-client";
-import type { User, AttendanceRecord, WorkSession } from "../../../shared/types/Attendance";
-import type { ApiResult } from "../../../shared/types/ApiResponse";
-import { isCurrentMonth, formatYearMonth } from "../../../shared/lib/time";
-import { CACHE_CURRENT_MONTH_SEC, CACHE_PAST_MONTH_SEC } from "../../../shared/lib/constants";
+import type { User, AttendanceRecord, WorkSession } from "@attendance-manager/shared/types/Attendance";
+import type { ApiResult } from "@attendance-manager/shared/types/ApiResponse";
+import { isCurrentMonth, formatYearMonth } from "@attendance-manager/shared/lib/time";
+import { CACHE_CURRENT_MONTH_SEC, CACHE_PAST_MONTH_SEC } from "@attendance-manager/shared/lib/constants";
 
 // ============ User Operations ============
 

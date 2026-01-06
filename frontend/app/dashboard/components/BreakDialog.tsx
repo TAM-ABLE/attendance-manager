@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { DialogWrapper } from "@/components/DialogWrapper";
 import { useDialogState } from "@/hooks/useDialogState";
-import type { ApiResult } from "../../../../shared/types/ApiResponse";
+import type { ApiResult } from "@attendance-manager/shared/types/ApiResponse";
 
 interface BreakDialogProps {
     open: boolean;

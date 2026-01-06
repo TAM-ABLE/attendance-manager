@@ -1,8 +1,8 @@
 // backend/src/routes/auth/register.ts
 import { createRoute } from "@hono/zod-openapi";
-import bcrypt from "bcryptjs";
 import { getSupabaseClient } from "../../../lib/supabase";
 import { databaseError, successResponse } from "../../../lib/errors";
+import { setAuthCookie } from "../../../lib/cookie";
 import { Env } from "../../types/env";
 import {
     registerRequestSchema,
@@ -62,29 +62,37 @@ registerRouter.openapi(registerRoute, async (c) => {
     const supabase = getSupabaseClient(c.env);
     const { email, password, name } = c.req.valid("json");
 
-    // パスワードをハッシュ化
-    const hashed = await bcrypt.hash(password, 10);
+    // Supabase Auth でユーザー登録
+    // プロファイルはトリガー (handle_new_user) で自動作成される
+    const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+            data: {
+                name,
+                role: "user",
+            },
+        },
+    });
 
-    const employeeNumber = crypto.randomUUID().slice(0, 8);
-
-    // DBに保存
-    const { data, error } = await supabase
-        .from("users")
-        .insert({
-            email,
-            name,
-            hashed_password: hashed,
-            employee_number: employeeNumber,
-            role: "user",
-        })
-        .select("*")
-        .single();
-
-    if (error) {
-        return databaseError(c, error.message);
+    if (error || !data.user || !data.session) {
+        return databaseError(c, error?.message ?? "Registration failed");
     }
 
-    return successResponse(c, data);
+    const { user, session } = data;
+
+    // HttpOnly Cookie にトークンを設定
+    setAuthCookie(c, session.access_token);
+
+    return successResponse(c, {
+        accessToken: session.access_token,
+        user: {
+            id: user.id,
+            name: (user.user_metadata?.name as string) ?? "",
+            email: user.email ?? "",
+            role: (user.user_metadata?.role as "admin" | "user") ?? "user",
+        },
+    });
 });
 
 export default registerRouter;

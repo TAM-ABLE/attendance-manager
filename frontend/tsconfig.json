@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@attendance-manager/shared/*": ["../shared/*"]
     }
   },
   "include": [

@@ -10,7 +10,7 @@ import {
     MIN_TASK_HOURS,
     MAX_TASK_NAME_LENGTH,
     MAX_TEXT_FIELD_LENGTH,
-} from "../../shared/lib/constants";
+} from "@attendance-manager/shared/lib/constants";
 
 // 型は shared からインポート（Single Source of Truth）
 export type {
@@ -20,7 +20,7 @@ export type {
     AttendanceRecord,
     User,
     DailyReportTask,
-} from "../../shared/lib/schemas";
+} from "@attendance-manager/shared/lib/schemas";
 
 // ===== 基本スキーマ =====
 
@@ -124,8 +124,8 @@ export type LoginRequest = z.infer<typeof loginRequestSchema>;
 
 export const loginResponseSchema = z
     .object({
-        token: z.string().openapi({
-            description: "JWT トークン",
+        accessToken: z.string().openapi({
+            description: "アクセストークン（API認証用）",
         }),
         user: z.object({
             id: uuidSchema,
@@ -155,14 +155,18 @@ export const registerRequestSchema = z
 
 export type RegisterRequest = z.infer<typeof registerRequestSchema>;
 
-// registerResponseSchema は直接ユーザーオブジェクトを返す（A案）
+// registerResponseSchema は login と同じ形式（登録後すぐにログイン状態にする）
 export const registerResponseSchema = z
     .object({
-        id: uuidSchema,
-        name: z.string(),
-        email: z.string().email(),
-        employee_number: z.string(),
-        role: z.string(),
+        accessToken: z.string().openapi({
+            description: "アクセストークン（API認証用）",
+        }),
+        user: z.object({
+            id: uuidSchema,
+            name: z.string(),
+            email: z.string().email(),
+            role: z.enum(["admin", "user"]),
+        }),
     })
     .openapi("RegisterResponse");
 

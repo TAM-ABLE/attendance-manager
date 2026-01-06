@@ -10,8 +10,8 @@ import { DialogWrapper } from "@/components/DialogWrapper";
 import { TaskListEditor } from "@/components/TaskListEditor";
 import { useDialogState } from "@/hooks/useDialogState";
 import { toTasks, createInitialTasks, type TaskFormItem } from "@/lib/task-form";
-import type { Task } from "../../../../shared/types/Attendance";
-import type { ApiResult } from "../../../../shared/types/ApiResponse";
+import type { Task } from "@attendance-manager/shared/types/Attendance";
+import type { ApiResult } from "@attendance-manager/shared/types/ApiResponse";
 
 interface ClockOutDialogProps {
     open: boolean;

@@ -1,7 +1,7 @@
 // frontend/lib/task-form.ts
 // タスクフォーム用の共通ユーティリティ
 
-import type { Task } from "../../shared/types/Attendance";
+import type { Task } from "@attendance-manager/shared/types/Attendance";
 
 /**
  * UI用のフォーム状態
