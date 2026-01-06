@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { DailyReportListItem, UserForSelect } from "../../../../shared/types/DailyReport";
+import { DailyReportListItem, UserForSelect } from "@attendance-manager/shared/types/DailyReport";
 import { getUserMonthlyReports } from "@/app/actions/daily-reports";
-import { formatYearMonthFromDate } from "../../../../shared/lib/time";
+import { withRetry } from "@/lib/auth/with-retry";
+import { formatYearMonthFromDate } from "@attendance-manager/shared/lib/time";
 
 export function useMonthlyReports(user: UserForSelect | null, currentMonth: Date) {
     const [reports, setReports] = useState<DailyReportListItem[]>([]);
@@ -22,7 +23,7 @@ export function useMonthlyReports(user: UserForSelect | null, currentMonth: Date
             setError(null);
             const yearMonth = formatYearMonthFromDate(currentMonth);
 
-            const result = await getUserMonthlyReports(user.id, yearMonth);
+            const result = await withRetry(() => getUserMonthlyReports(user.id, yearMonth));
             if (result.success) {
                 setReports(result.data.reports);
             } else {

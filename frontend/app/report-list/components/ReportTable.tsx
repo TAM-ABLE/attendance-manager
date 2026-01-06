@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DailyReportListItem } from "../../../../shared/types/DailyReport";
+import { DailyReportListItem } from "@attendance-manager/shared/types/DailyReport";
 
 interface ReportTableProps {
     reports: DailyReportListItem[];

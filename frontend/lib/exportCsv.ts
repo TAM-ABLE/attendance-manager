@@ -1,6 +1,6 @@
 // lib/exportCsv.ts
-import { AttendanceRecord } from "../../shared/types/Attendance";
-import { formatClockTime, formatDurationMsToHM, getWeekdayLabel, getDateLabel } from "./time";
+import { AttendanceRecord } from "@attendance-manager/shared/types/Attendance";
+import { formatClockTime, formatDurationMsToHM, getWeekdayLabel, getDateLabel } from "@attendance-manager/shared/lib/time";
 
 export const exportMonthlyAttendanceCSV = (monthData: AttendanceRecord[], userName: string) => {
     // CSVヘッダー

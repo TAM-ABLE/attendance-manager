@@ -2,9 +2,10 @@
 // hooks/useEditDialog.ts
 
 import { useState } from "react";
-import { WorkSession, User } from "../../../../shared/types/Attendance";
-import { isValidUUID } from "../../../../shared/lib/constants";
+import { WorkSession, User } from "@attendance-manager/shared/types/Attendance";
+import { isValidUUID } from "@attendance-manager/shared/lib/constants";
 import { updateUserDateSessions, getUserDateSessions } from "@/app/actions/admin";
+import { withRetry } from "@/lib/auth/with-retry";
 
 export function useEditDialog(selectedUser: User | null, reloadMonthData: () => void) {
     const [showEditDialog, setShowEditDialog] = useState(false);
@@ -15,7 +16,7 @@ export function useEditDialog(selectedUser: User | null, reloadMonthData: () => 
         // selectedUserまたはそのidが無効な場合はAPIを呼び出さない
         if (!selectedUser || !selectedUser.id || !isValidUUID(selectedUser.id)) return;
         setSelectedDate(date);
-        const result = await getUserDateSessions(selectedUser.id, date);
+        const result = await withRetry(() => getUserDateSessions(selectedUser.id, date));
         if (result.success) {
             setSessions(result.data);
         } else {
@@ -30,7 +31,7 @@ export function useEditDialog(selectedUser: User | null, reloadMonthData: () => 
     const saveSessions = async () => {
         if (!selectedUser || !selectedUser.id || !isValidUUID(selectedUser.id) || !selectedDate) return;
 
-        const res = await updateUserDateSessions(selectedUser.id, selectedDate, sessions);
+        const res = await withRetry(() => updateUserDateSessions(selectedUser.id, selectedDate, sessions));
 
         reloadMonthData();
 

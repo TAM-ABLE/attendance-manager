@@ -1,9 +1,9 @@
 // backend/lib/formatters.ts
 // 共通フォーマットユーティリティ
 
-import { calculateSessionsTotals } from '../../shared/lib/calculation';
+import { calculateSessionsTotals } from '@attendance-manager/shared/lib/calculation';
 import type { Database } from '../src/types/supabase';
-import type { WorkSession } from '../../shared/types/Attendance';
+import type { WorkSession } from '@attendance-manager/shared/types/Attendance';
 
 // 共通の型定義: DBから取得した勤怠レコード（ネスト付き）
 export type DbAttendanceRecord = Database['public']['Tables']['attendance_records']['Row'] & {

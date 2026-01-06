@@ -9,8 +9,9 @@ import {
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DailyReport } from "../../../../shared/types/DailyReport";
+import { DailyReport } from "@attendance-manager/shared/types/DailyReport";
 import { getDailyReportDetail } from "@/app/actions/daily-reports";
+import { withRetry } from "@/lib/auth/with-retry";
 
 interface ReportDetailDialogProps {
     open: boolean;
@@ -44,7 +45,7 @@ export function ReportDetailDialog({ open, reportId, onClose }: ReportDetailDial
             const fetchReport = async () => {
                 setIsLoading(true);
                 try {
-                    const result = await getDailyReportDetail(reportId);
+                    const result = await withRetry(() => getDailyReportDetail(reportId));
                     if (result.success) {
                         setReport(result.data);
                     } else {

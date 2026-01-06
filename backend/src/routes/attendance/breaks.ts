@@ -1,7 +1,7 @@
 // backend/src/routes/attendance/breaks.ts
 import { createRoute, z } from "@hono/zod-openapi";
 import { getSupabaseClient } from "../../../lib/supabase";
-import { todayJSTString } from "../../../lib/time";
+import { todayJSTString } from "@attendance-manager/shared/lib/time";
 import { databaseError, validationError, successResponse } from "../../../lib/errors";
 import { Env } from "../../types/env";
 import { AuthVariables } from "../../middleware/auth";
@@ -49,7 +49,7 @@ const breakStartRoute = createRoute({
 });
 
 breaksRouter.openapi(breakStartRoute, async (c) => {
-    const { id: userId } = c.get("jwtPayload");
+    const { sub: userId } = c.get("jwtPayload");
     const supabase = getSupabaseClient(c.env);
     const date = todayJSTString();
 
@@ -157,7 +157,7 @@ const breakEndRoute = createRoute({
 });
 
 breaksRouter.openapi(breakEndRoute, async (c) => {
-    const { id: userId } = c.get("jwtPayload");
+    const { sub: userId } = c.get("jwtPayload");
     const supabase = getSupabaseClient(c.env);
     const date = todayJSTString();
 

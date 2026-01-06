@@ -4,8 +4,8 @@ import { Card, CardContent, CardHeader, CardDescription, CardTitle } from "@/com
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Edit } from "lucide-react";
-import { formatClockTime, formatDurationMs, formatDurationMsToHM, getWeekdayLabel, getDateLabel } from "@/lib/time";
-import { AttendanceRecord, User } from "../../../../shared/types/Attendance";
+import { formatClockTime, formatDurationMs, formatDurationMsToHM, getWeekdayLabel, getDateLabel } from "@attendance-manager/shared/lib/time";
+import { AttendanceRecord, User } from "@attendance-manager/shared/types/Attendance";
 
 interface Props {
     user: User;

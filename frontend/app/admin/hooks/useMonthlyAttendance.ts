@@ -3,9 +3,10 @@
 
 import { useState, useCallback } from "react";
 import useSWR from "swr";
-import { AttendanceRecord, User } from "../../../../shared/types/Attendance";
-import { isValidUUID } from "../../../../shared/lib/constants";
+import { AttendanceRecord, User } from "@attendance-manager/shared/types/Attendance";
+import { isValidUUID } from "@attendance-manager/shared/lib/constants";
 import { getUserMonthlyAttendance } from "@/app/actions/admin";
+import { withRetry } from "@/lib/auth/with-retry";
 import { SWR_KEYS } from "@/lib/swr-keys";
 
 export function useMonthlyAttendance(user: User | null, date: Date) {
@@ -17,7 +18,7 @@ export function useMonthlyAttendance(user: User | null, date: Date) {
     const fetcher = useCallback(async () => {
         console.log("[useMonthlyAttendance] user:", user, "user.id:", user?.id, "isValidUUID:", user ? isValidUUID(user.id) : "N/A");
         if (!user || !isValidUUID(user.id)) return null;
-        const result = await getUserMonthlyAttendance(user.id, date.getFullYear(), date.getMonth());
+        const result = await withRetry(() => getUserMonthlyAttendance(user.id, date.getFullYear(), date.getMonth()));
         if (result.success) {
             return result.data;
         }

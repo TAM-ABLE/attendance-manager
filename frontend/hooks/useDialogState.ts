@@ -4,7 +4,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import type { ApiResult } from "../../shared/types/ApiResponse";
+import type { ApiResult } from "@attendance-manager/shared/types/ApiResponse";
 
 /**
  * ダイアログの状態

@@ -38,7 +38,7 @@ export type Database = {
             foreignKeyName: "attendance_records_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -114,7 +114,7 @@ export type Database = {
             foreignKeyName: "daily_reports_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -157,12 +157,11 @@ export type Database = {
           },
         ]
       }
-      users: {
+      profiles: {
         Row: {
           created_at: string
           email: string
           employee_number: string
-          hashed_password: string
           id: string
           name: string
           role: string
@@ -172,7 +171,6 @@ export type Database = {
           created_at?: string
           email: string
           employee_number: string
-          hashed_password: string
           id?: string
           name: string
           role?: string
@@ -182,7 +180,6 @@ export type Database = {
           created_at?: string
           email?: string
           employee_number?: string
-          hashed_password?: string
           id?: string
           name?: string
           role?: string
