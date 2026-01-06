@@ -12,11 +12,12 @@ import { CACHE_CURRENT_MONTH_SEC, CACHE_PAST_MONTH_SEC } from "@attendance-manag
 
 export async function clockIn(
     userName: string,
-    plannedTasks: Task[]
+    plannedTasks: Task[],
+    clockInTime?: string
 ): Promise<ApiResult<{ slack_ts?: string }>> {
     return apiClient("/attendance/clock-in", {
         method: "POST",
-        body: { userName, plannedTasks },
+        body: { userName, plannedTasks, clockInTime },
     });
 }
 
@@ -25,22 +26,29 @@ export async function clockOut(
     actualTasks: Task[],
     summary: string,
     issues: string,
-    notes: string
+    notes: string,
+    clockOutTime?: string
 ): Promise<ApiResult<{ slack_ts?: string }>> {
     return apiClient("/attendance/clock-out", {
         method: "POST",
-        body: { userName, actualTasks, summary, issues, notes },
+        body: { userName, actualTasks, summary, issues, notes, clockOutTime },
     });
 }
 
 // ============ Break Operations ============
 
-export async function startBreak(): Promise<ApiResult<null>> {
-    return apiClient("/attendance/breaks/start", { method: "POST" });
+export async function startBreak(breakStartTime?: string): Promise<ApiResult<null>> {
+    return apiClient("/attendance/breaks/start", {
+        method: "POST",
+        body: { breakStartTime },
+    });
 }
 
-export async function endBreak(): Promise<ApiResult<null>> {
-    return apiClient("/attendance/breaks/end", { method: "POST" });
+export async function endBreak(breakEndTime?: string): Promise<ApiResult<null>> {
+    return apiClient("/attendance/breaks/end", {
+        method: "POST",
+        body: { breakEndTime },
+    });
 }
 
 // ============ Query Operations ============

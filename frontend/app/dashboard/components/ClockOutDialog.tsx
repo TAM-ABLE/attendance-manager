@@ -1,10 +1,11 @@
 // ClockOutDialog.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DialogWrapper } from "@/components/DialogWrapper";
 import { TaskListEditor } from "@/components/TaskListEditor";
@@ -16,7 +17,21 @@ import type { ApiResult } from "@attendance-manager/shared/types/ApiResponse";
 interface ClockOutDialogProps {
     open: boolean;
     onClose: () => void;
-    onSubmit: (actualTasks: Task[], summary: string, issues: string, notes: string) => Promise<ApiResult<unknown>>;
+    onSubmit: (actualTasks: Task[], summary: string, issues: string, notes: string, clockOutTime?: string) => Promise<ApiResult<unknown>>;
+}
+
+// 現在時刻をHH:mm形式で取得
+function getCurrentTimeString(): string {
+    const now = new Date();
+    return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+}
+
+// HH:mm形式の時間をISO文字列に変換（今日の日付で）
+function timeToISOString(time: string): string {
+    const [hours, minutes] = time.split(":").map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    return date.toISOString();
 }
 
 export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps) => {
@@ -24,10 +39,18 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
     const [summary, setSummary] = useState<string>("");
     const [issues, setIssues] = useState<string>("");
     const [notes, setNotes] = useState<string>("");
+    const [clockOutTime, setClockOutTime] = useState(getCurrentTimeString());
     const { mode, error, handleSubmit, reset } = useDialogState();
 
+    // ダイアログが開いたときに現在時刻をセット
+    useEffect(() => {
+        if (open) {
+            setClockOutTime(getCurrentTimeString());
+        }
+    }, [open]);
+
     const onFormSubmit = async () => {
-        await handleSubmit(() => onSubmit(toTasks(actualTasks), summary, issues, notes));
+        await handleSubmit(() => onSubmit(toTasks(actualTasks), summary, issues, notes, timeToISOString(clockOutTime)));
     };
 
     const handleClose = () => {
@@ -36,6 +59,7 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
         setSummary("");
         setIssues("");
         setNotes("");
+        setClockOutTime(getCurrentTimeString());
         onClose();
     };
 
@@ -51,6 +75,17 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
                     {error && <div className="text-red-500 text-sm p-2 bg-red-50 rounded">{error}</div>}
 
                     <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="clockOutTime">退勤時間</Label>
+                            <Input
+                                id="clockOutTime"
+                                type="time"
+                                value={clockOutTime}
+                                onChange={(e) => setClockOutTime(e.target.value)}
+                                className="w-32"
+                            />
+                        </div>
+
                         <TaskListEditor
                             tasks={actualTasks}
                             onChange={setActualTasks}

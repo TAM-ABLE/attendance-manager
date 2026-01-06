@@ -66,7 +66,7 @@ const clockInRoute = createRoute({
 
 clockRouter.openapi(clockInRoute, async (c) => {
     const { sub: userId } = c.get("jwtPayload");
-    const { userName, plannedTasks } = c.req.valid("json");
+    const { userName, plannedTasks, clockInTime } = c.req.valid("json");
 
     const supabase = getSupabaseClient(c.env);
     const date = todayJSTString();
@@ -99,10 +99,10 @@ clockRouter.openapi(clockInRoute, async (c) => {
         attendanceId = newRecord.id;
     }
 
-    // 2. work_session を作成
+    // 2. work_session を作成（clockInTimeが指定されていればそれを使用、なければ現在時刻）
     const { error: sessionErr } = await supabase.from("work_sessions").insert({
         attendance_id: attendanceId,
-        clock_in: new Date().toISOString(),
+        clock_in: clockInTime ?? new Date().toISOString(),
     });
 
     if (sessionErr) {
@@ -192,7 +192,7 @@ const clockOutRoute = createRoute({
 
 clockRouter.openapi(clockOutRoute, async (c) => {
     const { sub: userId } = c.get("jwtPayload");
-    const { userName, actualTasks, summary, issues, notes } = c.req.valid("json");
+    const { userName, actualTasks, summary, issues, notes, clockOutTime } = c.req.valid("json");
 
     const supabase = getSupabaseClient(c.env);
     const date = todayJSTString();
@@ -233,10 +233,10 @@ clockRouter.openapi(clockOutRoute, async (c) => {
         return validationError(c, "No active session to clock out");
     }
 
-    // 3. 退勤時刻を記録
+    // 3. 退勤時刻を記録（clockOutTimeが指定されていればそれを使用、なければ現在時刻）
     const { error: updateErr } = await supabase
         .from("work_sessions")
-        .update({ clock_out: new Date().toISOString() })
+        .update({ clock_out: clockOutTime ?? new Date().toISOString() })
         .eq("id", session.id);
 
     if (updateErr) {
