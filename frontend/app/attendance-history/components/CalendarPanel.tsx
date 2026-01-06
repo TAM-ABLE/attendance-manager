@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { AttendanceRecord } from "../../../../shared/types/Attendance";
+import { AttendanceRecord } from "@attendance-manager/shared/types/Attendance";
 
 interface Props {
     selectedDate: Date | undefined;

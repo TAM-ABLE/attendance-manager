@@ -1,7 +1,7 @@
 // backend/src/routes/attendance/clock.ts
 import { createRoute } from "@hono/zod-openapi";
 import { getSupabaseClient } from "../../../lib/supabase";
-import { todayJSTString } from "../../../lib/time";
+import { todayJSTString } from "@attendance-manager/shared/lib/time";
 import { getSlackConfig, sendClockInNotification, sendClockOutNotification } from "../../../lib/slack";
 import { databaseError, validationError, successResponse } from "../../../lib/errors";
 import { Env } from "../../types/env";
@@ -65,7 +65,7 @@ const clockInRoute = createRoute({
 });
 
 clockRouter.openapi(clockInRoute, async (c) => {
-    const { id: userId } = c.get("jwtPayload");
+    const { sub: userId } = c.get("jwtPayload");
     const { userName, plannedTasks } = c.req.valid("json");
 
     const supabase = getSupabaseClient(c.env);
@@ -191,7 +191,7 @@ const clockOutRoute = createRoute({
 });
 
 clockRouter.openapi(clockOutRoute, async (c) => {
-    const { id: userId } = c.get("jwtPayload");
+    const { sub: userId } = c.get("jwtPayload");
     const { userName, actualTasks, summary, issues, notes } = c.req.valid("json");
 
     const supabase = getSupabaseClient(c.env);

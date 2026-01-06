@@ -1,7 +1,7 @@
 // backend/src/routes/attendance/queries.ts
 import { createRoute, z } from "@hono/zod-openapi";
 import { getSupabaseClient } from "../../../lib/supabase";
-import { todayJSTString, parseYearMonth } from "../../../lib/time";
+import { todayJSTString, parseYearMonth } from "@attendance-manager/shared/lib/time";
 import { formatAttendanceRecord, DbAttendanceRecord } from "../../../lib/formatters";
 import { databaseError, validationError, successResponse } from "../../../lib/errors";
 import { Env } from "../../types/env";
@@ -46,7 +46,7 @@ const todayRoute = createRoute({
 });
 
 queriesRouter.openapi(todayRoute, async (c) => {
-    const { id: userId } = c.get("jwtPayload");
+    const { sub: userId } = c.get("jwtPayload");
     const date = todayJSTString();
 
     const supabase = getSupabaseClient(c.env);
@@ -126,7 +126,7 @@ const monthRoute = createRoute({
 });
 
 queriesRouter.openapi(monthRoute, async (c) => {
-    const { id: userId } = c.get("jwtPayload");
+    const { sub: userId } = c.get("jwtPayload");
     const { yearMonth } = c.req.valid("param");
 
     const parsed = parseYearMonth(yearMonth);
@@ -201,7 +201,7 @@ const weekTotalRoute = createRoute({
 });
 
 queriesRouter.openapi(weekTotalRoute, async (c) => {
-    const { id: userId } = c.get("jwtPayload");
+    const { sub: userId } = c.get("jwtPayload");
 
     // 今週の月曜日と日曜日を計算
     const date = new Date();

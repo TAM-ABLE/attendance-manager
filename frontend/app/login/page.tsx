@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Clock, Lock, Mail, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -9,27 +8,25 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useAuth } from "@/hooks/useAuth"
 
 export default function LoginPage() {
     const router = useRouter()
+    const { login } = useAuth()
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [error, setError] = useState<string | null>(null)
     const [loading, setLoading] = useState(false)
 
-    const handleLogin = async (email: string, password: string) => {
+    const handleLogin = async (loginEmail: string, loginPassword: string) => {
         setLoading(true)
         setError(null)
 
-        const res = await signIn("credentials", {
-            redirect: false,
-            email,
-            password,
-        })
+        const result = await login(loginEmail, loginPassword)
 
         setLoading(false)
 
-        if (res?.error) {
+        if (!result.success) {
             setError("メールアドレスまたはパスワードが間違っています。")
             return
         }

@@ -11,8 +11,21 @@ import { createOpenAPIHono } from "../lib/openapi-hono";
 
 const app = createOpenAPIHono<{ Bindings: Env; Variables: AuthVariables }>();
 
-// グローバル CORS
-app.use("*", cors());
+// グローバル CORS（credentials: include を許可するため origin を明示）
+app.use(
+    "*",
+    cors({
+        origin: (origin) => {
+            // 開発環境: localhost からのリクエストを許可
+            if (origin?.startsWith("http://localhost")) {
+                return origin;
+            }
+            // 本番環境: 適切なオリジンを設定（環境変数で管理推奨）
+            return origin ?? "";
+        },
+        credentials: true,
+    })
+);
 
 // 認証不要: /auth
 app.route("/auth", authRoute);

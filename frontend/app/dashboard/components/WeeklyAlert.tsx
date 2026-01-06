@@ -1,7 +1,7 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { formatDurationMs } from "@/lib/time";
+import { formatDurationMs } from "@attendance-manager/shared/lib/time";
 
 // 時間をミリ秒に変換する定数
 const HOUR_IN_MS = 60 * 60 * 1000;

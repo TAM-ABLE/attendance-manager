@@ -1,8 +1,8 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { AttendanceRecord } from "../../../../shared/types/Attendance";
+import { AttendanceRecord } from "@attendance-manager/shared/types/Attendance";
 import { SessionItem } from "./SessionItem";
-import { formatDurationMs } from "@/lib/time";
+import { formatDurationMs } from "@attendance-manager/shared/lib/time";
 
 interface Props {
     selectedDate: Date | undefined;

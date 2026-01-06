@@ -1,7 +1,7 @@
 // backend/lib/slack.ts
 // Slack通知サービス
 
-import { Task } from '../../shared/types/Attendance';
+import { Task } from '@attendance-manager/shared/types/Attendance';
 
 interface SlackConfig {
     botToken: string;

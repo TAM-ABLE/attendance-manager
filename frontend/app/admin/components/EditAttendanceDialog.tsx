@@ -14,8 +14,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Loader } from "@/components/Loader";
 import { SuccessDialog } from "@/components/SuccessDialog";
-import { WorkSession, Break } from "../../../../shared/types/Attendance";
-import { formatClockTime, mergeDateAndTime } from "@/lib/time";
+import { WorkSession, Break } from "@attendance-manager/shared/types/Attendance";
+import { formatClockTime, mergeDateAndTime } from "@attendance-manager/shared/lib/time";
 
 interface Props {
     open: boolean;

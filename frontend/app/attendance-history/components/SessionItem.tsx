@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
-import { WorkSession } from "../../../../shared/types/Attendance";
-import { formatDurationMs, formatClockTime } from "@/lib/time";
+import { WorkSession } from "@attendance-manager/shared/types/Attendance";
+import { formatDurationMs, formatClockTime } from "@attendance-manager/shared/lib/time";
 
 interface Props {
     session: WorkSession;

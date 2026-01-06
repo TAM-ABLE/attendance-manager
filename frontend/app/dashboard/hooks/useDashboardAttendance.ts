@@ -2,9 +2,11 @@
 
 import { useState, useCallback, useMemo } from "react";
 import useSWR from "swr";
-import type { AttendanceRecord, WorkSession, Task } from "../../../../shared/types/Attendance";
+import type { AttendanceRecord, WorkSession, Task } from "@attendance-manager/shared/types/Attendance";
 import { clockIn, clockOut, startBreak, endBreak, getToday, getWeekTotal } from "@/app/actions/attendance";
+import { withRetry, withRetryFetcher } from "@/lib/auth/with-retry";
 import { SWR_KEYS } from "@/lib/swr-keys";
+import { useAuthStore } from "@/stores/auth";
 
 // セッション検出（出勤中かどうか）
 function detectCurrentSession(attendance: AttendanceRecord | null): WorkSession | null {
@@ -20,25 +22,19 @@ function detectOnBreak(currentSession: WorkSession | null): boolean {
     return !lastBreak.end; // end が null → 休憩中
 }
 
-// SWR fetchers
+// SWR fetchers（withRetryFetcher で 401 時に自動リフレッシュ）
 async function fetchToday() {
-    const result = await getToday();
-    if (result.success) {
-        return result.data;
-    }
-    throw new Error(result.error.message);
+    return withRetryFetcher(getToday);
 }
 
 async function fetchWeekTotal() {
-    const result = await getWeekTotal();
-    if (result.success) {
-        return result.data?.netWorkMs ?? 0;
-    }
-    throw new Error(result.error.message);
+    const data = await withRetryFetcher(getWeekTotal);
+    return data?.netWorkMs ?? 0;
 }
 
 export function useDashboardAttendance() {
     const [error, setError] = useState<string | null>(null);
+    const user = useAuthStore((state) => state.user);
 
     // 今日のデータを取得
     const {
@@ -83,7 +79,8 @@ export function useDashboardAttendance() {
     const handleClockIn = useCallback(
         async (plannedTasks: Task[]) => {
             setError(null);
-            const result = await clockIn(plannedTasks);
+            const userName = user?.name ?? "";
+            const result = await withRetry(() => clockIn(userName, plannedTasks));
 
             if (!result.success) {
                 console.error("Clock-in failed:", result.error);
@@ -94,14 +91,15 @@ export function useDashboardAttendance() {
             await loadAll();
             return result;
         },
-        [loadAll]
+        [loadAll, user]
     );
 
     // 退勤 - 週合計が変わるので全データ再取得
     const handleClockOut = useCallback(
         async (actualTasks: Task[], summary: string, issues: string, notes: string) => {
             setError(null);
-            const result = await clockOut(actualTasks, summary, issues, notes);
+            const userName = user?.name ?? "";
+            const result = await withRetry(() => clockOut(userName, actualTasks, summary, issues, notes));
 
             if (!result.success) {
                 console.error("Clock-out failed:", result.error);
@@ -112,13 +110,13 @@ export function useDashboardAttendance() {
             await loadAll();
             return result;
         },
-        [loadAll]
+        [loadAll, user]
     );
 
     // 休憩開始 - 週合計は変わらないので今日のみ再取得
     const handleBreakStart = useCallback(async () => {
         setError(null);
-        const result = await startBreak();
+        const result = await withRetry(startBreak);
 
         if (!result.success) {
             console.error("Break-start failed:", result.error);
@@ -133,7 +131,7 @@ export function useDashboardAttendance() {
     // 休憩終了 - 週合計は変わらないので今日のみ再取得
     const handleBreakEnd = useCallback(async () => {
         setError(null);
-        const result = await endBreak();
+        const result = await withRetry(endBreak);
 
         if (!result.success) {
             console.error("Break-end failed:", result.error);

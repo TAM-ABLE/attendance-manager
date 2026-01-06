@@ -1,56 +1,66 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { signIn } from "next-auth/react"
-import { Clock, Mail, Lock, User } from "lucide-react"
+import { Clock, Mail, Lock, User, Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
+import { useAuth } from "@/hooks/useAuth"
+
+// パスワード強度チェック
+function usePasswordStrength(password: string) {
+    return useMemo(() => {
+        const checks = {
+            minLength: password.length >= 8,
+            hasLetter: /[a-zA-Z]/.test(password),
+            hasNumber: /[0-9]/.test(password),
+        };
+        // 全ての条件を満たす必要がある
+        const isValid = checks.minLength && checks.hasLetter && checks.hasNumber;
+        return { checks, isValid };
+    }, [password]);
+}
 
 export default function SignUpPage() {
     const router = useRouter()
+    const { register } = useAuth()
 
     const [name, setName] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    const passwordStrength = usePasswordStrength(password);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
+        setError(null)
+
+        // パスワード強度チェック
+        if (!passwordStrength.isValid) {
+            setError("パスワードが要件を満たしていません。")
+            setLoading(false)
+            return
+        }
 
         try {
-            // ① Hono API へ新規登録
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/register`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, email, password }),
-            })
+            const result = await register(name, email, password)
 
-            if (!res.ok) {
+            if (!result.success) {
+                setError(result.error || "アカウント作成に失敗しました。")
                 setLoading(false)
                 return
             }
 
-            // ② 登録成功 → 自動ログイン
-            const login = await signIn("credentials", {
-                email,
-                password,
-                redirect: false,
-            })
-
-            if (login?.error) {
-                setLoading(false)
-                return
-            }
-
-            // ③ ダッシュボードへ
             router.push("/dashboard")
             router.refresh()
         } catch (err: unknown) {
             console.error("Error during sign-up:", err)
+            setError("アカウント作成中にエラーが発生しました。")
         } finally {
             setLoading(false)
         }
@@ -126,7 +136,44 @@ export default function SignUpPage() {
                                     required
                                 />
                             </div>
+                            {/* パスワード強度インジケーター */}
+                            {password && (
+                                <div className="text-xs space-y-1 mt-2">
+                                    <div className="flex items-center gap-1">
+                                        {passwordStrength.checks.minLength ? (
+                                            <Check className="h-3 w-3 text-green-500" />
+                                        ) : (
+                                            <X className="h-3 w-3 text-red-500" />
+                                        )}
+                                        <span className={passwordStrength.checks.minLength ? "text-green-600" : "text-muted-foreground"}>
+                                            8文字以上
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        {passwordStrength.checks.hasLetter ? (
+                                            <Check className="h-3 w-3 text-green-500" />
+                                        ) : (
+                                            <X className="h-3 w-3 text-red-500" />
+                                        )}
+                                        <span className={passwordStrength.checks.hasLetter ? "text-green-600" : "text-muted-foreground"}>
+                                            英字を含む
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        {passwordStrength.checks.hasNumber ? (
+                                            <Check className="h-3 w-3 text-green-500" />
+                                        ) : (
+                                            <X className="h-3 w-3 text-red-500" />
+                                        )}
+                                        <span className={passwordStrength.checks.hasNumber ? "text-green-600" : "text-muted-foreground"}>
+                                            数字を含む
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
+
+                        {error && <p className="text-red-500 text-sm">{error}</p>}
 
                         <Button className="w-full" size="lg" disabled={loading}>
                             {loading ? "作成中..." : "アカウントを作成"}
