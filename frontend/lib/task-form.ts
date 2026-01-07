@@ -20,10 +20,21 @@ export function generateTaskId(): string {
 }
 
 /**
- * 空のタスクアイテムを作成
+ * 空のタスクアイテムを作成（工数はデフォルト1時間）
  */
 export function createEmptyTask(): TaskFormItem {
-    return { id: generateTaskId(), taskName: "", hours: "" };
+    return { id: generateTaskId(), taskName: "", hours: "01:00" };
+}
+
+/**
+ * HH:mm形式の文字列を時間（小数）に変換
+ * 例: "01:30" → 1.5, "02:00" → 2.0, "00:30" → 0.5
+ */
+function parseTimeToHours(timeStr: string): number | null {
+    if (!timeStr) return null;
+    const [hours, minutes] = timeStr.split(":").map(Number);
+    if (isNaN(hours) || isNaN(minutes)) return null;
+    return hours + minutes / 60;
 }
 
 /**
@@ -34,7 +45,7 @@ export function toTasks(items: TaskFormItem[]): Task[] {
         .filter((item) => item.taskName.trim() !== "")
         .map((item) => ({
             taskName: item.taskName.trim(),
-            hours: item.hours ? parseFloat(item.hours) : null,
+            hours: parseTimeToHours(item.hours),
         }));
 }
 

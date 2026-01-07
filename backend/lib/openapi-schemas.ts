@@ -181,6 +181,10 @@ export const clockInRequestSchema = z
         plannedTasks: z.array(taskSchema).openapi({
             description: "予定タスク一覧",
         }),
+        clockInTime: z.string().datetime().optional().openapi({
+            description: "出勤時刻（ISO 8601形式）。省略時は現在時刻",
+            example: "2025-01-15T09:00:00.000Z",
+        }),
     })
     .openapi("ClockInRequest");
 
@@ -204,6 +208,10 @@ export const clockOutRequestSchema = z
         notes: z.string().max(MAX_TEXT_FIELD_LENGTH).optional().openapi({
             description: "備考",
         }),
+        clockOutTime: z.string().datetime().optional().openapi({
+            description: "退勤時刻（ISO 8601形式）。省略時は現在時刻",
+            example: "2025-01-15T18:00:00.000Z",
+        }),
     })
     .openapi("ClockOutRequest");
 
@@ -216,6 +224,30 @@ export const clockResponseSchema = z
         }),
     })
     .openapi("ClockResponse");
+
+// 休憩開始リクエスト
+export const breakStartRequestSchema = z
+    .object({
+        breakStartTime: z.string().datetime().optional().openapi({
+            description: "休憩開始時刻（ISO 8601形式）。省略時は現在時刻",
+            example: "2025-01-15T12:00:00.000Z",
+        }),
+    })
+    .openapi("BreakStartRequest");
+
+export type BreakStartRequest = z.infer<typeof breakStartRequestSchema>;
+
+// 休憩終了リクエスト
+export const breakEndRequestSchema = z
+    .object({
+        breakEndTime: z.string().datetime().optional().openapi({
+            description: "休憩終了時刻（ISO 8601形式）。省略時は現在時刻",
+            example: "2025-01-15T13:00:00.000Z",
+        }),
+    })
+    .openapi("BreakEndRequest");
+
+export type BreakEndRequest = z.infer<typeof breakEndRequestSchema>;
 
 // ===== 勤怠記録 =====
 

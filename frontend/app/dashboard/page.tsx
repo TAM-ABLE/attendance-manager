@@ -57,25 +57,31 @@ export default function Dashboard() {
             <WeeklyAlert weeklyMs={weekTotalMs} />
 
             {/* ダイアログ */}
-            <ClockInDialog
-                open={showClockInDialog}
-                onClose={closeDialogs}
-                onSubmit={handleClockIn}
-            />
+            {showClockInDialog && (
+                <ClockInDialog
+                    open={showClockInDialog}
+                    onClose={closeDialogs}
+                    onSubmit={handleClockIn}
+                />
+            )}
 
-            <ClockOutDialog
-                open={showClockOutDialog}
-                onClose={closeDialogs}
-                onSubmit={handleClockOut}
-            />
+            {showClockOutDialog && (
+                <ClockOutDialog
+                    open={showClockOutDialog}
+                    onClose={closeDialogs}
+                    onSubmit={handleClockOut}
+                />
+            )}
 
-            <BreakDialog
-                open={showBreakDialog}
-                mode={breakMode}
-                onClose={closeDialogs}
-                onStart={handleBreakStart}
-                onEnd={handleBreakEnd}
-            />
+            {showBreakDialog && (
+                <BreakDialog
+                    open={showBreakDialog}
+                    mode={breakMode}
+                    onClose={closeDialogs}
+                    onStart={handleBreakStart}
+                    onEnd={handleBreakEnd}
+                />
+            )}
         </div>
     );
 }

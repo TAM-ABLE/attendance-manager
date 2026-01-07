@@ -77,10 +77,10 @@ export function useDashboardAttendance() {
 
     // 出勤 - 週合計が変わるので全データ再取得
     const handleClockIn = useCallback(
-        async (plannedTasks: Task[]) => {
+        async (plannedTasks: Task[], clockInTime?: string) => {
             setError(null);
             const userName = user?.name ?? "";
-            const result = await withRetry(() => clockIn(userName, plannedTasks));
+            const result = await withRetry(() => clockIn(userName, plannedTasks, clockInTime));
 
             if (!result.success) {
                 console.error("Clock-in failed:", result.error);
@@ -96,10 +96,10 @@ export function useDashboardAttendance() {
 
     // 退勤 - 週合計が変わるので全データ再取得
     const handleClockOut = useCallback(
-        async (actualTasks: Task[], summary: string, issues: string, notes: string) => {
+        async (actualTasks: Task[], summary: string, issues: string, notes: string, clockOutTime?: string) => {
             setError(null);
             const userName = user?.name ?? "";
-            const result = await withRetry(() => clockOut(userName, actualTasks, summary, issues, notes));
+            const result = await withRetry(() => clockOut(userName, actualTasks, summary, issues, notes, clockOutTime));
 
             if (!result.success) {
                 console.error("Clock-out failed:", result.error);
@@ -114,9 +114,9 @@ export function useDashboardAttendance() {
     );
 
     // 休憩開始 - 週合計は変わらないので今日のみ再取得
-    const handleBreakStart = useCallback(async () => {
+    const handleBreakStart = useCallback(async (breakStartTime?: string) => {
         setError(null);
-        const result = await withRetry(startBreak);
+        const result = await withRetry(() => startBreak(breakStartTime));
 
         if (!result.success) {
             console.error("Break-start failed:", result.error);
@@ -129,9 +129,9 @@ export function useDashboardAttendance() {
     }, [refreshToday]);
 
     // 休憩終了 - 週合計は変わらないので今日のみ再取得
-    const handleBreakEnd = useCallback(async () => {
+    const handleBreakEnd = useCallback(async (breakEndTime?: string) => {
         setError(null);
-        const result = await withRetry(endBreak);
+        const result = await withRetry(() => endBreak(breakEndTime));
 
         if (!result.success) {
             console.error("Break-end failed:", result.error);
