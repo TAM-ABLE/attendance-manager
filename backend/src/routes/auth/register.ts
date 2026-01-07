@@ -60,7 +60,7 @@ const registerRoute = createRoute({
 
 registerRouter.openapi(registerRoute, async (c) => {
     const supabase = getSupabaseClient(c.env);
-    const { email, password, name } = c.req.valid("json");
+    const { email, password, name, employeeNumber, role } = c.req.valid("json");
 
     // Supabase Auth でユーザー登録
     // プロファイルはトリガー (handle_new_user) で自動作成される
@@ -70,7 +70,8 @@ registerRouter.openapi(registerRoute, async (c) => {
         options: {
             data: {
                 name,
-                role: "user",
+                role: role ?? "user",
+                employee_number: employeeNumber,
             },
         },
     });
