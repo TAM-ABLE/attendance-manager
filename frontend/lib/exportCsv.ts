@@ -7,10 +7,23 @@ export const exportMonthlyAttendanceCSV = (monthData: AttendanceRecord[], userNa
     const headers = [
         "日付",
         "曜日",
-        "セッション",
+        "出勤時刻1",
+        "退勤時刻1",
+        "出勤時刻2",
+        "退勤時刻2",
+        "出勤時刻3",
+        "退勤時刻3",
         "休憩合計",
         "合計勤務時間",
     ];
+
+    // 各セッションの出退勤時刻を取得するヘルパー
+    const getSessionTime = (sessions: AttendanceRecord['sessions'], index: number, type: 'clockIn' | 'clockOut') => {
+        const session = sessions[index];
+        if (!session) return '-';
+        const time = session[type];
+        return time ? formatClockTime(time) : '-';
+    };
 
     // CSVの行を作成
     const rows = monthData.map(d => {
@@ -18,15 +31,15 @@ export const exportMonthlyAttendanceCSV = (monthData: AttendanceRecord[], userNa
         const dateLabel = getDateLabel(d.date);
         const weekday = getWeekdayLabel(d.date);
 
-        // セッション情報をテキスト化
-        const sessionsText = d.sessions.map((s, i) =>
-            `${i + 1}. ${formatClockTime(s.clockIn ?? undefined)}-${formatClockTime(s.clockOut ?? undefined)}`
-        ).join(' / ') || '-';
-
         return [
             dateLabel,
             weekday,
-            sessionsText,
+            getSessionTime(d.sessions, 0, 'clockIn'),
+            getSessionTime(d.sessions, 0, 'clockOut'),
+            getSessionTime(d.sessions, 1, 'clockIn'),
+            getSessionTime(d.sessions, 1, 'clockOut'),
+            getSessionTime(d.sessions, 2, 'clockIn'),
+            getSessionTime(d.sessions, 2, 'clockOut'),
             hasData ? formatDurationMsToHM(d.breakTotalMs) : "-",
             hasData ? formatDurationMsToHM(d.workTotalMs) : "-",
         ];
