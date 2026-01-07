@@ -2,19 +2,20 @@
 // Server Actions の 401 エラーをクライアント側でハンドリング
 
 import { ErrorCodes, type ApiResult } from "@attendance-manager/shared/types/ApiResponse";
-import { useAuthStore } from "@/stores/auth";
 
 /**
- * Server Action を実行し、401 エラー時はログアウト状態にする
+ * Server Action を実行し、401 エラー時はログインページへリダイレクト
  */
 export async function withRetry<T>(
     action: () => Promise<ApiResult<T>>
 ): Promise<ApiResult<T>> {
     const result = await action();
 
-    // 401 エラーの場合、ログアウト状態にする
+    // 401 エラーの場合、ログインページへリダイレクト
     if (!result.success && result.error.code === ErrorCodes.UNAUTHORIZED) {
-        useAuthStore.getState().setUser(null);
+        if (typeof window !== "undefined") {
+            window.location.href = "/login";
+        }
     }
 
     return result;

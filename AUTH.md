@@ -2,7 +2,7 @@
 
 ## 概要
 
-HttpOnly Cookie ベースの認証を採用。セキュリティと整合性を重視したシンプルな設計。
+HttpOnly Cookie ベースの認証 + Next.js App Router の Server Component を活用したシンプルな設計。
 
 ## アーキテクチャ
 
@@ -11,17 +11,20 @@ HttpOnly Cookie ベースの認証を採用。セキュリティと整合性を�
 │                                                             │
 │  Frontend (Next.js)              Backend (Hono)             │
 │                                                             │
-│  ┌─────────────┐                ┌─────────────────┐        │
-│  │  Zustand    │                │  Supabase Auth  │        │
-│  │  (メモリ)   │                │  (JWT発行)      │        │
-│  │             │                │                 │        │
-│  │  user: {    │   Cookie       │  HttpOnly       │        │
-│  │    id,      │ ◄────────────► │  accessToken    │        │
-│  │    name,    │   自動送信     │  (7日間有効)    │        │
-│  │    email,   │                │                 │        │
-│  │    role     │                └─────────────────┘        │
-│  │  }          │                                           │
-│  └─────────────┘                                           │
+│  ┌─────────────────┐            ┌─────────────────┐        │
+│  │ Server Component│            │  Supabase Auth  │        │
+│  │                 │   Cookie   │  (JWT発行)      │        │
+│  │  getUser()  ────┼───────────►│  HttpOnly       │        │
+│  │  cache()で      │   自動送信  │  accessToken    │        │
+│  │  リクエスト内    │            │  (7日間有効)    │        │
+│  │  1回だけ実行    │            │                 │        │
+│  └─────────────────┘            └─────────────────┘        │
+│         │                                                   │
+│         ▼ props                                             │
+│  ┌─────────────────┐                                       │
+│  │ Client Component│                                       │
+│  │  (必要な部分のみ)│                                       │
+│  └─────────────────┘                                       │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -32,29 +35,31 @@ HttpOnly Cookie ベースの認証を採用。セキュリティと整合性を�
 
 ```
 1. ユーザーが email/password を入力
-2. POST /auth/login
+2. POST /auth/login (Client Component から直接)
 3. Backend: Supabase Auth で認証
 4. Backend: Set-Cookie で accessToken を設定 (HttpOnly)
-5. Frontend: レスポンスの user を Zustand に保存
+5. Frontend: router.refresh() でページ再取得
+6. Server Component: getUser() で認証状態を取得
 ```
 
-### ページリロード
+### ページアクセス
 
 ```
-1. ページロード
-2. providers.tsx が fetchMe() を実行
-3. GET /auth/me (Cookie 自動送信)
-4. Backend: Cookie の accessToken を検証
-5. Backend: Supabase から最新の user 情報を取得
-6. Frontend: Zustand に user を保存
+1. リクエスト受信
+2. layout.tsx: getUser() でユーザー取得 (Header用)
+3. (auth)/layout.tsx: requireAuth() で認証チェック
+   └─ 未認証なら /login へリダイレクト
+4. (admin)/layout.tsx: requireAdmin() で権限チェック
+   └─ 管理者でなければ /dashboard へリダイレクト
+5. page.tsx: レンダリング
 ```
 
 ### ログアウト
 
 ```
-1. POST /auth/logout
+1. POST /auth/logout (Client Component から)
 2. Backend: Cookie を削除 (Max-Age=0)
-3. Frontend: Zustand の user を null に
+3. Frontend: router.refresh() + router.push("/login")
 ```
 
 ## ファイル構成
@@ -63,16 +68,28 @@ HttpOnly Cookie ベースの認証を採用。セキュリティと整合性を�
 
 ```
 frontend/
-├── stores/
-│   └── auth.ts              # Zustand store (user, isLoading)
-├── hooks/
-│   └── useAuth.ts           # React hook (isAuthenticated, isAdmin)
 ├── lib/auth/
-│   ├── api.ts               # API関数 (login, register, logout, fetchMe)
-│   └── with-retry.ts        # 401エラーハンドリング
+│   ├── api.ts               # Client用 (login, register, logout)
+│   ├── server.ts            # Server用 (getUser, requireAuth, requireAdmin)
+│   └── with-retry.ts        # 401エラー時リダイレクト
 ├── app/
-│   └── providers.tsx        # 初回の fetchMe() 呼び出し
-└── proxy.ts                 # ルート保護 (middleware)
+│   ├── layout.tsx           # getUser() → Header に props
+│   ├── (auth)/
+│   │   ├── layout.tsx       # requireAuth() - 認証必須
+│   │   ├── dashboard/
+│   │   ├── attendance-history/
+│   │   └── (admin)/
+│   │       ├── layout.tsx   # requireAdmin() - 管理者専用
+│   │       ├── admin/
+│   │       └── report-list/
+│   └── (public)/
+│       ├── login/
+│       └── sign-up/
+└── components/Header/
+    ├── index.tsx            # Server Component
+    ├── NavLinks.tsx         # Client (usePathname)
+    ├── LogoutButton.tsx     # Client (logout処理)
+    └── MobileMenu.tsx       # Client (メニュー開閉)
 ```
 
 ### Backend
@@ -110,79 +127,103 @@ backend/src/routes/auth/
 
 ## ルート保護
 
-### proxy.ts (Middleware)
+### Route Groups による保護
+
+```
+app/
+├── (auth)/              # 認証必須グループ
+│   └── layout.tsx       # requireAuth()
+│       └── (admin)/     # 管理者専用グループ
+│           └── layout.tsx  # requireAdmin()
+└── (public)/            # 認証不要グループ
+```
+
+### lib/auth/server.ts
 
 ```typescript
-// 認証が必要なルート
-const protectedRoutes = ["/dashboard", "/admin", "/attendance-history", "/report-list"];
+// React cache() で同一リクエスト内は1回だけAPI呼び出し
+export const getUser = cache(async () => {
+  const token = cookies().get("accessToken");
+  if (!token) return null;
+  // GET /auth/me
+  return fetchUser(token);
+});
 
-// Cookie がなければ /login にリダイレクト
-if (isProtectedRoute && !accessToken) {
-  return NextResponse.redirect("/login");
+// 認証必須
+export async function requireAuth() {
+  const user = await getUser();
+  if (!user) redirect("/login");
+  return user;
+}
+
+// 管理者専用
+export async function requireAdmin() {
+  const user = await requireAuth();
+  if (user.role !== "admin") redirect("/dashboard");
+  return user;
 }
 ```
 
 ### with-retry.ts (API エラーハンドリング)
 
 ```typescript
-// 401 エラー時に Zustand をクリア
+// Client Component から Server Actions 呼び出し時
+// 401 エラーでログインページへリダイレクト
 if (result.error.code === "UNAUTHORIZED") {
-  useAuthStore.getState().setUser(null);
+  window.location.href = "/login";
 }
 ```
 
 ## 使い方
 
-### 認証チェックの責任分担
-
-```
-proxy.ts (middleware)
-└─ /dashboard, /admin 等へのアクセス時に Cookie をチェック
-└─ Cookie がなければ /login にリダイレクト
-└─ ページコンポーネントに到達する前にブロック
-
-つまり:
-保護されたルートに到達 = 認証済み (proxy.ts を通過済み)
-```
-
-**保護されたページでは isLoading チェックは不要:**
-
-| ページ/コンポーネント | isLoading チェック | 理由 |
-|---------------------|-------------------|------|
-| /dashboard | 不要 | proxy.ts が保護 |
-| /admin | 不要 | proxy.ts が保護 |
-| /attendance-history | 不要 | proxy.ts が保護 |
-| /report-list | 不要 | proxy.ts が保護 |
-| Header | 不要 | user が null なら非表示 |
-
-### Header での使用例
+### ページでの認証
 
 ```typescript
-// proxy.ts が保護しているので、シンプルに書ける
-function Header() {
-  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+// app/(auth)/dashboard/page.tsx
+// 認証チェックは (auth)/layout.tsx で済んでいる
+export default function DashboardPage() {
+  return <DashboardClient />;
+}
 
-  if (!isAuthenticated || !user) return null;
+// ユーザー情報が必要な場合
+export default async function DashboardPage() {
+  const user = (await getUser())!;  // layout で認証済みなので必ず存在
+  return <DashboardClient user={user} />;
+}
+```
+
+### Header (Server Component + 部分的 Client Component)
+
+```typescript
+// components/Header/index.tsx (Server Component)
+export function Header({ user }: { user: AuthUser | null }) {
+  if (!user) return null;
 
   return (
     <header>
-      <span>{user.name}</span>
-      {isAdmin && <AdminMenu />}
-      <button onClick={logout}>ログアウト</button>
+      {/* Server でレンダリング */}
+      <Logo />
+      <UserInfo name={user.name} />
+
+      {/* Client Component は必要な部分だけ */}
+      <NavLinks isAdmin={user.role === "admin"} />
+      <LogoutButton />
     </header>
   );
 }
 ```
 
-### ログイン処理
+### ログイン処理 (Client Component)
 
 ```typescript
-const { login } = useAuth();
+// app/(public)/login/page.tsx
+import { login } from "@/lib/auth/api";
 
 const handleSubmit = async () => {
   const result = await login(email, password);
   if (result.success) {
     router.push("/dashboard");
+    router.refresh();  // Server Component を再取得
   } else {
     setError(result.error);
   }
@@ -194,4 +235,13 @@ const handleSubmit = async () => {
 - **XSS 対策**: HttpOnly Cookie でトークンを保護
 - **CSRF 対策**: SameSite=Lax で同一オリジンのみ
 - **トークン漏洩**: JavaScript からアクセス不可
-- **整合性**: 毎回 API で最新情報を取得
+- **Server First**: 認証チェックはサーバーで実行
+
+## 設計のポイント
+
+| 項目 | 説明 |
+|------|------|
+| Server Component 中心 | 認証はサーバーで、クライアントJSを最小化 |
+| Route Groups | 認証ロジックを layout に集約 |
+| React cache() | 同一リクエスト内の重複API呼び出しを防止 |
+| 状態管理なし | zustand等不要、props で渡すだけ |
