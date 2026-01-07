@@ -1,8 +1,10 @@
-// app/report-list/page.tsx
+// app/(auth)/(admin)/report-list/page.tsx
+
 import { FileText } from "lucide-react";
 import { ReportListView } from "./components/ReportListView";
 
 export default function ReportListPage() {
+    // 認証・権限チェックは(admin)/layout.tsxで実施済み
     return (
         <div className="space-y-4 sm:space-y-6 p-3 sm:p-4">
             <div className="flex items-center gap-2">

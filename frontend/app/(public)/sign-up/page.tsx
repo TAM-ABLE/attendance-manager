@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { useAuth } from "@/hooks/useAuth"
+import { registerAction } from "@/app/actions/auth"
 
 // パスワード強度チェック
 function usePasswordStrength(password: string) {
@@ -25,7 +25,6 @@ function usePasswordStrength(password: string) {
 
 export default function SignUpPage() {
     const router = useRouter()
-    const { register } = useAuth()
 
     const [name, setName] = useState("")
     const [email, setEmail] = useState("")
@@ -47,23 +46,12 @@ export default function SignUpPage() {
             return
         }
 
-        try {
-            const result = await register(name, email, password)
+        // 成功時はServer Action内でredirectされるため、戻り値はエラー時のみ
+        const result = await registerAction(name, email, password)
 
-            if (!result.success) {
-                setError(result.error || "アカウント作成に失敗しました。")
-                setLoading(false)
-                return
-            }
-
-            router.push("/dashboard")
-            router.refresh()
-        } catch (err: unknown) {
-            console.error("Error during sign-up:", err)
-            setError("アカウント作成中にエラーが発生しました。")
-        } finally {
-            setLoading(false)
-        }
+        // ここに到達 = エラー
+        setLoading(false)
+        setError(result.error || "アカウント作成に失敗しました。")
     }
 
     return (
