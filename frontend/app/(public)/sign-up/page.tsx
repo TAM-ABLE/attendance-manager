@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
-import { Clock, Mail, Lock, User, Check, X } from "lucide-react"
+import { Clock, Mail, Lock, User, Check, X, Hash, Shield } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -29,6 +29,8 @@ export default function SignUpPage() {
     const [name, setName] = useState("")
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
+    const [employeeNumber, setEmployeeNumber] = useState("")
+    const [isAdmin, setIsAdmin] = useState(false)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -47,7 +49,7 @@ export default function SignUpPage() {
         }
 
         // 成功時はServer Action内でredirectされるため、戻り値はエラー時のみ
-        const result = await registerAction(name, email, password)
+        const result = await registerAction(name, email, password, employeeNumber, isAdmin ? "admin" : "user")
 
         // ここに到達 = エラー
         setLoading(false)
@@ -86,6 +88,23 @@ export default function SignUpPage() {
                                     placeholder="山田 太郎"
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
+                                    className="pl-10"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        {/* 社員番号 */}
+                        <div className="space-y-2">
+                            <Label htmlFor="employeeNumber">社員番号</Label>
+                            <div className="relative">
+                                <Hash className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    id="employeeNumber"
+                                    type="text"
+                                    placeholder="EMP001"
+                                    value={employeeNumber}
+                                    onChange={(e) => setEmployeeNumber(e.target.value)}
                                     className="pl-10"
                                     required
                                 />
@@ -159,6 +178,25 @@ export default function SignUpPage() {
                                     </div>
                                 </div>
                             )}
+                        </div>
+
+                        {/* 管理者権限 */}
+                        <div className="flex items-center space-x-3 py-2">
+                            <div className="relative flex items-center">
+                                <input
+                                    id="isAdmin"
+                                    type="checkbox"
+                                    checked={isAdmin}
+                                    onChange={(e) => setIsAdmin(e.target.checked)}
+                                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                />
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Shield className="h-4 w-4 text-muted-foreground" />
+                                <Label htmlFor="isAdmin" className="cursor-pointer">
+                                    管理者として登録
+                                </Label>
+                            </div>
                         </div>
 
                         {error && <p className="text-red-500 text-sm">{error}</p>}
