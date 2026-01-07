@@ -62,13 +62,15 @@ type RegisterResult = { success: false; error: string };
 export async function registerAction(
     name: string,
     email: string,
-    password: string
+    password: string,
+    employeeNumber: string,
+    role: "admin" | "user" = "user"
 ): Promise<RegisterResult> {
     try {
         const res = await fetch(`${API_URL}/auth/register`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, email, password }),
+            body: JSON.stringify({ name, email, password, employeeNumber, role }),
         });
 
         const json = await res.json();

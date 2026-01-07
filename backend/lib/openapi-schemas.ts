@@ -150,6 +150,14 @@ export const registerRequestSchema = z
             description: "パスワード（6文字以上）",
             example: "password123",
         }),
+        employeeNumber: z.string().min(1).openapi({
+            description: "社員番号",
+            example: "EMP001",
+        }),
+        role: z.enum(["admin", "user"]).default("user").openapi({
+            description: "ユーザー権限",
+            example: "user",
+        }),
     })
     .openapi("RegisterRequest");
 
