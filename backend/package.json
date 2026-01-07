@@ -5,7 +5,8 @@
     "dev": "wrangler dev",
     "deploy": "wrangler deploy --minify",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "upload:slack-icons": "tsx scripts/upload-slack-icons.ts"
   },
   "dependencies": {
     "@attendance-manager/shared": "workspace:*",
@@ -23,6 +24,7 @@
     "@typescript-eslint/parser": "^8.48.1",
     "eslint": "^9.39.1",
     "globals": "^16.5.0",
+    "tsx": "^4.19.0",
     "typescript-eslint": "^8.48.1",
     "wrangler": "^4.4.0"
   }

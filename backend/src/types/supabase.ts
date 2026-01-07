@@ -194,6 +194,7 @@ export type Database = {
           clock_out: string | null
           created_at: string
           id: string
+          slack_clock_in_ts: string | null
         }
         Insert: {
           attendance_id: string
@@ -201,6 +202,7 @@ export type Database = {
           clock_out?: string | null
           created_at?: string
           id?: string
+          slack_clock_in_ts?: string | null
         }
         Update: {
           attendance_id?: string
@@ -208,6 +210,7 @@ export type Database = {
           clock_out?: string | null
           created_at?: string
           id?: string
+          slack_clock_in_ts?: string | null
         }
         Relationships: [
           {
