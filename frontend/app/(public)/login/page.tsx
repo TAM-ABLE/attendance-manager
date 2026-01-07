@@ -8,11 +8,10 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useAuth } from "@/hooks/useAuth"
+import { loginAction } from "@/app/actions/auth"
 
 export default function LoginPage() {
     const router = useRouter()
-    const { login } = useAuth()
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [error, setError] = useState<string | null>(null)
@@ -22,17 +21,12 @@ export default function LoginPage() {
         setLoading(true)
         setError(null)
 
-        const result = await login(loginEmail, loginPassword)
+        // 成功時はServer Action内でredirectされるため、戻り値はエラー時のみ
+        const result = await loginAction(loginEmail, loginPassword)
 
+        // ここに到達 = エラー
         setLoading(false)
-
-        if (!result.success) {
-            setError("メールアドレスまたはパスワードが間違っています。")
-            return
-        }
-
-        router.push("/dashboard")
-        router.refresh()
+        setError(result.error || "メールアドレスまたはパスワードが間違っています。")
     }
 
     const handleSubmit = (e: React.FormEvent) => {

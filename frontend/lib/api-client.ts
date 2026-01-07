@@ -4,22 +4,10 @@
 
 import { cookies } from "next/headers";
 import { ErrorCodes, failure, type ApiResult, type ApiError } from "@attendance-manager/shared/types/ApiResponse";
+import { getServerBaseUrl } from "@/lib/get-base-url";
 
 /** デフォルトタイムアウト（30秒） */
 const DEFAULT_TIMEOUT = 30000;
-
-/**
- * Server Actions用のベースURL取得
- * Server Actionsはサーバー側で実行されるため、絶対URLが必要
- */
-function getServerBaseUrl(): string {
-    // Vercel環境
-    if (process.env.VERCEL_URL) {
-        return `https://${process.env.VERCEL_URL}`;
-    }
-    // 開発環境
-    return process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
-}
 
 interface FetchOptions {
     method?: "GET" | "POST" | "PUT" | "DELETE";

@@ -1,36 +1,112 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend - 勤怠管理システム
 
-## Getting Started
+Next.js 16 + React 19 で構築されたフロントエンドアプリケーション。
 
-First, run the development server:
+## 開発コマンド
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install          # 依存関係インストール
+pnpm dev              # 開発サーバー起動 (localhost:3000)
+pnpm build            # 本番ビルド
+pnpm lint             # ESLint実行
+pnpm tsc --noEmit     # 型チェック
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## アーキテクチャ
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 認証設計
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Server Component中心のシンプルな認証フロー：
 
-## Learn More
+```
+┌─────────────────────────────────────────────────────────┐
+│                    認証フロー                            │
+├─────────────────────────────────────────────────────────┤
+│  ログイン/登録                                           │
+│    └─ Server Actions (app/actions/auth.ts)             │
+│        └─ Cookie設定 (httpOnly)                        │
+│                                                         │
+│  認証チェック                                            │
+│    └─ Route Groups レイアウト                           │
+│        ├─ (auth)/layout.tsx → requireAuth()            │
+│        └─ (auth)/(admin)/layout.tsx → requireAdmin()   │
+│                                                         │
+│  ユーザー情報取得                                         │
+│    └─ lib/auth/server.ts → getUser()                   │
+│        └─ React cache() でリクエスト内キャッシュ          │
+└─────────────────────────────────────────────────────────┘
+```
 
-To learn more about Next.js, take a look at the following resources:
+### ディレクトリ構造
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+frontend/
+├── app/
+│   ├── layout.tsx              # ルートレイアウト (Header/Footer)
+│   ├── page.tsx                # トップページ (/)
+│   ├── actions/
+│   │   └── auth.ts             # Server Actions (login, register, logout)
+│   ├── (auth)/                 # 認証必須ページ (URLに含まれない)
+│   │   ├── layout.tsx          # requireAuth()
+│   │   ├── dashboard/          # /dashboard
+│   │   ├── attendance-history/ # /attendance-history
+│   │   └── (admin)/            # 管理者専用 (URLに含まれない)
+│   │       ├── layout.tsx      # requireAdmin()
+│   │       ├── admin/          # /admin
+│   │       └── report-list/    # /report-list
+│   └── (public)/               # 公開ページ (URLに含まれない)
+│       ├── login/              # /login
+│       └── sign-up/            # /sign-up
+├── components/
+│   ├── Header/                 # ヘッダー (Server + Client Components)
+│   ├── Footer/                 # フッター
+│   └── ui/                     # shadcn/ui コンポーネント
+├── lib/
+│   ├── auth/
+│   │   ├── server.ts           # 認証ユーティリティ (getUser, requireAuth, requireAdmin)
+│   │   └── with-retry.ts       # クライアント側401エラーハンドリング
+│   ├── api-client.ts           # Server Actions用APIクライアント
+│   ├── get-base-url.ts         # ベースURL取得（共通）
+│   ├── swr-keys.ts             # SWRキャッシュキー定義
+│   └── utils.ts                # cn()関数 (shadcn/ui)
+└── hooks/
+    ├── useDialogState.ts       # ダイアログ状態管理
+    └── useUserSelect.ts        # ユーザー選択
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Route Groups
 
-## Deploy on Vercel
+URLパスに影響を与えずにルートをグループ化し、共通の認証チェックを適用：
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Route Group | 認証 | 含まれるページ |
+|-------------|------|---------------|
+| `(public)` | 不要 | /login, /sign-up |
+| `(auth)` | 必須 | /dashboard, /attendance-history |
+| `(auth)/(admin)` | 管理者のみ | /admin, /report-list |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### 技術スタック
+
+- **フレームワーク**: Next.js 16 (App Router)
+- **UI**: React 19 + Tailwind CSS 4 + shadcn/ui
+- **データフェッチ**: SWR
+- **バリデーション**: Zod
+- **認証**: Server Components + HttpOnly Cookie
+
+## 主要ファイル
+
+### 認証関連
+
+| ファイル | 役割 |
+|---------|------|
+| `lib/auth/server.ts` | Server Component用認証（getUser, requireAuth, requireAdmin） |
+| `lib/auth/with-retry.ts` | SWR用401エラーハンドリング |
+| `app/actions/auth.ts` | Server Actions（login, register, logout） |
+| `app/(auth)/layout.tsx` | 認証必須レイアウト |
+| `app/(auth)/(admin)/layout.tsx` | 管理者専用レイアウト |
+
+### API通信
+
+| ファイル | 役割 |
+|---------|------|
+| `lib/api-client.ts` | Server Actions用APIクライアント（タイムアウト、エラーハンドリング） |
+| `lib/get-base-url.ts` | 環境に応じたベースURL取得 |

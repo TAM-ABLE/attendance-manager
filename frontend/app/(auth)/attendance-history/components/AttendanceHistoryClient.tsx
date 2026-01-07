@@ -1,12 +1,11 @@
 "use client";
 
-import { useAttendanceHistory } from "@/app/attendance-history/hooks/useAttendanceHistory";
-import { CalendarPanel } from "@/app/attendance-history/components/CalendarPanel";
-import { DayDetailCard } from "@/app/attendance-history/components/DayDetailCard";
-import { MonthlySummaryCard } from "@/app/attendance-history/components/MonthlySummaryCard";
+import { useAttendanceHistory } from "../hooks/useAttendanceHistory";
+import { CalendarPanel } from "./CalendarPanel";
+import { DayDetailCard } from "./DayDetailCard";
+import { MonthlySummaryCard } from "./MonthlySummaryCard";
 
-export default function AttendanceHistory() {
-
+export function AttendanceHistoryClient() {
     const { attendanceData, currentMonth, selectedDate, selectedDayData, setCurrentMonth, setSelectedDate } = useAttendanceHistory();
 
     // バックエンドから返された計算済みの値を合計

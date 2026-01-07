@@ -6,7 +6,7 @@ import type { AttendanceRecord, WorkSession, Task } from "@attendance-manager/sh
 import { clockIn, clockOut, startBreak, endBreak, getToday, getWeekTotal } from "@/app/actions/attendance";
 import { withRetry, withRetryFetcher } from "@/lib/auth/with-retry";
 import { SWR_KEYS } from "@/lib/swr-keys";
-import { useAuthStore } from "@/stores/auth";
+import type { AuthUser } from "@/lib/auth/server";
 
 // セッション検出（出勤中かどうか）
 function detectCurrentSession(attendance: AttendanceRecord | null): WorkSession | null {
@@ -32,9 +32,8 @@ async function fetchWeekTotal() {
     return data?.netWorkMs ?? 0;
 }
 
-export function useDashboardAttendance() {
+export function useDashboardAttendance(user: AuthUser) {
     const [error, setError] = useState<string | null>(null);
-    const user = useAuthStore((state) => state.user);
 
     // 今日のデータを取得
     const {
@@ -79,7 +78,7 @@ export function useDashboardAttendance() {
     const handleClockIn = useCallback(
         async (plannedTasks: Task[], clockInTime?: string) => {
             setError(null);
-            const userName = user?.name ?? "";
+            const userName = user.name;
             const result = await withRetry(() => clockIn(userName, plannedTasks, clockInTime));
 
             if (!result.success) {
@@ -98,7 +97,7 @@ export function useDashboardAttendance() {
     const handleClockOut = useCallback(
         async (actualTasks: Task[], summary: string, issues: string, notes: string, clockOutTime?: string) => {
             setError(null);
-            const userName = user?.name ?? "";
+            const userName = user.name;
             const result = await withRetry(() => clockOut(userName, actualTasks, summary, issues, notes, clockOutTime));
 
             if (!result.success) {

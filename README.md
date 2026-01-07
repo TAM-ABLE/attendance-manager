@@ -43,7 +43,6 @@
 | Tailwind CSS | 4 |
 | Radix UI | - |
 | shadcn/ui | - |
-| Zustand | 5 |
 | SWR | 2 |
 | Framer Motion | 12 |
 | date-fns | 4 |
@@ -91,22 +90,32 @@ attendance-manager/
 │
 ├── frontend/                   # Next.js App Router
 │   ├── app/
+│   │   ├── layout.tsx          # ルートレイアウト
 │   │   ├── page.tsx            # トップページ（リダイレクト）
-│   │   ├── login/              # ログインページ
-│   │   ├── sign-up/            # 新規登録ページ
-│   │   ├── dashboard/          # メインダッシュボード
-│   │   ├── attendance-history/ # 勤怠履歴
-│   │   ├── admin/              # 管理者ページ
-│   │   ├── report-list/        # 日報一覧
-│   │   └── actions/            # Server Actions
+│   │   ├── actions/
+│   │   │   └── auth.ts         # Server Actions (login, register, logout)
+│   │   ├── (public)/           # 公開ページ（URLに含まれない）
+│   │   │   ├── login/          # /login
+│   │   │   └── sign-up/        # /sign-up
+│   │   └── (auth)/             # 認証必須ページ（URLに含まれない）
+│   │       ├── layout.tsx      # requireAuth()
+│   │       ├── dashboard/      # /dashboard
+│   │       ├── attendance-history/ # /attendance-history
+│   │       └── (admin)/        # 管理者専用（URLに含まれない）
+│   │           ├── layout.tsx  # requireAdmin()
+│   │           ├── admin/      # /admin
+│   │           └── report-list/ # /report-list
 │   ├── components/
 │   │   ├── ui/                 # shadcn/ui コンポーネント
-│   │   ├── Header.tsx
+│   │   ├── Header/             # ヘッダー（Server + Client Components）
 │   │   ├── Footer.tsx
 │   │   └── ...
 │   └── lib/
-│       ├── api-client.ts       # APIクライアント
-│       ├── auth/               # 認証ユーティリティ
+│       ├── api-client.ts       # APIクライアント（Server Actions用）
+│       ├── auth/
+│       │   ├── server.ts       # 認証ユーティリティ (getUser, requireAuth, requireAdmin)
+│       │   └── with-retry.ts   # SWR用401エラーハンドリング
+│       ├── get-base-url.ts     # ベースURL取得
 │       └── exportCsv.ts        # CSVエクスポート
 │
 ├── shared/                     # 共有コード
@@ -122,6 +131,24 @@ attendance-manager/
 ├── pnpm-workspace.yaml         # pnpm ワークスペース設定
 └── tsconfig.base.json          # 共通 TypeScript 設定
 ```
+
+---
+
+## 認証アーキテクチャ
+
+Server Component中心のシンプルな認証フロー：
+
+- **Server Actions**: ログイン/登録/ログアウト処理 (`app/actions/auth.ts`)
+- **HttpOnly Cookie**: JWTトークンをセキュアに保存
+- **Route Groups**: URLに影響を与えずにアクセス制御を適用
+
+### Route Groups
+
+| Route Group | 認証 | 含まれるページ |
+|-------------|------|---------------|
+| `(public)` | 不要 | /login, /sign-up |
+| `(auth)` | 必須 | /dashboard, /attendance-history |
+| `(auth)/(admin)` | 管理者のみ | /admin, /report-list |
 
 ---
 

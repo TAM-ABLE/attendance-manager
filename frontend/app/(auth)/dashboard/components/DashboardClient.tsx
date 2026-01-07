@@ -1,19 +1,22 @@
-//dashboard/page.tsx
-
 "use client";
 
-import { useDashboardAttendance } from "./hooks/useDashboardAttendance";
-import { ClockCard } from "./components/ClockCard";
-import { PunchButtons } from "./components/PunchButtons";
-import { SummaryCard } from "./components/SummaryCard";
-import { SessionList } from "./components/SessionList";
-import { WeeklyAlert } from "./components/WeeklyAlert";
-import { ClockInDialog } from "./components/ClockInDialog";
-import { ClockOutDialog } from "./components/ClockOutDialog";
-import { BreakDialog } from "./components/BreakDialog";
-import { useClockDialogs } from "./hooks/useClockDialogs";
+import type { AuthUser } from "@/lib/auth/server";
+import { useDashboardAttendance } from "../hooks/useDashboardAttendance";
+import { ClockCard } from "./ClockCard";
+import { PunchButtons } from "./PunchButtons";
+import { SummaryCard } from "./SummaryCard";
+import { SessionList } from "./SessionList";
+import { WeeklyAlert } from "./WeeklyAlert";
+import { ClockInDialog } from "./ClockInDialog";
+import { ClockOutDialog } from "./ClockOutDialog";
+import { BreakDialog } from "./BreakDialog";
+import { useClockDialogs } from "../hooks/useClockDialogs";
 
-export default function Dashboard() {
+type DashboardClientProps = {
+    user: AuthUser;
+};
+
+export function DashboardClient({ user }: DashboardClientProps) {
     const {
         attendance,
         currentSession,
@@ -23,7 +26,7 @@ export default function Dashboard() {
         handleClockOut,
         handleBreakStart,
         handleBreakEnd,
-    } = useDashboardAttendance();
+    } = useDashboardAttendance(user);
 
     const {
         showClockInDialog,
