@@ -1,7 +1,7 @@
 // ClockOutDialog.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -41,13 +41,6 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
     const [notes, setNotes] = useState<string>("");
     const [clockOutTime, setClockOutTime] = useState(getCurrentTimeString());
     const { mode, error, handleSubmit, reset } = useDialogState();
-
-    // ダイアログが開いたときに現在時刻をセット
-    useEffect(() => {
-        if (open) {
-            setClockOutTime(getCurrentTimeString());
-        }
-    }, [open]);
 
     const onFormSubmit = async () => {
         await handleSubmit(() => onSubmit(toTasks(actualTasks), summary, issues, notes, timeToISOString(clockOutTime)));

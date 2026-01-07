@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,13 +34,6 @@ function timeToISOString(time: string): string {
 export const BreakDialog = ({ open, mode, onClose, onStart, onEnd }: BreakDialogProps) => {
     const [breakTime, setBreakTime] = useState(getCurrentTimeString());
     const { mode: dialogMode, error, handleSubmit, reset } = useDialogState();
-
-    // ダイアログが開いたときに現在時刻をセット
-    useEffect(() => {
-        if (open) {
-            setBreakTime(getCurrentTimeString());
-        }
-    }, [open]);
 
     const onFormSubmit = async () => {
         const isoTime = timeToISOString(breakTime);
