@@ -18,8 +18,6 @@ interface TaskListEditorProps {
     label: string;
     /** タスク名のプレースホルダー */
     taskNamePlaceholder?: string;
-    /** 工数のプレースホルダー */
-    hoursPlaceholder?: string;
 }
 
 /**
@@ -31,7 +29,6 @@ export function TaskListEditor({
     onChange,
     label,
     taskNamePlaceholder = "タスク名",
-    hoursPlaceholder = "1時間",
 }: TaskListEditorProps) {
     const updateTaskName = (index: number, value: string) => {
         const newTasks = [...tasks];
@@ -66,9 +63,9 @@ export function TaskListEditor({
                                 onChange={(e) => updateTaskName(index, e.target.value)}
                             />
                         </div>
-                        <div className="w-32">
+                        <div className="w-28">
                             <Input
-                                placeholder={hoursPlaceholder}
+                                type="time"
                                 value={task.hours}
                                 onChange={(e) => updateTaskHours(index, e.target.value)}
                             />

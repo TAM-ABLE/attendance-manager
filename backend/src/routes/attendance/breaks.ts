@@ -5,7 +5,12 @@ import { todayJSTString } from "@attendance-manager/shared/lib/time";
 import { databaseError, validationError, successResponse } from "../../../lib/errors";
 import { Env } from "../../types/env";
 import { AuthVariables } from "../../middleware/auth";
-import { errorResponseSchema, successResponseSchema } from "../../../lib/openapi-schemas";
+import {
+    errorResponseSchema,
+    successResponseSchema,
+    breakStartRequestSchema,
+    breakEndRequestSchema,
+} from "../../../lib/openapi-schemas";
 import { createOpenAPIHono } from "../../../lib/openapi-hono";
 
 const breaksRouter = createOpenAPIHono<{ Bindings: Env; Variables: AuthVariables }>();
@@ -20,6 +25,16 @@ const breakStartRoute = createRoute({
     summary: "休憩開始",
     description: "休憩を開始します。",
     security: [{ Bearer: [] }],
+    request: {
+        body: {
+            content: {
+                "application/json": {
+                    schema: breakStartRequestSchema,
+                },
+            },
+            required: false,
+        },
+    },
     responses: {
         200: {
             content: {
@@ -50,6 +65,8 @@ const breakStartRoute = createRoute({
 
 breaksRouter.openapi(breakStartRoute, async (c) => {
     const { sub: userId } = c.get("jwtPayload");
+    const body = c.req.valid("json");
+    const breakStartTime = body?.breakStartTime;
     const supabase = getSupabaseClient(c.env);
     const date = todayJSTString();
 
@@ -107,10 +124,10 @@ breaksRouter.openapi(breakStartRoute, async (c) => {
         return validationError(c, "Break already in progress");
     }
 
-    // 4. break_start レコードを作成
+    // 4. break_start レコードを作成（breakStartTimeが指定されていればそれを使用、なければ現在時刻）
     const { error: insertErr } = await supabase.from("breaks").insert({
         session_id: sessionId,
-        break_start: new Date().toISOString(),
+        break_start: breakStartTime ?? new Date().toISOString(),
     });
 
     if (insertErr) {
@@ -128,6 +145,16 @@ const breakEndRoute = createRoute({
     summary: "休憩終了",
     description: "休憩を終了します。",
     security: [{ Bearer: [] }],
+    request: {
+        body: {
+            content: {
+                "application/json": {
+                    schema: breakEndRequestSchema,
+                },
+            },
+            required: false,
+        },
+    },
     responses: {
         200: {
             content: {
@@ -158,6 +185,8 @@ const breakEndRoute = createRoute({
 
 breaksRouter.openapi(breakEndRoute, async (c) => {
     const { sub: userId } = c.get("jwtPayload");
+    const body = c.req.valid("json");
+    const breakEndTime = body?.breakEndTime;
     const supabase = getSupabaseClient(c.env);
     const date = todayJSTString();
 
@@ -217,10 +246,10 @@ breaksRouter.openapi(breakEndRoute, async (c) => {
         return validationError(c, "No active break to end");
     }
 
-    // 4. break_end を埋める
+    // 4. break_end を埋める（breakEndTimeが指定されていればそれを使用、なければ現在時刻）
     const { error: updateErr } = await supabase
         .from("breaks")
-        .update({ break_end: new Date().toISOString() })
+        .update({ break_end: breakEndTime ?? new Date().toISOString() })
         .eq("id", activeBreak.id);
 
     if (updateErr) {
