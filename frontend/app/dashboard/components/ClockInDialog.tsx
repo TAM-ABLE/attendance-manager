@@ -1,7 +1,7 @@
 // ClockInDialog.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
     Dialog,
     DialogContent,
@@ -44,13 +44,6 @@ export const ClockInDialog = ({ open, onClose, onSubmit }: ClockInDialogProps) =
     const [plannedTasks, setPlannedTasks] = useState<TaskFormItem[]>(createInitialTasks());
     const [clockInTime, setClockInTime] = useState(getCurrentTimeString());
     const { mode, error, handleSubmit, reset } = useDialogState();
-
-    // ダイアログが開いたときに現在時刻をセット
-    useEffect(() => {
-        if (open) {
-            setClockInTime(getCurrentTimeString());
-        }
-    }, [open]);
 
     const onFormSubmit = async () => {
         await handleSubmit(() => onSubmit(toTasks(plannedTasks), timeToISOString(clockInTime)));
