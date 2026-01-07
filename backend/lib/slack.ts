@@ -6,6 +6,8 @@ import { Task } from '@attendance-manager/shared/types/Attendance';
 interface SlackConfig {
     botToken: string;
     channelId: string;
+    clockInIconUrl?: string;
+    clockOutIconUrl?: string;
 }
 
 interface SlackPostMessageResponse {
@@ -39,26 +41,45 @@ function formatTasksForSlack(tasks: Task[]): string {
 
 /**
  * Slackにメッセージを送信
+ * @param threadTs - 指定するとスレッド返信として送信される
+ * @param iconUrl - カスタムアイコンURL（指定がない場合は絵文字を使用）
  */
 async function postMessage(
     config: SlackConfig,
     text: string,
     userName: string,
-    iconEmoji: string = ':wave:'
+    options?: {
+        iconUrl?: string;
+        iconEmoji?: string;
+        threadTs?: string;
+    }
 ): Promise<SlackMessageResult> {
     try {
+        const payload: Record<string, string> = {
+            channel: config.channelId,
+            text,
+            username: userName,
+        };
+
+        // カスタムアイコンURLがある場合はそれを使用、なければ絵文字を使用
+        if (options?.iconUrl) {
+            payload.icon_url = options.iconUrl;
+        } else {
+            payload.icon_emoji = options?.iconEmoji ?? ':wave:';
+        }
+
+        // スレッド返信の場合、thread_tsを追加
+        if (options?.threadTs) {
+            payload.thread_ts = options.threadTs;
+        }
+
         const response = await fetch('https://slack.com/api/chat.postMessage', {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${config.botToken}`,
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                channel: config.channelId,
-                text,
-                username: userName,
-                icon_emoji: iconEmoji,
-            }),
+            body: JSON.stringify(payload),
         });
 
         const result = (await response.json()) as SlackPostMessageResponse;
@@ -94,11 +115,15 @@ export async function sendClockInNotification(
         tasksText,
     ].join('\n');
 
-    return postMessage(config, messageText, userName);
+    return postMessage(config, messageText, userName, {
+        iconUrl: config.clockInIconUrl,
+        iconEmoji: ':sunrise:',
+    });
 }
 
 /**
  * 退勤通知を送信
+ * @param threadTs - 出勤メッセージのtsを指定するとスレッド返信として送信される
  */
 export async function sendClockOutNotification(
     config: SlackConfig,
@@ -108,6 +133,7 @@ export async function sendClockOutNotification(
         summary?: string;
         issues?: string;
         notes?: string;
+        threadTs?: string;
     }
 ): Promise<SlackMessageResult> {
     const timeString = getCurrentTimeString();
@@ -131,15 +157,26 @@ export async function sendClockOutNotification(
         messageParts.push('', '*連絡事項*', options.notes);
     }
 
-    return postMessage(config, messageParts.join('\n'), userName);
+    return postMessage(config, messageParts.join('\n'), userName, {
+        iconUrl: config.clockOutIconUrl,
+        iconEmoji: ':night_with_stars:',
+        threadTs: options?.threadTs,
+    });
 }
 
 /**
  * 環境変数からSlack設定を取得
  */
-export function getSlackConfig(env: { SLACK_BOT_TOKEN: string; SLACK_CHANNEL_ID: string }): SlackConfig {
+export function getSlackConfig(env: {
+    SLACK_BOT_TOKEN: string;
+    SLACK_CHANNEL_ID: string;
+    SLACK_ICON_CLOCK_IN?: string;
+    SLACK_ICON_CLOCK_OUT?: string;
+}): SlackConfig {
     return {
         botToken: env.SLACK_BOT_TOKEN,
         channelId: env.SLACK_CHANNEL_ID,
+        clockInIconUrl: env.SLACK_ICON_CLOCK_IN,
+        clockOutIconUrl: env.SLACK_ICON_CLOCK_OUT,
     };
 }

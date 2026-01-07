@@ -100,10 +100,14 @@ clockRouter.openapi(clockInRoute, async (c) => {
     }
 
     // 2. work_session を作成（clockInTimeが指定されていればそれを使用、なければ現在時刻）
-    const { error: sessionErr } = await supabase.from("work_sessions").insert({
-        attendance_id: attendanceId,
-        clock_in: clockInTime ?? new Date().toISOString(),
-    });
+    const { data: session, error: sessionErr } = await supabase
+        .from("work_sessions")
+        .insert({
+            attendance_id: attendanceId,
+            clock_in: clockInTime ?? new Date().toISOString(),
+        })
+        .select("id")
+        .single();
 
     if (sessionErr) {
         return databaseError(c, sessionErr.message);
@@ -140,6 +144,18 @@ clockRouter.openapi(clockInRoute, async (c) => {
     // 4. Slack に通知を送信
     const slackConfig = getSlackConfig(c.env);
     const slackResult = await sendClockInNotification(slackConfig, userName, plannedTasks);
+
+    // 5. Slackメッセージのtsをwork_sessionに保存（スレッド返信用）
+    if (slackResult.ts) {
+        const { error: updateTsErr } = await supabase
+            .from("work_sessions")
+            .update({ slack_clock_in_ts: slackResult.ts })
+            .eq("id", session.id);
+
+        if (updateTsErr) {
+            console.error("Failed to save slack_clock_in_ts:", updateTsErr);
+        }
+    }
 
     return successResponse(c, { slack_ts: slackResult.ts });
 });
@@ -215,10 +231,10 @@ clockRouter.openapi(clockOutRoute, async (c) => {
 
     const attendanceId = record.id;
 
-    // 2. アクティブなセッションを取得
+    // 2. アクティブなセッションを取得（slack_clock_in_tsも取得してスレッド返信に使用）
     const { data: session, error: sessionErr } = await supabase
         .from("work_sessions")
-        .select("id")
+        .select("id, slack_clock_in_ts")
         .eq("attendance_id", attendanceId)
         .is("clock_out", null)
         .order("clock_in", { ascending: false })
@@ -292,12 +308,13 @@ clockRouter.openapi(clockOutRoute, async (c) => {
         }
     }
 
-    // 5. Slack に通知を送信
+    // 5. Slack に通知を送信（出勤メッセージのスレッドに返信）
     const slackConfig = getSlackConfig(c.env);
     const slackResult = await sendClockOutNotification(slackConfig, userName, actualTasks, {
         summary,
         issues,
         notes,
+        threadTs: session.slack_clock_in_ts ?? undefined,
     });
 
     return successResponse(c, { slack_ts: slackResult.ts });
