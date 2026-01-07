@@ -1,4 +1,5 @@
-// app/admin/page.tsx
+// app/(auth)/(admin)/admin/page.tsx
+
 import { CalendarDays } from "lucide-react";
 import {
     Card,
@@ -14,11 +15,10 @@ import {
     TabsList,
     TabsTrigger,
 } from "@/components/ui/tabs";
-
-import { MonthlyAttendanceView } from "@/app/admin/components/MonthlyAttendanceView";
+import { MonthlyAttendanceView } from "./components/MonthlyAttendanceView";
 
 export default function AdminPage() {
-
+    // 認証・権限チェックは(admin)/layout.tsxで実施済み
     return (
         <div className="space-y-4 sm:space-y-6 p-3 sm:p-4">
             <div className="flex items-center justify-between">

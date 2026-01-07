@@ -49,22 +49,31 @@ pnpm tsc --noEmit     # Type check
 
 ### Frontend (Next.js App Router)
 - Uses `app/` directory structure
-- Auth: NextAuth.js with credentials provider (calls backend `/auth/login`)
+- Auth: Server Components + HttpOnly Cookie (Route Groups for access control)
 - State: SWR for data fetching
 - UI: Tailwind CSS 4 + shadcn/ui components (Radix UI based)
 - Path alias: `@/*` maps to root
+
+#### Authentication Architecture
+- `lib/auth/server.ts` - Server Component auth utilities (`getUser`, `requireAuth`, `requireAdmin`)
+- `app/actions/auth.ts` - Server Actions for login/register/logout
+- Route Groups for access control:
+  - `(public)/` - Public pages (login, sign-up)
+  - `(auth)/` - Authenticated pages (dashboard, attendance-history)
+  - `(auth)/(admin)/` - Admin-only pages (admin, report-list)
 
 #### Key Pages
 - `/dashboard` - Main employee view (clock-in/out, break management, session list)
 - `/admin` - Admin view (user management, attendance editing, CSV export)
 - `/attendance-history` - Historical attendance records
+- `/report-list` - Daily reports list (admin only)
 - `/login`, `/sign-up` - Authentication pages
 
 #### Component Organization
 - `components/` - Shared components (Header, Footer, Loader, SuccessDialog)
 - `components/ui/` - shadcn/ui base components (button, dialog, card, etc.)
-- `app/[page]/components/` - Page-specific components
-- `app/[page]/hooks/` - Page-specific custom hooks
+- `app/(auth)/[page]/components/` - Page-specific components
+- `app/(auth)/[page]/hooks/` - Page-specific custom hooks
 
 ### Shared Types
 `shared/types/Attendance.ts` defines core data models:
