@@ -46,12 +46,17 @@ export const UserMonthlyAttendance = ({ user, monthData, openEditDialog }: Props
             </CardHeader>
             <CardContent className="px-2 sm:px-6">
                 <div className="overflow-x-auto -mx-2 sm:mx-0">
-                    <Table className="text-xs sm:text-sm min-w-[600px]">
+                    <Table className="text-xs sm:text-sm min-w-[900px]">
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="whitespace-nowrap">日付</TableHead>
                                 <TableHead className="whitespace-nowrap">曜日</TableHead>
-                                <TableHead className="whitespace-nowrap">セッション</TableHead>
+                                <TableHead className="whitespace-nowrap">出勤1</TableHead>
+                                <TableHead className="whitespace-nowrap">退勤1</TableHead>
+                                <TableHead className="whitespace-nowrap">出勤2</TableHead>
+                                <TableHead className="whitespace-nowrap">退勤2</TableHead>
+                                <TableHead className="whitespace-nowrap">出勤3</TableHead>
+                                <TableHead className="whitespace-nowrap">退勤3</TableHead>
                                 <TableHead className="whitespace-nowrap">休憩</TableHead>
                                 <TableHead className="whitespace-nowrap">合計</TableHead>
                                 <TableHead className="whitespace-nowrap"></TableHead>
@@ -63,20 +68,24 @@ export const UserMonthlyAttendance = ({ user, monthData, openEditDialog }: Props
                                 const dateLabel = getDateLabel(dayData.date);
                                 const weekday = getWeekdayLabel(dayData.date);
 
-                                // セッションの出退勤時間を表示用にフォーマット
-                                const sessionsDisplay = dayData.sessions.map((s, i) => (
-                                    <div key={s.id} className="text-xs">
-                                        {i + 1}. {formatClockTime(s.clockIn ?? undefined)} - {formatClockTime(s.clockOut ?? undefined)}
-                                    </div>
-                                ));
+                                // 各セッションの出退勤時刻を取得（最大3セッション）
+                                const getSessionTime = (index: number, type: 'clockIn' | 'clockOut') => {
+                                    const session = dayData.sessions[index];
+                                    if (!session) return '-';
+                                    const time = session[type];
+                                    return time ? formatClockTime(time) : '-';
+                                };
 
                                 return (
                                     <TableRow key={dayData.date}>
                                         <TableCell className="whitespace-nowrap">{dateLabel}</TableCell>
                                         <TableCell className="whitespace-nowrap">{weekday}</TableCell>
-                                        <TableCell className="whitespace-nowrap">
-                                            {hasData ? sessionsDisplay : '-'}
-                                        </TableCell>
+                                        <TableCell className="whitespace-nowrap">{getSessionTime(0, 'clockIn')}</TableCell>
+                                        <TableCell className="whitespace-nowrap">{getSessionTime(0, 'clockOut')}</TableCell>
+                                        <TableCell className="whitespace-nowrap">{getSessionTime(1, 'clockIn')}</TableCell>
+                                        <TableCell className="whitespace-nowrap">{getSessionTime(1, 'clockOut')}</TableCell>
+                                        <TableCell className="whitespace-nowrap">{getSessionTime(2, 'clockIn')}</TableCell>
+                                        <TableCell className="whitespace-nowrap">{getSessionTime(2, 'clockOut')}</TableCell>
                                         <TableCell className="whitespace-nowrap">{hasData ? formatDurationMsToHM(dayData.breakTotalMs) : '-'}</TableCell>
                                         <TableCell className="whitespace-nowrap">{hasData ? formatDurationMsToHM(dayData.workTotalMs) : '-'}</TableCell>
                                         <TableCell>
