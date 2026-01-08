@@ -1,7 +1,7 @@
 // components/Header/index.tsx
 // Server Component
 
-import { LayoutDashboard } from "lucide-react";
+import { Gauge } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import type { AuthUser } from "@/lib/auth/server";
 import { NavLinks } from "./NavLinks";
@@ -24,7 +24,7 @@ export function Header({ user }: HeaderProps) {
             <div className="flex h-16 items-center justify-between px-4 md:px-6">
                 {/* 左側ロゴ */}
                 <div className="flex items-center gap-2">
-                    <LayoutDashboard className="h-5 w-5 text-primary" />
+                    <Gauge className="h-5 w-5 text-primary" />
                     <span className="font-medium">勤怠管理システム</span>
                 </div>
 
