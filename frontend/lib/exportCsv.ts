@@ -1,35 +1,49 @@
 // lib/exportCsv.ts
-import { DayAttendance } from "../../shared/types/Attendance";
-import { formatClockTime, formatDurationMsToHM } from "./time";
+import { AttendanceRecord } from "@attendance-manager/shared/types/Attendance";
+import { formatClockTime, formatDurationMsToHM, getWeekdayLabel, getDateLabel } from "@attendance-manager/shared/lib/time";
 
-export const exportMonthlyAttendanceCSV = (monthData: DayAttendance[], userName: string) => {
+export const exportMonthlyAttendanceCSV = (monthData: AttendanceRecord[], userName: string) => {
     // CSVヘッダー
     const headers = [
         "日付",
         "曜日",
-        "出勤①",
-        "退勤①",
-        "出勤②",
-        "退勤②",
-        "出勤③",
-        "退勤③",
+        "出勤時刻1",
+        "退勤時刻1",
+        "出勤時刻2",
+        "退勤時刻2",
+        "出勤時刻3",
+        "退勤時刻3",
         "休憩合計",
         "合計勤務時間",
     ];
 
+    // 各セッションの出退勤時刻を取得するヘルパー
+    const getSessionTime = (sessions: AttendanceRecord['sessions'], index: number, type: 'clockIn' | 'clockOut') => {
+        const session = sessions[index];
+        if (!session) return '-';
+        const time = session[type];
+        return time ? formatClockTime(time) : '-';
+    };
+
     // CSVの行を作成
-    const rows = monthData.map(d => [
-        d.dateLabel,
-        d.weekday,
-        d.session1ClockIn != null ? formatClockTime(d.session1ClockIn) : "-",
-        d.session1ClockOut != null ? formatClockTime(d.session1ClockOut) : "-",
-        d.session2ClockIn != null ? formatClockTime(d.session2ClockIn) : "-",
-        d.session2ClockOut != null ? formatClockTime(d.session2ClockOut) : "-",
-        d.session3ClockIn != null ? formatClockTime(d.session3ClockIn) : "-",
-        d.session3ClockOut != null ? formatClockTime(d.session3ClockOut) : "-",
-        d.hasData ? formatDurationMsToHM(d.breakTotalHours) : "-",
-        d.hasData ? formatDurationMsToHM(d.workTotalHours) : "-",
-    ]);
+    const rows = monthData.map(d => {
+        const hasData = d.sessions.length > 0;
+        const dateLabel = getDateLabel(d.date);
+        const weekday = getWeekdayLabel(d.date);
+
+        return [
+            dateLabel,
+            weekday,
+            getSessionTime(d.sessions, 0, 'clockIn'),
+            getSessionTime(d.sessions, 0, 'clockOut'),
+            getSessionTime(d.sessions, 1, 'clockIn'),
+            getSessionTime(d.sessions, 1, 'clockOut'),
+            getSessionTime(d.sessions, 2, 'clockIn'),
+            getSessionTime(d.sessions, 2, 'clockOut'),
+            hasData ? formatDurationMsToHM(d.breakTotalMs) : "-",
+            hasData ? formatDurationMsToHM(d.workTotalMs) : "-",
+        ];
+    });
 
     // CSV文字列を結合
     const csvContent =

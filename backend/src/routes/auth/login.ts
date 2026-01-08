@@ -1,55 +1,90 @@
-import { Hono } from 'hono';
-import { getSupabaseClient } from '../../../lib/supabase';
-import bcrypt from 'bcryptjs';
-import { sign } from 'hono/jwt';
-import { Env } from '../../types/env';
+// backend/src/routes/auth/login.ts
+import { createRoute } from "@hono/zod-openapi";
+import { getSupabaseClient } from "../../../lib/supabase";
+import { unauthorizedError, successResponse } from "../../../lib/errors";
+import { setAuthCookie } from "../../../lib/cookie";
+import { Env } from "../../types/env";
+import {
+    loginRequestSchema,
+    loginResponseSchema,
+    errorResponseSchema,
+    successResponseSchema,
+} from "../../../lib/openapi-schemas";
+import { createOpenAPIHono } from "../../../lib/openapi-hono";
 
-const loginRouter = new Hono<{ Bindings: Env }>();
+const loginRouter = createOpenAPIHono<{ Bindings: Env }>();
 
-loginRouter.post('/', async (c) => {
+const loginRoute = createRoute({
+    method: "post",
+    path: "/",
+    tags: ["認証"],
+    summary: "ログイン",
+    description: "メールアドレスとパスワードでログインし、JWTトークンを取得します。",
+    request: {
+        body: {
+            content: {
+                "application/json": {
+                    schema: loginRequestSchema,
+                },
+            },
+            required: true,
+        },
+    },
+    responses: {
+        200: {
+            content: {
+                "application/json": {
+                    schema: successResponseSchema(loginResponseSchema),
+                },
+            },
+            description: "ログイン成功",
+        },
+        400: {
+            content: {
+                "application/json": {
+                    schema: errorResponseSchema,
+                },
+            },
+            description: "バリデーションエラー",
+        },
+        401: {
+            content: {
+                "application/json": {
+                    schema: errorResponseSchema,
+                },
+            },
+            description: "認証エラー",
+        },
+    },
+});
+
+loginRouter.openapi(loginRoute, async (c) => {
     const supabase = getSupabaseClient(c.env);
+    const { email, password } = c.req.valid("json");
 
-    const { email, password } = await c.req.json();
+    // Supabase Auth でログイン
+    const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+    });
 
-    // 入力チェック
-    if (!email || !password) {
-        return c.json({ error: "Missing email or password" }, 400);
+    if (error || !data.session) {
+        console.error("Login error:", error?.message, error?.status, error);
+        return unauthorizedError(c, "Invalid credentials");
     }
 
-    // 1. ユーザー取得
-    const { data: user, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("email", email)
-        .single();
+    const { user, session } = data;
 
-    if (error || !user) {
-        return c.json({ error: "Invalid credentials" }, 401);
-    }
+    // HttpOnly Cookie にトークンを設定
+    setAuthCookie(c, session.access_token);
 
-    // 2. パスワード検証
-    const isValid = bcrypt.compareSync(password, user.hashed_password);
-    if (!isValid) {
-        return c.json({ error: "Invalid credentials" }, 401);
-    }
-
-    // 3. ここで JWT を作成！
-    const payload = {
-        id: user.id,
-        role: user.role,
-        exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24, // 24時間
-    };
-
-    const token = await sign(payload, c.env.JWT_SECRET);
-
-    // 4. フロントへ返す
-    return c.json({
-        token,
+    return successResponse(c, {
+        accessToken: session.access_token,
         user: {
             id: user.id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
+            name: (user.user_metadata?.name as string) ?? "",
+            email: user.email ?? "",
+            role: (user.user_metadata?.role as "admin" | "user") ?? "user",
         },
     });
 });
