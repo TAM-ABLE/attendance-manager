@@ -192,6 +192,46 @@ export function EditAttendanceDialog({
                             {/* 休憩 */}
                             <div className="mt-4 space-y-2">
                                 <h4 className="font-medium">休憩</h4>
+
+                                {session.breaks.map((br) => (
+                                    <div key={br.id} className="space-y-2">
+                                        {/* 削除ボタン */}
+                                        <div className="flex justify-end">
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => removeBreak(session.id, br.id)}
+                                            >
+                                                ✕
+                                            </Button>
+                                        </div>
+
+                                        {/* 開始 */}
+                                        <div className="flex gap-4 items-center">
+                                            <Label className="w-24">開始</Label>
+                                            <Input
+                                                type="time"
+                                                value={formatClockTime(br.start)}
+                                                onChange={(e) =>
+                                                    updateBreak(session.id, br.id, "start", e.target.value)
+                                                }
+                                            />
+                                        </div>
+
+                                        {/* 終了 */}
+                                        <div className="flex gap-4 items-center">
+                                            <Label className="w-24">終了</Label>
+                                            <Input
+                                                type="time"
+                                                value={formatClockTime(br.end)}
+                                                onChange={(e) =>
+                                                    updateBreak(session.id, br.id, "end", e.target.value)
+                                                }
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
+
                                 <Button
                                     variant="outline"
                                     size="sm"
@@ -200,49 +240,6 @@ export function EditAttendanceDialog({
                                 >
                                     + 休憩追加
                                 </Button>
-
-                                {session.breaks.map((br) => (
-                                    <div key={br.id} className="ml-4 space-y-2 border-l pl-4">
-
-                                        <div className="ml-4 space-y-2 border-l pl-4">
-                                            {/* 削除ボタン */}
-                                            <div className="flex justify-end">
-                                                <Button
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    onClick={() => removeBreak(session.id, br.id)}
-                                                >
-                                                    ✕
-                                                </Button>
-                                            </div>
-
-                                            {/* 開始 */}
-                                            <div className="flex gap-4 items-center">
-                                                <Label className="w-24">開始</Label>
-                                                <Input
-                                                    type="time"
-                                                    value={formatClockTime(br.start)}
-                                                    onChange={(e) =>
-                                                        updateBreak(session.id, br.id, "start", e.target.value)
-                                                    }
-                                                />
-                                            </div>
-
-                                            {/* 終了 */}
-                                            <div className="flex gap-4 items-center">
-                                                <Label className="w-24">終了</Label>
-                                                <Input
-                                                    type="time"
-                                                    value={formatClockTime(br.end)}
-                                                    onChange={(e) =>
-                                                        updateBreak(session.id, br.id, "end", e.target.value)
-                                                    }
-                                                />
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                ))}
                             </div>
                         </div>
                     ))}
