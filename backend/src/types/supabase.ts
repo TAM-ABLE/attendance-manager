@@ -38,7 +38,7 @@ export type Database = {
             foreignKeyName: "attendance_records_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "users"
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -75,12 +75,93 @@ export type Database = {
           },
         ]
       }
-      users: {
+      daily_reports: {
+        Row: {
+          id: string
+          user_id: string
+          date: string
+          summary: string | null
+          issues: string | null
+          notes: string | null
+          submitted_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          date: string
+          summary?: string | null
+          issues?: string | null
+          notes?: string | null
+          submitted_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          date?: string
+          summary?: string | null
+          issues?: string | null
+          notes?: string | null
+          submitted_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_reports_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_report_tasks: {
+        Row: {
+          id: string
+          daily_report_id: string
+          task_type: string
+          task_name: string
+          hours: number | null
+          sort_order: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          daily_report_id: string
+          task_type: string
+          task_name: string
+          hours?: number | null
+          sort_order?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          daily_report_id?: string
+          task_type?: string
+          task_name?: string
+          hours?: number | null
+          sort_order?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_report_tasks_daily_report_id_fkey"
+            columns: ["daily_report_id"]
+            isOneToOne: false
+            referencedRelation: "daily_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
         Row: {
           created_at: string
           email: string
           employee_number: string
-          hashed_password: string
           id: string
           name: string
           role: string
@@ -90,7 +171,6 @@ export type Database = {
           created_at?: string
           email: string
           employee_number: string
-          hashed_password: string
           id?: string
           name: string
           role?: string
@@ -100,7 +180,6 @@ export type Database = {
           created_at?: string
           email?: string
           employee_number?: string
-          hashed_password?: string
           id?: string
           name?: string
           role?: string
@@ -115,6 +194,7 @@ export type Database = {
           clock_out: string | null
           created_at: string
           id: string
+          slack_clock_in_ts: string | null
         }
         Insert: {
           attendance_id: string
@@ -122,6 +202,7 @@ export type Database = {
           clock_out?: string | null
           created_at?: string
           id?: string
+          slack_clock_in_ts?: string | null
         }
         Update: {
           attendance_id?: string
@@ -129,6 +210,7 @@ export type Database = {
           clock_out?: string | null
           created_at?: string
           id?: string
+          slack_clock_in_ts?: string | null
         }
         Relationships: [
           {
