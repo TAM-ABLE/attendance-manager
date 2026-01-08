@@ -4,7 +4,8 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { getServerBaseUrl } from "@/lib/get-base-url";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
 
 export type AuthUser = {
     id: string;
@@ -27,8 +28,8 @@ export const getUser = cache(async (): Promise<AuthUser | null> => {
     }
 
     try {
-        const apiUrl = `${getServerBaseUrl()}/api/backend`;
-        const res = await fetch(`${apiUrl}/auth/me`, {
+        // 直接バックエンドにリクエスト（rewrite経由だとCookieが渡らない問題を回避）
+        const res = await fetch(`${API_URL}/auth/me`, {
             headers: {
                 Cookie: `accessToken=${accessToken}`,
             },

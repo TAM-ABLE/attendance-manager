@@ -4,7 +4,8 @@
 
 import { cookies } from "next/headers";
 import { ErrorCodes, failure, type ApiResult, type ApiError } from "@attendance-manager/shared/types/ApiResponse";
-import { getServerBaseUrl } from "@/lib/get-base-url";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
 
 /** デフォルトタイムアウト（30秒） */
 const DEFAULT_TIMEOUT = 30000;
@@ -62,8 +63,7 @@ async function executeRequest<T>(
     token: string,
     options: FetchOptions
 ): Promise<ApiResult<T>> {
-    // rewritesを経由するため、/api/backendプレフィックスを使用
-    const apiUrl = `${getServerBaseUrl()}/api/backend`;
+    // 直接バックエンドにリクエスト
     const { method = "GET", body, cache, revalidate, timeout = DEFAULT_TIMEOUT } = options;
 
     // タイムアウト用のAbortController
@@ -97,7 +97,7 @@ async function executeRequest<T>(
             fetchOptions.next = { revalidate };
         }
 
-        const res = await fetch(`${apiUrl}${endpoint}`, fetchOptions);
+        const res = await fetch(`${API_URL}${endpoint}`, fetchOptions);
         const data = await res.json();
 
         if (!res.ok) {
