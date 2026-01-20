@@ -1,5 +1,6 @@
 // backend/src/middleware/auth.ts
 import { Context, Next } from 'hono';
+import { getCookie } from 'hono/cookie';
 import { createClient } from '@supabase/supabase-js';
 import { Env } from '../types/env';
 import { unauthorizedError, forbiddenError } from '../../lib/errors';
@@ -16,7 +17,7 @@ export type AuthVariables = {
 
 /**
  * Supabase JWT認証ミドルウェア
- * - Authorization ヘッダーから Bearer トークンを検証
+ * - Cookie から accessToken を取得して検証
  * - Supabase Auth の getUser() で検証
  * - 検証成功時、payload を c.set('jwtPayload', payload) で保存
  */
@@ -24,12 +25,10 @@ export const authMiddleware = async (
     c: Context<{ Bindings: Env; Variables: AuthVariables }>,
     next: Next
 ) => {
-    const authHeader = c.req.header('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-        return unauthorizedError(c, 'Missing or invalid Authorization header');
+    const token = getCookie(c, 'accessToken');
+    if (!token) {
+        return unauthorizedError(c, 'Not authenticated');
     }
-
-    const token = authHeader.split(' ')[1];
 
     try {
         // Supabase クライアントを作成して JWT を検証

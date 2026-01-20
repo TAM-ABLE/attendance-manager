@@ -1,8 +1,7 @@
 // frontend/lib/api-client.ts
-// 共通APIクライアント - Server Action用
-// 401 エラー時は再ログインが必要
+// 共通APIクライアント - クライアントサイドfetch用
+// Cookieは credentials: 'include' で自動送信
 
-import { cookies } from "next/headers";
 import { ErrorCodes, failure, type ApiResult, type ApiError } from "@attendance-manager/shared/types/ApiResponse";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
@@ -13,22 +12,13 @@ const DEFAULT_TIMEOUT = 30000;
 interface FetchOptions {
     method?: "GET" | "POST" | "PUT" | "DELETE";
     body?: unknown;
-    cache?: RequestCache;
-    revalidate?: number;
     /** リクエストタイムアウト（ミリ秒） */
     timeout?: number;
 }
 
 /**
- * Cookie からアクセストークンを取得
- */
-async function getTokenFromCookie(): Promise<string | null> {
-    const cookieStore = await cookies();
-    return cookieStore.get("accessToken")?.value ?? null;
-}
-
-/**
  * 認証付きAPIリクエストを実行する共通クライアント
+ * Cookieは credentials: 'include' で自動送信される
  *
  * @example
  * // GET リクエスト
@@ -39,62 +29,29 @@ async function getTokenFromCookie(): Promise<string | null> {
  *     method: 'POST',
  *     body: { userName, plannedTasks },
  * });
- *
- * // キャッシュ制御付き
- * const result = await apiClient<AttendanceRecord[]>('/attendance/month/2024-01', {
- *     revalidate: 300, // 5分間キャッシュ
- * });
  */
 export async function apiClient<T>(endpoint: string, options: FetchOptions = {}): Promise<ApiResult<T>> {
-    const token = await getTokenFromCookie();
-
-    if (!token) {
-        return failure(ErrorCodes.UNAUTHORIZED, "Not authenticated");
-    }
-
-    return executeRequest<T>(endpoint, token, options);
-}
-
-/**
- * 実際の API リクエストを実行
- */
-async function executeRequest<T>(
-    endpoint: string,
-    token: string,
-    options: FetchOptions
-): Promise<ApiResult<T>> {
-    // 直接バックエンドにリクエスト
-    const { method = "GET", body, cache, revalidate, timeout = DEFAULT_TIMEOUT } = options;
+    const { method = "GET", body, timeout = DEFAULT_TIMEOUT } = options;
 
     // タイムアウト用のAbortController
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-        const headers: HeadersInit = {
-            Authorization: `Bearer ${token}`,
-        };
+        const headers: HeadersInit = {};
         if (body) {
             headers["Content-Type"] = "application/json";
         }
 
-        const fetchOptions: RequestInit & { next?: { revalidate?: number } } = {
+        const fetchOptions: RequestInit = {
             method,
             headers,
+            credentials: "include", // Cookie自動送信
             signal: controller.signal,
         };
 
         if (body) {
             fetchOptions.body = JSON.stringify(body);
-        }
-
-        if (cache) {
-            fetchOptions.cache = cache;
-        }
-
-        // Next.js の revalidate オプション
-        if (revalidate !== undefined) {
-            fetchOptions.next = { revalidate };
         }
 
         const res = await fetch(`${API_URL}${endpoint}`, fetchOptions);
@@ -124,9 +81,84 @@ async function executeRequest<T>(
     }
 }
 
+// ============ 認証API ============
+
+type LoginResult = { success: true } | { success: false; error: string };
+
 /**
- * キャッシュなしのAPIリクエスト（リアルタイムデータ用）
+ * ログイン
  */
-export async function apiClientNoCache<T>(endpoint: string, options: Omit<FetchOptions, "cache" | "revalidate"> = {}): Promise<ApiResult<T>> {
-    return apiClient<T>(endpoint, { ...options, cache: "no-store" });
+export async function login(email: string, password: string): Promise<LoginResult> {
+    try {
+        const res = await fetch(`${API_URL}/auth/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ email, password }),
+        });
+
+        const json = await res.json();
+
+        if (!res.ok || !json.success) {
+            return {
+                success: false,
+                error: json.error?.message ?? "ログインに失敗しました",
+            };
+        }
+
+        return { success: true };
+    } catch (err) {
+        console.error("Login error:", err);
+        return { success: false, error: "ログインに失敗しました" };
+    }
+}
+
+type RegisterResult = { success: true } | { success: false; error: string };
+
+/**
+ * ユーザー登録
+ */
+export async function register(
+    name: string,
+    email: string,
+    password: string,
+    employeeNumber: string,
+    role: "admin" | "user" = "user"
+): Promise<RegisterResult> {
+    try {
+        const res = await fetch(`${API_URL}/auth/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({ name, email, password, employeeNumber, role }),
+        });
+
+        const json = await res.json();
+
+        if (!res.ok || !json.success) {
+            return {
+                success: false,
+                error: json.error?.message ?? "登録に失敗しました",
+            };
+        }
+
+        return { success: true };
+    } catch (err) {
+        console.error("Register error:", err);
+        return { success: false, error: "登録に失敗しました" };
+    }
+}
+
+/**
+ * ログアウト
+ */
+export async function logout(): Promise<void> {
+    try {
+        await fetch(`${API_URL}/auth/logout`, {
+            method: "POST",
+            credentials: "include",
+        });
+    } catch (err) {
+        console.error("Logout error:", err);
+    }
 }

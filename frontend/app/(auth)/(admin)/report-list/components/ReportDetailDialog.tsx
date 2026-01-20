@@ -10,8 +10,12 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DailyReport } from "@attendance-manager/shared/types/DailyReport";
-import { getDailyReportDetail } from "@/app/actions/daily-reports";
+import { apiClient } from "@/lib/api-client";
 import { withRetry } from "@/lib/auth/with-retry";
+
+function getDailyReportDetail(reportId: string) {
+    return apiClient<DailyReport>(`/daily-reports/${reportId}`);
+}
 
 interface ReportDetailDialogProps {
     open: boolean;

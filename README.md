@@ -92,8 +92,6 @@ attendance-manager/
 │   ├── app/
 │   │   ├── layout.tsx          # ルートレイアウト
 │   │   ├── page.tsx            # トップページ（リダイレクト）
-│   │   ├── actions/
-│   │   │   └── auth.ts         # Server Actions (login, register, logout)
 │   │   ├── (public)/           # 公開ページ（URLに含まれない）
 │   │   │   ├── login/          # /login
 │   │   │   └── sign-up/        # /sign-up
@@ -111,7 +109,7 @@ attendance-manager/
 │   │   ├── Footer.tsx
 │   │   └── ...
 │   └── lib/
-│       ├── api-client.ts       # APIクライアント（Server Actions用）
+│       ├── api-client.ts       # APIクライアント（credentials: include）
 │       ├── auth/
 │       │   ├── server.ts       # 認証ユーティリティ (getUser, requireAuth, requireAdmin)
 │       │   └── with-retry.ts   # SWR用401エラーハンドリング
@@ -138,8 +136,8 @@ attendance-manager/
 
 Server Component中心のシンプルな認証フロー：
 
-- **Server Actions**: ログイン/登録/ログアウト処理 (`app/actions/auth.ts`)
-- **HttpOnly Cookie**: JWTトークンをセキュアに保存
+- **クライアント直接通信**: ブラウザからHono APIへ直接リクエスト（`credentials: "include"`）
+- **HttpOnly Cookie**: JWTトークンをセキュアに保存、自動送信
 - **Route Groups**: URLに影響を与えずにアクセス制御を適用
 
 ### Route Groups

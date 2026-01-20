@@ -131,9 +131,10 @@ backend/
 ### 認証フロー
 
 1. Supabase Auth でユーザー認証
-2. JWT トークンを `Authorization: Bearer <token>` ヘッダーで送信
-3. `authMiddleware` が Supabase `getUser()` でトークン検証
-4. 検証成功時、`jwtPayload` に `sub`（ユーザーID）と `role` を格納
+2. JWT トークンを HttpOnly Cookie（`accessToken`）に保存
+3. クライアントは `credentials: "include"` でCookie自動送信
+4. `authMiddleware` が Cookie からトークンを取得し、Supabase `getUser()` で検証
+5. 検証成功時、`jwtPayload` に `sub`（ユーザーID）と `role` を格納
 
 ### ミドルウェア
 
@@ -241,7 +242,7 @@ profiles
 | `SLACK_ICON_CLOCK_IN` | No | 出勤通知カスタムアイコンURL |
 | `SLACK_ICON_CLOCK_OUT` | No | 退勤通知カスタムアイコンURL |
 | `NODE_ENV` | No | 環境（development/production） |
-| `COOKIE_CROSS_ORIGIN` | No | クロスオリジンCookie設定 |
+| `COOKIE_DOMAIN` | No | サブドメイン間Cookie共有用ドメイン（例: `.example.com`） |
 
 環境変数は `wrangler.jsonc` および Cloudflare ダッシュボードで設定します。
 

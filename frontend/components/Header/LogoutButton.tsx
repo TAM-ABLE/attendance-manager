@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { logoutAction } from "@/app/actions/auth";
+import { logout } from "@/lib/api-client";
 
 type LogoutButtonProps = {
     className?: string;
@@ -12,7 +12,7 @@ export function LogoutButton({ className }: LogoutButtonProps) {
     const router = useRouter();
 
     const handleLogout = async () => {
-        await logoutAction();
+        await logout();
         router.push("/login");
         router.refresh();
     };

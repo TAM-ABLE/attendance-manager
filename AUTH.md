@@ -3,6 +3,7 @@
 ## 概要
 
 HttpOnly Cookie ベースの認証 + Next.js App Router の Server Component を活用したシンプルな設計。
+クライアントからHono APIへ直接リクエストし、Cookieは `credentials: "include"` で自動送信される。
 
 ## アーキテクチャ
 
@@ -19,11 +20,11 @@ HttpOnly Cookie ベースの認証 + Next.js App Router の Server Component を
 │  │  リクエスト内    │            │  (7日間有効)    │        │
 │  │  1回だけ実行    │            │                 │        │
 │  └─────────────────┘            └─────────────────┘        │
-│         │                                                   │
-│         ▼ props                                             │
-│  ┌─────────────────┐                                       │
-│  │ Client Component│                                       │
-│  │  (必要な部分のみ)│                                       │
+│         │                              ▲                   │
+│         ▼ props                        │ credentials:      │
+│  ┌─────────────────┐                   │ "include"         │
+│  │ Client Component├───────────────────┘                   │
+│  │  apiClient()    │  Cookie自動送信                       │
 │  └─────────────────┘                                       │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
@@ -35,10 +36,10 @@ HttpOnly Cookie ベースの認証 + Next.js App Router の Server Component を
 
 ```
 1. ユーザーが email/password を入力
-2. POST /auth/login (Client Component から直接)
+2. Client Component から POST /auth/login (credentials: "include")
 3. Backend: Supabase Auth で認証
 4. Backend: Set-Cookie で accessToken を設定 (HttpOnly)
-5. Frontend: router.refresh() でページ再取得
+5. Frontend: router.push("/dashboard")
 6. Server Component: getUser() で認証状態を取得
 ```
 
@@ -57,7 +58,7 @@ HttpOnly Cookie ベースの認証 + Next.js App Router の Server Component を
 ### ログアウト
 
 ```
-1. POST /auth/logout (Client Component から)
+1. POST /auth/logout (Client Component から、credentials: "include")
 2. Backend: Cookie を削除 (Max-Age=0)
 3. Frontend: router.refresh() + router.push("/login")
 ```
@@ -68,39 +69,46 @@ HttpOnly Cookie ベースの認証 + Next.js App Router の Server Component を
 
 ```
 frontend/
-├── lib/auth/
-│   ├── api.ts               # Client用 (login, register, logout)
-│   ├── server.ts            # Server用 (getUser, requireAuth, requireAdmin)
-│   └── with-retry.ts        # 401エラー時リダイレクト
+├── lib/
+│   ├── api-client.ts           # APIクライアント (login, register, logout, apiClient)
+│   └── auth/
+│       ├── server.ts           # Server用 (getUser, requireAuth, requireAdmin)
+│       └── with-retry.ts       # 401エラー時リダイレクト
 ├── app/
-│   ├── layout.tsx           # getUser() → Header に props
+│   ├── layout.tsx              # getUser() → Header に props
 │   ├── (auth)/
-│   │   ├── layout.tsx       # requireAuth() - 認証必須
+│   │   ├── layout.tsx          # requireAuth() - 認証必須
 │   │   ├── dashboard/
 │   │   ├── attendance-history/
 │   │   └── (admin)/
-│   │       ├── layout.tsx   # requireAdmin() - 管理者専用
+│   │       ├── layout.tsx      # requireAdmin() - 管理者専用
 │   │       ├── admin/
 │   │       └── report-list/
 │   └── (public)/
 │       ├── login/
 │       └── sign-up/
 └── components/Header/
-    ├── index.tsx            # Server Component
-    ├── NavLinks.tsx         # Client (usePathname)
-    ├── LogoutButton.tsx     # Client (logout処理)
-    └── MobileMenu.tsx       # Client (メニュー開閉)
+    ├── index.tsx               # Server Component
+    ├── NavLinks.tsx            # Client (usePathname)
+    ├── LogoutButton.tsx        # Client (logout処理)
+    └── MobileMenu.tsx          # Client (メニュー開閉)
 ```
 
 ### Backend
 
 ```
-backend/src/routes/auth/
-├── index.ts                 # ルーター
-├── login.ts                 # POST /auth/login
-├── register.ts              # POST /auth/register
-├── logout.ts                # POST /auth/logout
-└── me.ts                    # GET /auth/me
+backend/
+├── src/
+│   ├── middleware/
+│   │   └── auth.ts             # Cookie認証ミドルウェア
+│   └── routes/auth/
+│       ├── index.ts            # ルーター
+│       ├── login.ts            # POST /auth/login
+│       ├── register.ts         # POST /auth/register
+│       ├── logout.ts           # POST /auth/logout
+│       └── me.ts               # GET /auth/me
+└── lib/
+    └── cookie.ts               # Cookie設定ヘルパー
 ```
 
 ## API エンドポイント
@@ -117,12 +125,22 @@ backend/src/routes/auth/
 ```typescript
 // backend/lib/cookie.ts
 {
-  httpOnly: true,      // JavaScript からアクセス不可
-  secure: true,        // HTTPS のみ (本番)
-  sameSite: "Lax",     // CSRF 対策
-  maxAge: 60*60*24*7,  // 7日間
+  httpOnly: true,           // JavaScript からアクセス不可
+  secure: true,             // HTTPS のみ (本番)
+  sameSite: "Lax",          // CSRF 対策
+  maxAge: 60*60*24*7,       // 7日間
   path: "/",
+  domain: ".example.com",   // サブドメイン間共有 (COOKIE_DOMAIN環境変数)
 }
+```
+
+### サブドメイン対応
+
+`app.example.com` と `api.example.com` 間でCookieを共有するには：
+
+```bash
+# wrangler.jsonc または環境変数
+COOKIE_DOMAIN=.example.com
 ```
 
 ## ルート保護
@@ -145,7 +163,7 @@ app/
 export const getUser = cache(async () => {
   const token = cookies().get("accessToken");
   if (!token) return null;
-  // GET /auth/me
+  // GET /auth/me (Cookieヘッダーを送信)
   return fetchUser(token);
 });
 
@@ -167,7 +185,7 @@ export async function requireAdmin() {
 ### with-retry.ts (API エラーハンドリング)
 
 ```typescript
-// Client Component から Server Actions 呼び出し時
+// Client Component から apiClient 呼び出し時
 // 401 エラーでログインページへリダイレクト
 if (result.error.code === "UNAUTHORIZED") {
   window.location.href = "/login";
@@ -217,17 +235,27 @@ export function Header({ user }: { user: AuthUser | null }) {
 
 ```typescript
 // app/(public)/login/page.tsx
-import { login } from "@/lib/auth/api";
+import { login } from "@/lib/api-client";
 
 const handleSubmit = async () => {
   const result = await login(email, password);
   if (result.success) {
     router.push("/dashboard");
-    router.refresh();  // Server Component を再取得
   } else {
     setError(result.error);
   }
 };
+```
+
+### API呼び出し (Client Component)
+
+```typescript
+// 各hooks内で直接apiClientを使用
+import { apiClient } from "@/lib/api-client";
+
+function getToday() {
+  return apiClient<AttendanceRecord | null>("/attendance/today");
+}
 ```
 
 ## セキュリティ
@@ -245,3 +273,5 @@ const handleSubmit = async () => {
 | Route Groups | 認証ロジックを layout に集約 |
 | React cache() | 同一リクエスト内の重複API呼び出しを防止 |
 | 状態管理なし | zustand等不要、props で渡すだけ |
+| 直接API呼び出し | Server Actions層を廃止、1ホップ削減 |
+| Cookie自動送信 | credentials: "include" でシンプルに |
