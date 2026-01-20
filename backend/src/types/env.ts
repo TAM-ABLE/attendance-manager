@@ -8,5 +8,6 @@ export type Env = {
     JWT_SECRET: string;
     // Cookie 設定用
     NODE_ENV?: string;
-    COOKIE_CROSS_ORIGIN?: string;
+    // サブドメイン間でCookieを共有するための親ドメイン（例: .attendance-manager.com）
+    COOKIE_DOMAIN?: string;
 };

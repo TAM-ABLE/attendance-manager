@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { registerAction } from "@/app/actions/auth"
+import { register } from "@/lib/api-client"
 
 // パスワード強度チェック
 function usePasswordStrength(password: string) {
@@ -48,10 +48,13 @@ export default function SignUpPage() {
             return
         }
 
-        // 成功時はServer Action内でredirectされるため、戻り値はエラー時のみ
-        const result = await registerAction(name, email, password, employeeNumber, isAdmin ? "admin" : "user")
+        const result = await register(name, email, password, employeeNumber, isAdmin ? "admin" : "user")
 
-        // ここに到達 = エラー
+        if (result.success) {
+            router.push("/dashboard")
+            return
+        }
+
         setLoading(false)
         setError(result.error || "アカウント作成に失敗しました。")
     }

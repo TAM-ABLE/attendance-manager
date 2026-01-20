@@ -1,10 +1,6 @@
 // shared/lib/constants.ts
 // フロントエンド・バックエンド共通の定数
 
-// キャッシュ時間（秒）
-export const CACHE_CURRENT_MONTH_SEC = 60;
-export const CACHE_PAST_MONTH_SEC = 300;
-
 // JWT有効期限（秒）
 export const JWT_EXPIRATION_SECONDS = 60 * 60 * 24; // 24時間
 

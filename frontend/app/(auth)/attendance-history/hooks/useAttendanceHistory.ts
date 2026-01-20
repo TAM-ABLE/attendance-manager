@@ -2,11 +2,17 @@
 
 import { useState, useMemo } from "react";
 import useSWR from "swr";
-import { toJSTDateString } from "@attendance-manager/shared/lib/time";
+import { toJSTDateString, formatYearMonth } from "@attendance-manager/shared/lib/time";
 import { formatYearMonthFromDate } from "@attendance-manager/shared/lib/time";
-import { getMonth } from "@/app/actions/attendance";
+import type { AttendanceRecord } from "@attendance-manager/shared/types/Attendance";
+import { apiClient } from "@/lib/api-client";
 import { withRetry } from "@/lib/auth/with-retry";
 import { SWR_KEYS } from "@/lib/swr-keys";
+
+function getMonth(year: number, month: number) {
+    const yearMonth = formatYearMonth(year, month);
+    return apiClient<AttendanceRecord[]>(`/attendance/month/${yearMonth}`);
+}
 
 export function useAttendanceHistory() {
     const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());

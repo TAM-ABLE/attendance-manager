@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { loginAction } from "@/app/actions/auth"
+import { login } from "@/lib/api-client"
 
 export default function LoginPage() {
     const router = useRouter()
@@ -21,10 +21,13 @@ export default function LoginPage() {
         setLoading(true)
         setError(null)
 
-        // 成功時はServer Action内でredirectされるため、戻り値はエラー時のみ
-        const result = await loginAction(loginEmail, loginPassword)
+        const result = await login(loginEmail, loginPassword)
 
-        // ここに到達 = エラー
+        if (result.success) {
+            router.push("/dashboard")
+            return
+        }
+
         setLoading(false)
         setError(result.error || "メールアドレスまたはパスワードが間違っています。")
     }

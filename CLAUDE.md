@@ -56,7 +56,7 @@ pnpm tsc --noEmit     # Type check
 
 #### Authentication Architecture
 - `lib/auth/server.ts` - Server Component auth utilities (`getUser`, `requireAuth`, `requireAdmin`)
-- `app/actions/auth.ts` - Server Actions for login/register/logout
+- `lib/api-client.ts` - Client-side API client with `credentials: "include"` for Cookie auth
 - Route Groups for access control:
   - `(public)/` - Public pages (login, sign-up)
   - `(auth)/` - Authenticated pages (dashboard, attendance-history)
