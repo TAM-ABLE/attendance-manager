@@ -1,6 +1,5 @@
 // backend/src/routes/auth/me.ts
 import { createRoute } from "@hono/zod-openapi";
-import { getCookie } from "hono/cookie";
 import { createClient } from "@supabase/supabase-js";
 import { unauthorizedError, successResponse } from "../../../lib/errors";
 import { Env } from "../../types/env";
@@ -13,6 +12,16 @@ import {
 import { createOpenAPIHono } from "../../../lib/openapi-hono";
 
 const meRouter = createOpenAPIHono<{ Bindings: Env }>();
+
+/**
+ * Authorization ヘッダーから Bearer トークンを抽出
+ */
+function extractBearerToken(authHeader: string | undefined): string | null {
+    if (!authHeader?.startsWith('Bearer ')) {
+        return null;
+    }
+    return authHeader.slice(7);
+}
 
 const meResponseSchema = z
     .object({
@@ -28,7 +37,7 @@ const meRoute = createRoute({
     path: "/",
     tags: ["認証"],
     summary: "現在のユーザー情報を取得",
-    description: "Cookie の accessToken を検証し、ユーザー情報を返します。",
+    description: "Authorization ヘッダーの Bearer トークンを検証し、ユーザー情報を返します。",
     responses: {
         200: {
             content: {
@@ -50,7 +59,8 @@ const meRoute = createRoute({
 });
 
 meRouter.openapi(meRoute, async (c) => {
-    const accessToken = getCookie(c, "accessToken");
+    const authHeader = c.req.header('Authorization');
+    const accessToken = extractBearerToken(authHeader);
 
     if (!accessToken) {
         return unauthorizedError(c, "Not authenticated");

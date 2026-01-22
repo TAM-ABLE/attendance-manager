@@ -89,9 +89,14 @@ attendance-manager/
 │           └── supabase.ts     # DB型定義
 │
 ├── frontend/                   # Next.js App Router
+│   ├── proxy.ts                # Cookie→Bearer変換 + Honoへリライト
 │   ├── app/
 │   │   ├── layout.tsx          # ルートレイアウト
 │   │   ├── page.tsx            # トップページ（リダイレクト）
+│   │   ├── api/auth/           # 認証 Route Handler
+│   │   │   ├── login/          # POST: ログイン + Cookie設定
+│   │   │   ├── register/       # POST: 登録 + Cookie設定
+│   │   │   └── logout/         # POST: Cookie削除
 │   │   ├── (public)/           # 公開ページ（URLに含まれない）
 │   │   │   ├── login/          # /login
 │   │   │   └── sign-up/        # /sign-up
@@ -109,11 +114,10 @@ attendance-manager/
 │   │   ├── Footer.tsx
 │   │   └── ...
 │   └── lib/
-│       ├── api-client.ts       # APIクライアント（credentials: include）
+│       ├── api-client.ts       # APIクライアント（/api/proxy経由）
 │       ├── auth/
 │       │   ├── server.ts       # 認証ユーティリティ (getUser, requireAuth, requireAdmin)
-│       │   └── with-retry.ts   # SWR用401エラーハンドリング
-│       ├── get-base-url.ts     # ベースURL取得
+│       │   └── with-retry.ts   # 401エラー時リダイレクト
 │       └── exportCsv.ts        # CSVエクスポート
 │
 ├── shared/                     # 共有コード
@@ -134,10 +138,11 @@ attendance-manager/
 
 ## 認証アーキテクチャ
 
-Server Component中心のシンプルな認証フロー：
+Cookie の責務を Next.js に集約し、Hono は Pure API として Authorization ヘッダーのみを信頼する設計：
 
-- **クライアント直接通信**: ブラウザからHono APIへ直接リクエスト（`credentials: "include"`）
-- **HttpOnly Cookie**: JWTトークンをセキュアに保存、自動送信
+- **Cookie 管理**: Next.js Route Handler (`/api/auth/*`) が HttpOnly Cookie を設定・削除
+- **Proxy 経由通信**: Client Component は `/api/proxy/*` 経由で Hono API にアクセス（Cookie → Bearer 変換）
+- **Pure API**: Hono は Cookie を扱わず、Authorization ヘッダーのみ検証
 - **Route Groups**: URLに影響を与えずにアクセス制御を適用
 
 ### Route Groups

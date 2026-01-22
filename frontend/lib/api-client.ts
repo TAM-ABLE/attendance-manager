@@ -1,10 +1,9 @@
 // frontend/lib/api-client.ts
 // 共通APIクライアント - クライアントサイドfetch用
-// Cookieは credentials: 'include' で自動送信
+// 認証が必要なリクエストは /api/proxy 経由で送信
+// Next.js Route Handler が Cookie から Authorization ヘッダーに変換して Hono に転送
 
 import { ErrorCodes, failure, type ApiResult, type ApiError } from "@attendance-manager/shared/types/ApiResponse";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
 
 /** デフォルトタイムアウト（30秒） */
 const DEFAULT_TIMEOUT = 30000;
@@ -18,7 +17,7 @@ interface FetchOptions {
 
 /**
  * 認証付きAPIリクエストを実行する共通クライアント
- * Cookieは credentials: 'include' で自動送信される
+ * /api/proxy 経由でリクエストを送信し、Route Handler が Authorization ヘッダーを付与
  *
  * @example
  * // GET リクエスト
@@ -46,7 +45,6 @@ export async function apiClient<T>(endpoint: string, options: FetchOptions = {})
         const fetchOptions: RequestInit = {
             method,
             headers,
-            credentials: "include", // Cookie自動送信
             signal: controller.signal,
         };
 
@@ -54,7 +52,8 @@ export async function apiClient<T>(endpoint: string, options: FetchOptions = {})
             fetchOptions.body = JSON.stringify(body);
         }
 
-        const res = await fetch(`${API_URL}${endpoint}`, fetchOptions);
+        // /api/proxy 経由で Hono API にリクエスト
+        const res = await fetch(`/api/proxy${endpoint}`, fetchOptions);
         const data = await res.json();
 
         if (!res.ok) {
@@ -87,13 +86,13 @@ type LoginResult = { success: true } | { success: false; error: string };
 
 /**
  * ログイン
+ * Next.js Route Handler 経由で認証し、Cookie にトークンを保存
  */
 export async function login(email: string, password: string): Promise<LoginResult> {
     try {
-        const res = await fetch(`${API_URL}/auth/login`, {
+        const res = await fetch("/api/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            credentials: "include",
             body: JSON.stringify({ email, password }),
         });
 
@@ -117,6 +116,7 @@ type RegisterResult = { success: true } | { success: false; error: string };
 
 /**
  * ユーザー登録
+ * Next.js Route Handler 経由で登録し、Cookie にトークンを保存
  */
 export async function register(
     name: string,
@@ -126,10 +126,9 @@ export async function register(
     role: "admin" | "user" = "user"
 ): Promise<RegisterResult> {
     try {
-        const res = await fetch(`${API_URL}/auth/register`, {
+        const res = await fetch("/api/auth/register", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            credentials: "include",
             body: JSON.stringify({ name, email, password, employeeNumber, role }),
         });
 
@@ -151,12 +150,12 @@ export async function register(
 
 /**
  * ログアウト
+ * Next.js Route Handler で Cookie を削除
  */
 export async function logout(): Promise<void> {
     try {
-        await fetch(`${API_URL}/auth/logout`, {
+        await fetch("/api/auth/logout", {
             method: "POST",
-            credentials: "include",
         });
     } catch (err) {
         console.error("Logout error:", err);
