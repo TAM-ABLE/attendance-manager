@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "biome check . && eslint",
+    "lint:fix": "biome check --write . && eslint --fix",
+    "format": "biome format --write ."
   },
   "dependencies": {
     "@attendance-manager/shared": "workspace:*",
@@ -30,6 +32,8 @@
     "zod": "^4.2.1"
   },
   "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@next/eslint-plugin-next": "^16.1.4",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

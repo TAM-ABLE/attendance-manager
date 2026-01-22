@@ -65,7 +65,8 @@
 | Vercel | フロントエンドホスティング |
 | Cloudflare Workers | バックエンドホスティング |
 | pnpm | パッケージマネージャー |
-| ESLint 9 | リンター |
+| Biome | リンター・フォーマッター |
+| ESLint | Next.js 固有ルール (Frontend のみ) |
 | GitHub Actions | CI/CD |
 
 ---
@@ -196,7 +197,9 @@ NEXT_PUBLIC_API_URL=http://localhost:8787
 cd backend
 pnpm dev              # 開発サーバー起動 (localhost:8787)
 pnpm deploy           # Cloudflare Workers にデプロイ
-pnpm lint             # ESLint 実行
+pnpm lint             # Biome lint 実行
+pnpm lint:fix         # lint 自動修正
+pnpm format           # コードフォーマット
 pnpm tsc --noEmit     # 型チェック
 pnpm cf-typegen       # Cloudflare バインディング型生成
 ```
@@ -206,7 +209,9 @@ pnpm cf-typegen       # Cloudflare バインディング型生成
 cd frontend
 pnpm dev              # 開発サーバー起動 (localhost:3000)
 pnpm build            # プロダクションビルド
-pnpm lint             # ESLint 実行
+pnpm lint             # Biome + ESLint (Next.js ルール) 実行
+pnpm lint:fix         # lint 自動修正
+pnpm format           # コードフォーマット
 pnpm tsc --noEmit     # 型チェック
 ```
 
@@ -244,8 +249,8 @@ pnpm tsc --noEmit     # 型チェック
 ## CI/CD
 
 GitHub Actions による自動チェック（main/develop ブランチへの push/PR 時）:
-- Backend: lint + 型チェック
-- Frontend: lint + 型チェック
+- Backend: Biome lint + 型チェック
+- Frontend: Biome lint + ESLint (Next.js ルール) + 型チェック
 
 ---
 
