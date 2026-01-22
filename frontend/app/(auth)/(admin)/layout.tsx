@@ -1,14 +1,14 @@
 // app/(auth)/(admin)/layout.tsx
 // 管理者専用ページ用レイアウト
 
-import { requireAdmin } from "@/lib/auth/server";
+import { requireAdmin } from "@/lib/auth/server"
 
 export default async function AdminLayout({
-    children,
+  children,
 }: {
-    children: React.ReactNode;
+  children: React.ReactNode
 }) {
-    await requireAdmin();
+  await requireAdmin()
 
-    return <>{children}</>;
+  return <>{children}</>
 }

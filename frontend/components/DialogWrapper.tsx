@@ -1,21 +1,21 @@
 // frontend/components/DialogWrapper.tsx
 // ダイアログの共通ラッパーコンポーネント
 
-"use client";
+"use client"
 
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Loader } from "@/components/Loader";
-import { SuccessDialog } from "@/components/SuccessDialog";
-import type { DialogMode } from "@/hooks/useDialogState";
+import { Loader } from "@/components/Loader"
+import { SuccessDialog } from "@/components/SuccessDialog"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
+import type { DialogMode } from "@/hooks/useDialogState"
 
 interface DialogWrapperProps {
-    open: boolean;
-    onClose: () => void;
-    mode: DialogMode;
-    onReset: () => void;
-    successTitle?: string;
-    successDescription?: string;
-    children: React.ReactNode;
+  open: boolean
+  onClose: () => void
+  mode: DialogMode
+  onReset: () => void
+  successTitle?: string
+  successDescription?: string
+  children: React.ReactNode
 }
 
 /**
@@ -33,40 +33,40 @@ interface DialogWrapperProps {
  * </DialogWrapper>
  */
 export function DialogWrapper({
-    open,
-    onClose,
-    mode,
-    onReset,
-    successTitle,
-    successDescription,
-    children,
+  open,
+  onClose,
+  mode,
+  onReset,
+  successTitle,
+  successDescription,
+  children,
 }: DialogWrapperProps) {
-    // Loading UI
-    if (mode === "loading") {
-        return (
-            <Dialog open={open} onOpenChange={onClose}>
-                <DialogContent className="flex justify-center py-12">
-                    <Loader size={50} border={4} />
-                </DialogContent>
-            </Dialog>
-        );
-    }
+  // Loading UI
+  if (mode === "loading") {
+    return (
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className="flex justify-center py-12">
+          <Loader size={50} border={4} />
+        </DialogContent>
+      </Dialog>
+    )
+  }
 
-    // Success UI
-    if (mode === "success") {
-        return (
-            <SuccessDialog
-                open={open}
-                title={successTitle}
-                description={successDescription}
-                onClose={() => {
-                    onReset();
-                    onClose();
-                }}
-            />
-        );
-    }
+  // Success UI
+  if (mode === "success") {
+    return (
+      <SuccessDialog
+        open={open}
+        title={successTitle}
+        description={successDescription}
+        onClose={() => {
+          onReset()
+          onClose()
+        }}
+      />
+    )
+  }
 
-    // Form UI (children)
-    return <>{children}</>;
+  // Form UI (children)
+  return <>{children}</>
 }

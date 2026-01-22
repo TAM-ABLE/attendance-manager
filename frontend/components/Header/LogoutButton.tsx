@@ -1,30 +1,25 @@
-"use client";
+"use client"
 
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { logout } from "@/lib/api-client";
+import { Button } from "@/components/ui/button"
+import { logout } from "@/lib/api-client"
+import { useRouter } from "next/navigation"
 
 type LogoutButtonProps = {
-    className?: string;
-};
+  className?: string
+}
 
 export function LogoutButton({ className }: LogoutButtonProps) {
-    const router = useRouter();
+  const router = useRouter()
 
-    const handleLogout = async () => {
-        await logout();
-        router.push("/login");
-        router.refresh();
-    };
+  const handleLogout = async () => {
+    await logout()
+    router.push("/login")
+    router.refresh()
+  }
 
-    return (
-        <Button
-            variant="outline"
-            size="sm"
-            className={className}
-            onClick={handleLogout}
-        >
-            ログアウト
-        </Button>
-    );
+  return (
+    <Button variant="outline" size="sm" className={className} onClick={handleLogout}>
+      ログアウト
+    </Button>
+  )
 }
