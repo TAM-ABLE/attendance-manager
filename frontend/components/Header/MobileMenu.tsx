@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, LayoutDashboard, History, Users, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { logoutAction } from "@/app/actions/auth";
+import { logout } from "@/lib/api-client";
 
 type MobileMenuProps = {
     userName: string;
@@ -34,7 +34,7 @@ export function MobileMenu({ userName, userEmail, isAdmin }: MobileMenuProps) {
 
     const handleLogout = async () => {
         setIsOpen(false);
-        await logoutAction();
+        await logout();
         router.push("/login");
         router.refresh();
     };

@@ -3,10 +3,48 @@
 import { useState, useCallback, useMemo } from "react";
 import useSWR from "swr";
 import type { AttendanceRecord, WorkSession, Task } from "@attendance-manager/shared/types/Attendance";
-import { clockIn, clockOut, startBreak, endBreak, getToday, getWeekTotal } from "@/app/actions/attendance";
+import { apiClient } from "@/lib/api-client";
 import { withRetry, withRetryFetcher } from "@/lib/auth/with-retry";
 import { SWR_KEYS } from "@/lib/swr-keys";
 import type { AuthUser } from "@/lib/auth/server";
+
+// ============ API呼び出し関数 ============
+
+function clockIn(userName: string, plannedTasks: Task[], clockInTime?: string) {
+    return apiClient<{ slack_ts?: string }>("/attendance/clock-in", {
+        method: "POST",
+        body: { userName, plannedTasks, clockInTime },
+    });
+}
+
+function clockOut(userName: string, actualTasks: Task[], summary: string, issues: string, notes: string, clockOutTime?: string) {
+    return apiClient<{ slack_ts?: string }>("/attendance/clock-out", {
+        method: "POST",
+        body: { userName, actualTasks, summary, issues, notes, clockOutTime },
+    });
+}
+
+function startBreak(breakStartTime?: string) {
+    return apiClient<null>("/attendance/breaks/start", {
+        method: "POST",
+        body: { breakStartTime },
+    });
+}
+
+function endBreak(breakEndTime?: string) {
+    return apiClient<null>("/attendance/breaks/end", {
+        method: "POST",
+        body: { breakEndTime },
+    });
+}
+
+function getToday() {
+    return apiClient<AttendanceRecord | null>("/attendance/today");
+}
+
+function getWeekTotal() {
+    return apiClient<{ netWorkMs: number } | null>("/attendance/week/total");
+}
 
 // セッション検出（出勤中かどうか）
 function detectCurrentSession(attendance: AttendanceRecord | null): WorkSession | null {

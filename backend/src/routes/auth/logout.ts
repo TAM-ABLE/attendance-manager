@@ -1,7 +1,6 @@
 // backend/src/routes/auth/logout.ts
 import { createRoute } from "@hono/zod-openapi";
 import { successResponse } from "../../../lib/errors";
-import { clearAuthCookie } from "../../../lib/cookie";
 import { Env } from "../../types/env";
 import { z } from "zod";
 import { createOpenAPIHono } from "../../../lib/openapi-hono";
@@ -22,7 +21,7 @@ const logoutRoute = createRoute({
     path: "/",
     tags: ["認証"],
     summary: "ログアウト",
-    description: "Cookie をクリアしてログアウトします",
+    description: "ログアウトします（クライアント側でトークンを破棄してください）",
     responses: {
         200: {
             content: {
@@ -36,8 +35,6 @@ const logoutRoute = createRoute({
 });
 
 logoutRouter.openapi(logoutRoute, async (c) => {
-    clearAuthCookie(c);
-
     return successResponse(c, {
         message: "Logged out successfully",
     });

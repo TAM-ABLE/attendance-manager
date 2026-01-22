@@ -15,8 +15,18 @@ export type AuthVariables = {
 };
 
 /**
+ * Authorization ヘッダーから Bearer トークンを抽出
+ */
+function extractBearerToken(authHeader: string | undefined): string | null {
+    if (!authHeader?.startsWith('Bearer ')) {
+        return null;
+    }
+    return authHeader.slice(7);
+}
+
+/**
  * Supabase JWT認証ミドルウェア
- * - Authorization ヘッダーから Bearer トークンを検証
+ * - Authorization ヘッダー (Bearer Token) からトークンを取得して検証
  * - Supabase Auth の getUser() で検証
  * - 検証成功時、payload を c.set('jwtPayload', payload) で保存
  */
@@ -25,11 +35,10 @@ export const authMiddleware = async (
     next: Next
 ) => {
     const authHeader = c.req.header('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-        return unauthorizedError(c, 'Missing or invalid Authorization header');
+    const token = extractBearerToken(authHeader);
+    if (!token) {
+        return unauthorizedError(c, 'Not authenticated');
     }
-
-    const token = authHeader.split(' ')[1];
 
     try {
         // Supabase クライアントを作成して JWT を検証

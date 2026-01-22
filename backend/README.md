@@ -69,8 +69,7 @@ backend/
 │   ├── supabase.ts           # Supabaseクライアント生成
 │   ├── errors.ts             # エラーレスポンスヘルパー
 │   ├── formatters.ts         # データ整形ユーティリティ
-│   ├── slack.ts              # Slack通知
-│   └── cookie.ts             # Cookie操作
+│   └── slack.ts              # Slack通知
 └── wrangler.jsonc            # Cloudflare Workers設定
 ```
 
@@ -130,10 +129,14 @@ backend/
 
 ### 認証フロー
 
-1. Supabase Auth でユーザー認証
-2. JWT トークンを `Authorization: Bearer <token>` ヘッダーで送信
-3. `authMiddleware` が Supabase `getUser()` でトークン検証
-4. 検証成功時、`jwtPayload` に `sub`（ユーザーID）と `role` を格納
+Hono は Pure API として Authorization ヘッダー（Bearer Token）のみを信頼する設計です。
+Cookie の管理は Next.js 側で行います。
+
+1. Supabase Auth でユーザー認証、accessToken を返却
+2. Next.js Route Handler が HttpOnly Cookie にトークンを保存
+3. クライアントは `/api/proxy/*` 経由でリクエスト（Cookie → Bearer 変換）
+4. `authMiddleware` が Authorization ヘッダーからトークンを取得し、Supabase `getUser()` で検証
+5. 検証成功時、`jwtPayload` に `sub`（ユーザーID）と `role` を格納
 
 ### ミドルウェア
 
@@ -241,7 +244,6 @@ profiles
 | `SLACK_ICON_CLOCK_IN` | No | 出勤通知カスタムアイコンURL |
 | `SLACK_ICON_CLOCK_OUT` | No | 退勤通知カスタムアイコンURL |
 | `NODE_ENV` | No | 環境（development/production） |
-| `COOKIE_CROSS_ORIGIN` | No | クロスオリジンCookie設定 |
 
 環境変数は `wrangler.jsonc` および Cloudflare ダッシュボードで設定します。
 

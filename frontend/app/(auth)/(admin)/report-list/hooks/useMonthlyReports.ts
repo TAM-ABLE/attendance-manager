@@ -2,9 +2,19 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { DailyReportListItem, UserForSelect } from "@attendance-manager/shared/types/DailyReport";
-import { getUserMonthlyReports } from "@/app/actions/daily-reports";
+import { apiClient } from "@/lib/api-client";
 import { withRetry } from "@/lib/auth/with-retry";
 import { formatYearMonthFromDate } from "@attendance-manager/shared/lib/time";
+
+interface UserMonthlyReportsResponse {
+    user: UserForSelect | null;
+    yearMonth: string;
+    reports: DailyReportListItem[];
+}
+
+function getUserMonthlyReports(userId: string, yearMonth: string) {
+    return apiClient<UserMonthlyReportsResponse>(`/daily-reports/user/${userId}/month/${yearMonth}`);
+}
 
 export function useMonthlyReports(user: UserForSelect | null, currentMonth: Date) {
     const [reports, setReports] = useState<DailyReportListItem[]>([]);
