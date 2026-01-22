@@ -25,6 +25,7 @@ export default function LoginPage() {
 
         if (result.success) {
             router.push("/dashboard")
+            router.refresh()
             return
         }
 
