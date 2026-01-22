@@ -8,7 +8,9 @@ Next.js 16 + React 19 で構築されたフロントエンドアプリケーシ�
 pnpm install          # 依存関係インストール
 pnpm dev              # 開発サーバー起動 (localhost:3000)
 pnpm build            # 本番ビルド
-pnpm lint             # ESLint実行
+pnpm lint             # Biome + ESLint (Next.js ルール) 実行
+pnpm lint:fix         # lint 自動修正
+pnpm format           # コードフォーマット (Biome)
 pnpm tsc --noEmit     # 型チェック
 ```
 

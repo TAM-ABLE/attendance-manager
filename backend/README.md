@@ -31,7 +31,9 @@ pnpm deploy
 ## その他のコマンド
 
 ```bash
-pnpm lint          # ESLint実行
+pnpm lint          # Biome lint 実行
+pnpm lint:fix      # lint 自動修正
+pnpm format        # コードフォーマット (Biome)
 pnpm tsc --noEmit  # 型チェック
 pnpm cf-typegen    # Cloudflareバインディング型の生成
 ```

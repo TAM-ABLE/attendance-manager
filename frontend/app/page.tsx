@@ -1,5 +1,5 @@
-import { redirect } from "next/navigation"
 import { cookies } from "next/headers"
+import { redirect } from "next/navigation"
 
 export default async function App() {
   const cookieStore = await cookies()

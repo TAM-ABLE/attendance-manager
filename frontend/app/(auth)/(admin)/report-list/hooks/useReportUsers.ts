@@ -1,17 +1,17 @@
 // frontend/app/report-list/hooks/useReportUsers.ts
-"use client";
+"use client"
 
-import { useCallback } from "react";
-import { UserForSelect } from "@attendance-manager/shared/types/DailyReport";
-import { apiClient } from "@/lib/api-client";
-import { withRetry } from "@/lib/auth/with-retry";
-import { useUserSelect } from "@/hooks/useUserSelect";
+import { useUserSelect } from "@/hooks/useUserSelect"
+import { apiClient } from "@/lib/api-client"
+import { withRetry } from "@/lib/auth/with-retry"
+import type { UserForSelect } from "@attendance-manager/shared/types/DailyReport"
+import { useCallback } from "react"
 
 function getDailyReportUsers() {
-    return apiClient<UserForSelect[]>("/daily-reports/users");
+  return apiClient<UserForSelect[]>("/daily-reports/users")
 }
 
 export function useReportUsers() {
-    const fetchFn = useCallback(() => withRetry(getDailyReportUsers), []);
-    return useUserSelect<UserForSelect>({ fetchFn });
+  const fetchFn = useCallback(() => withRetry(getDailyReportUsers), [])
+  return useUserSelect<UserForSelect>({ fetchFn })
 }

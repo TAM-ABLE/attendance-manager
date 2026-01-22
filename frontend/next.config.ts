@@ -1,7 +1,7 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
-    // API リクエストは Route Handler 経由で処理するため rewrites は不要
-};
+  // API リクエストは Route Handler 経由で処理するため rewrites は不要
+}
 
-export default nextConfig;
+export default nextConfig

@@ -1,66 +1,57 @@
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { AttendanceRecord } from "@attendance-manager/shared/types/Attendance";
-import { SessionItem } from "./SessionItem";
-import { formatDurationMs } from "@attendance-manager/shared/lib/time";
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { formatDurationMs } from "@attendance-manager/shared/lib/time"
+import type { AttendanceRecord } from "@attendance-manager/shared/types/Attendance"
+import { SessionItem } from "./SessionItem"
 
 interface Props {
-    selectedDate: Date | undefined;
-    selectedDayData: AttendanceRecord | null;
+  selectedDate: Date | undefined
+  selectedDayData: AttendanceRecord | null
 }
 
-export function DayDetailCard({
-    selectedDate,
-    selectedDayData,
-}: Props) {
-    return (
-        <Card className="h-full flex flex-col">
-            <CardHeader>
-                <CardTitle>詳細情報</CardTitle>
-                <CardDescription>
-                    {selectedDate?.toLocaleDateString("ja-JP", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                        weekday: "long",
-                    })}
-                </CardDescription>
-            </CardHeader>
+export function DayDetailCard({ selectedDate, selectedDayData }: Props) {
+  return (
+    <Card className="h-full flex flex-col">
+      <CardHeader>
+        <CardTitle>詳細情報</CardTitle>
+        <CardDescription>
+          {selectedDate?.toLocaleDateString("ja-JP", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            weekday: "long",
+          })}
+        </CardDescription>
+      </CardHeader>
 
-            <CardContent className="space-y-4 flex-1">
-                {selectedDayData ? (
-                    <>
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-center pb-2 border-b">
-                                <span>総勤務時間</span>
-                                <span className="text-xl">
-                                    {formatDurationMs(selectedDayData.workTotalMs)}
-                                </span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-sm text-muted-foreground">セッション数</span>
-                                <Badge>{selectedDayData.sessions.length}回</Badge>
-                            </div>
-                        </div>
+      <CardContent className="space-y-4 flex-1">
+        {selectedDayData ? (
+          <>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center pb-2 border-b">
+                <span>総勤務時間</span>
+                <span className="text-xl">{formatDurationMs(selectedDayData.workTotalMs)}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">セッション数</span>
+                <Badge>{selectedDayData.sessions.length}回</Badge>
+              </div>
+            </div>
 
-                        <div className="space-y-3 pt-2">
-                            <p className="text-sm text-muted-foreground">セッション詳細</p>
+            <div className="space-y-3 pt-2">
+              <p className="text-sm text-muted-foreground">セッション詳細</p>
 
-                            {selectedDayData.sessions.map((s, i) => (
-                                <SessionItem
-                                    key={s.id}
-                                    session={s}
-                                    index={i}
-                                />
-                            ))}
-                        </div>
-                    </>
-                ) : (
-                    <p className="text-sm text-muted-foreground text-center py-8">
-                        この日の勤怠データはありません
-                    </p>
-                )}
-            </CardContent>
-        </Card>
-    );
+              {selectedDayData.sessions.map((s, i) => (
+                <SessionItem key={s.id} session={s} index={i} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            この日の勤怠データはありません
+          </p>
+        )}
+      </CardContent>
+    </Card>
+  )
 }
