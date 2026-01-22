@@ -1,26 +1,26 @@
 // frontend/hooks/useDialogState.ts
 // ダイアログ状態管理の共通フック
 
-"use client";
+"use client"
 
-import { useState, useCallback } from "react";
-import type { ApiResult } from "@attendance-manager/shared/types/ApiResponse";
+import type { ApiResult } from "@attendance-manager/shared/types/ApiResponse"
+import { useCallback, useState } from "react"
 
 /**
  * ダイアログの状態
  */
-export type DialogMode = "form" | "loading" | "success";
+export type DialogMode = "form" | "loading" | "success"
 
 /**
  * useDialogStateの戻り値
  */
 export interface UseDialogStateReturn {
-    mode: DialogMode;
-    error: string | null;
-    setMode: (mode: DialogMode) => void;
-    setError: (error: string | null) => void;
-    handleSubmit: <T>(submitFn: () => Promise<ApiResult<T>>) => Promise<boolean>;
-    reset: () => void;
+  mode: DialogMode
+  error: string | null
+  setMode: (mode: DialogMode) => void
+  setError: (error: string | null) => void
+  handleSubmit: <T>(submitFn: () => Promise<ApiResult<T>>) => Promise<boolean>
+  reset: () => void
 }
 
 /**
@@ -37,42 +37,44 @@ export interface UseDialogStateReturn {
  * };
  */
 export function useDialogState(): UseDialogStateReturn {
-    const [mode, setMode] = useState<DialogMode>("form");
-    const [error, setError] = useState<string | null>(null);
+  const [mode, setMode] = useState<DialogMode>("form")
+  const [error, setError] = useState<string | null>(null)
 
-    const handleSubmit = useCallback(async <T>(submitFn: () => Promise<ApiResult<T>>): Promise<boolean> => {
-        try {
-            setMode("loading");
-            setError(null);
-            const result = await submitFn();
+  const handleSubmit = useCallback(
+    async <T>(submitFn: () => Promise<ApiResult<T>>): Promise<boolean> => {
+      try {
+        setMode("loading")
+        setError(null)
+        const result = await submitFn()
 
-            if (result.success) {
-                setMode("success");
-                return true;
-            } else {
-                setError(result.error.message);
-                setMode("form");
-                return false;
-            }
-        } catch (e) {
-            console.error(e);
-            setError(e instanceof Error ? e.message : "Unknown error");
-            setMode("form");
-            return false;
+        if (result.success) {
+          setMode("success")
+          return true
         }
-    }, []);
+        setError(result.error.message)
+        setMode("form")
+        return false
+      } catch (e) {
+        console.error(e)
+        setError(e instanceof Error ? e.message : "Unknown error")
+        setMode("form")
+        return false
+      }
+    },
+    [],
+  )
 
-    const reset = useCallback(() => {
-        setMode("form");
-        setError(null);
-    }, []);
+  const reset = useCallback(() => {
+    setMode("form")
+    setError(null)
+  }, [])
 
-    return {
-        mode,
-        error,
-        setMode,
-        setError,
-        handleSubmit,
-        reset,
-    };
+  return {
+    mode,
+    error,
+    setMode,
+    setError,
+    handleSubmit,
+    reset,
+  }
 }

@@ -14,7 +14,9 @@ cd backend
 pnpm install          # Install dependencies
 pnpm dev              # Start development server (wrangler dev)
 pnpm deploy           # Deploy to Cloudflare Workers
-pnpm lint             # Run ESLint
+pnpm lint             # Run Biome (lint + format check)
+pnpm lint:fix         # Auto-fix lint issues
+pnpm format           # Format code with Biome
 pnpm tsc --noEmit     # Type check
 pnpm cf-typegen       # Generate Cloudflare bindings types
 ```
@@ -25,7 +27,9 @@ cd frontend
 pnpm install          # Install dependencies
 pnpm dev              # Start development server (localhost:3000)
 pnpm build            # Production build
-pnpm lint             # Run ESLint
+pnpm lint             # Run Biome + ESLint (Next.js rules)
+pnpm lint:fix         # Auto-fix lint issues
+pnpm format           # Format code with Biome
 pnpm tsc --noEmit     # Type check
 ```
 
@@ -83,9 +87,16 @@ pnpm tsc --noEmit     # Type check
 - `Break` - Break start/end times
 - `User` - User profile with employee ID
 
-## CI/CD
+## Code Quality
+
+### Linting & Formatting
+- **Biome**: Primary linter and formatter (replaces ESLint + Prettier for most rules)
+- **ESLint**: Frontend only - Next.js specific rules (`@next/next/*`)
+- Config: `biome.json` at repository root
+
+### CI/CD
 
 GitHub Actions (`.github/workflows/ci.yml`) runs on push/PR to main/develop:
-- Backend: lint + type check
-- Frontend: lint + type check
+- Backend: Biome lint + type check
+- Frontend: Biome lint + ESLint (Next.js rules) + type check
 - Uses pnpm as package manager
