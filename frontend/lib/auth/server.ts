@@ -1,10 +1,12 @@
 // frontend/lib/auth/server.ts
 // Server Component用の認証ユーティリティ
+// Cookie からトークンを取得し、Authorization ヘッダーに変換して Hono に送信
 
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+// Server Component用のAPI URL（サーバーサイドで実行されるため直接URLが必要）
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8787";
 
 export type AuthUser = {
@@ -28,10 +30,10 @@ export const getUser = cache(async (): Promise<AuthUser | null> => {
     }
 
     try {
-        // 直接バックエンドにリクエスト（rewrite経由だとCookieが渡らない問題を回避）
+        // Cookie から取得したトークンを Authorization ヘッダーに変換して送信
         const res = await fetch(`${API_URL}/auth/me`, {
             headers: {
-                Cookie: `accessToken=${accessToken}`,
+                Authorization: `Bearer ${accessToken}`,
             },
             cache: "no-store",
         });

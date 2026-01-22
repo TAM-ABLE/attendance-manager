@@ -4,8 +4,19 @@
 import { useState } from "react";
 import { WorkSession, User } from "@attendance-manager/shared/types/Attendance";
 import { isValidUUID } from "@attendance-manager/shared/lib/constants";
-import { updateUserDateSessions, getUserDateSessions } from "@/app/actions/admin";
+import { apiClient } from "@/lib/api-client";
 import { withRetry } from "@/lib/auth/with-retry";
+
+function getUserDateSessions(userId: string, date: string) {
+    return apiClient<WorkSession[]>(`/admin/users/${userId}/attendance/${date}/sessions`);
+}
+
+function updateUserDateSessions(userId: string, date: string, sessions: WorkSession[]) {
+    return apiClient<null>(`/admin/users/${userId}/attendance/${date}/sessions`, {
+        method: "PUT",
+        body: { sessions },
+    });
+}
 
 export function useEditDialog(selectedUser: User | null, reloadMonthData: () => void) {
     const [showEditDialog, setShowEditDialog] = useState(false);

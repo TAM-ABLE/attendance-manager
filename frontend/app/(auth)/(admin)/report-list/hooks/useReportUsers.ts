@@ -3,9 +3,13 @@
 
 import { useCallback } from "react";
 import { UserForSelect } from "@attendance-manager/shared/types/DailyReport";
-import { getDailyReportUsers } from "@/app/actions/daily-reports";
+import { apiClient } from "@/lib/api-client";
 import { withRetry } from "@/lib/auth/with-retry";
 import { useUserSelect } from "@/hooks/useUserSelect";
+
+function getDailyReportUsers() {
+    return apiClient<UserForSelect[]>("/daily-reports/users");
+}
 
 export function useReportUsers() {
     const fetchFn = useCallback(() => withRetry(getDailyReportUsers), []);

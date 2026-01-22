@@ -2,7 +2,6 @@
 import { createRoute } from "@hono/zod-openapi";
 import { getSupabaseClient } from "../../../lib/supabase";
 import { databaseError, successResponse } from "../../../lib/errors";
-import { setAuthCookie } from "../../../lib/cookie";
 import { Env } from "../../types/env";
 import {
     registerRequestSchema,
@@ -81,9 +80,6 @@ registerRouter.openapi(registerRoute, async (c) => {
     }
 
     const { user, session } = data;
-
-    // HttpOnly Cookie にトークンを設定
-    setAuthCookie(c, session.access_token);
 
     return successResponse(c, {
         accessToken: session.access_token,

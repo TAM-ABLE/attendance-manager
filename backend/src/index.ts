@@ -11,7 +11,7 @@ import { createOpenAPIHono } from "../lib/openapi-hono";
 
 const app = createOpenAPIHono<{ Bindings: Env; Variables: AuthVariables }>();
 
-// グローバル CORS（credentials: include を許可するため origin を明示）
+// グローバル CORS（Authorization ヘッダーを許可）
 app.use(
     "*",
     cors({
