@@ -1,0 +1,11 @@
+{
+  "name": "attendance-manager",
+  "private": true,
+  "packageManager": "pnpm@10.24.0",
+  "scripts": {
+    "prepare": "lefthook install"
+  },
+  "devDependencies": {
+    "lefthook": "^1.10.10"
+  }
+}
