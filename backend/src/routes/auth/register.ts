@@ -17,6 +17,7 @@ const registerRoute = createRoute({
   method: "post",
   path: "/",
   tags: ["認証"],
+  security: [],
   summary: "ユーザー登録",
   description: "新規ユーザーを登録します。",
   request: {
