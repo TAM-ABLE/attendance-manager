@@ -137,6 +137,17 @@ attendance-manager/
 
 ---
 
+## アーキテクチャドキュメント
+
+詳細なアーキテクチャドキュメントは `docs/` にあります：
+
+| ドキュメント | 内容 |
+|-------------|------|
+| [data-fetching-architecture.md](docs/data-fetching-architecture.md) | データ取得設計（SSC + SWR） |
+| [authentication.md](docs/authentication.md) | 認証設計（JWT + HttpOnly Cookie） |
+
+---
+
 ## 認証アーキテクチャ
 
 Cookie の責務を Next.js に集約し、Hono は Pure API として Authorization ヘッダーのみを信頼する設計：
@@ -153,6 +164,20 @@ Cookie の責務を Next.js に集約し、Hono は Pure API として Authoriza
 | `(public)` | 不要 | /login, /sign-up |
 | `(auth)` | 必須 | /dashboard, /attendance-history |
 | `(auth)/(admin)` | 管理者のみ | /admin, /report-list |
+
+---
+
+## データ取得アーキテクチャ
+
+SSC（Server Component）での初期データ取得 + SWR でのクライアントサイド更新：
+
+- **初回表示**: SSC で `fetchWithAuth()` → `initialData` として Client Component に渡す → ローディングなし
+- **操作後**: SWR `mutate()` で `/api/proxy/*` 経由で再取得 → 画面更新
+
+```
+[初回表示] SSC → 直接 Hono API
+[操作後]   Client → /api/proxy/* → proxy.ts (Cookie→Header変換) → Hono API
+```
 
 ---
 

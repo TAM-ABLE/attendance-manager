@@ -1,11 +1,18 @@
 "use client"
 
-import { useAttendanceHistory } from "../hooks/useAttendanceHistory"
+import {
+  type AttendanceHistoryInitialData,
+  useAttendanceHistory,
+} from "../hooks/useAttendanceHistory"
 import { CalendarPanel } from "./CalendarPanel"
 import { DayDetailCard } from "./DayDetailCard"
 import { MonthlySummaryCard } from "./MonthlySummaryCard"
 
-export function AttendanceHistoryClient() {
+type AttendanceHistoryClientProps = {
+  initialData?: AttendanceHistoryInitialData
+}
+
+export function AttendanceHistoryClient({ initialData }: AttendanceHistoryClientProps) {
   const {
     attendanceData,
     currentMonth,
@@ -13,7 +20,7 @@ export function AttendanceHistoryClient() {
     selectedDayData,
     setCurrentMonth,
     setSelectedDate,
-  } = useAttendanceHistory()
+  } = useAttendanceHistory(initialData)
 
   // バックエンドから返された計算済みの値を合計
   const totalMonthWorkMs = attendanceData.reduce((acc, d) => acc + d.workTotalMs, 0)

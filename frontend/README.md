@@ -2,6 +2,15 @@
 
 Next.js 16 + React 19 で構築されたフロントエンドアプリケーション。
 
+## ドキュメント
+
+詳細なアーキテクチャドキュメントはルートの `docs/` フォルダにあります：
+
+| ドキュメント | 内容 |
+|-------------|------|
+| [../docs/data-fetching-architecture.md](../docs/data-fetching-architecture.md) | データ取得設計（SSC + SWR） |
+| [../docs/authentication.md](../docs/authentication.md) | 認証設計（JWT + HttpOnly Cookie） |
+
 ## 開発コマンド
 
 ```bash
@@ -99,9 +108,39 @@ URLパスに影響を与えずにルートをグループ化し、共通の認�
 
 - **フレームワーク**: Next.js 16 (App Router)
 - **UI**: React 19 + Tailwind CSS 4 + shadcn/ui
-- **データフェッチ**: SWR
+- **データフェッチ**: SWR + SSC初期データ取得
 - **バリデーション**: Zod
 - **認証**: Server Components + HttpOnly Cookie + proxy.ts（Cookie→Bearer変換）
+
+### データ取得アーキテクチャ
+
+SSC（Server Component）での初期データ取得 + SWR でのクライアントサイド更新：
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                      ブラウザ                            │
+└─────────────────────────────────────────────────────────┘
+                          │
+          ┌───────────────┴───────────────┐
+          ▼                               ▼
+    [初回表示]                      [操作後の更新]
+          │                               │
+          ▼                               ▼
+┌─────────────────┐             ┌─────────────────┐
+│  SSC (page.tsx) │             │   SWR mutate()  │
+│  fetchWithAuth  │             │   api-client.ts │
+└─────────────────┘             └─────────────────┘
+          │                               │
+          │ 直接                          │ /api/proxy/*
+          ▼                               ▼
+┌─────────────────┐             ┌─────────────────┐
+│                 │             │    proxy.ts     │
+│    Hono API     │◀────────────│ Cookie → Header │
+└─────────────────┘             └─────────────────┘
+```
+
+- **初回表示**: SSC で `fetchWithAuth()` → `initialData` として渡す → ローディングなし
+- **操作後**: SWR `mutate()` → `/api/proxy/*` 経由で再取得
 
 ## 主要ファイル
 

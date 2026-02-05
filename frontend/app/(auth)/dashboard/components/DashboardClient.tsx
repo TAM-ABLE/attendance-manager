@@ -2,7 +2,7 @@
 
 import type { AuthUser } from "@/lib/auth/server"
 import { useClockDialogs } from "../hooks/useClockDialogs"
-import { useDashboardAttendance } from "../hooks/useDashboardAttendance"
+import { type DashboardInitialData, useDashboardAttendance } from "../hooks/useDashboardAttendance"
 import { BreakDialog } from "./BreakDialog"
 import { ClockCard } from "./ClockCard"
 import { ClockInDialog } from "./ClockInDialog"
@@ -14,9 +14,10 @@ import { WeeklyAlert } from "./WeeklyAlert"
 
 type DashboardClientProps = {
   user: AuthUser
+  initialData?: DashboardInitialData
 }
 
-export function DashboardClient({ user }: DashboardClientProps) {
+export function DashboardClient({ user, initialData }: DashboardClientProps) {
   const {
     attendance,
     currentSession,
@@ -26,7 +27,7 @@ export function DashboardClient({ user }: DashboardClientProps) {
     handleClockOut,
     handleBreakStart,
     handleBreakEnd,
-  } = useDashboardAttendance(user)
+  } = useDashboardAttendance(user, initialData)
 
   const {
     showClockInDialog,
