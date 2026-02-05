@@ -1,0 +1,112 @@
+name: Bundle Size
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+
+jobs:
+  bundle-size:
+    name: Analyze Bundle Size
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install frontend dependencies
+        run: pnpm install
+        working-directory: frontend
+
+      - name: Build and analyze bundle
+        run: |
+          ANALYZE=true pnpm build
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: https://example.com
+
+      - name: Get bundle stats
+        id: bundle
+        run: |
+          # Get the size of .next directory
+          TOTAL_SIZE=$(du -sh .next | cut -f1)
+
+          # Get JS bundle sizes
+          JS_SIZE=$(find .next -name "*.js" -type f -exec du -ch {} + | tail -1 | cut -f1)
+
+          # Get the number of chunks
+          CHUNK_COUNT=$(find .next/static/chunks -name "*.js" -type f | wc -l)
+
+          echo "total_size=$TOTAL_SIZE" >> $GITHUB_OUTPUT
+          echo "js_size=$JS_SIZE" >> $GITHUB_OUTPUT
+          echo "chunk_count=$CHUNK_COUNT" >> $GITHUB_OUTPUT
+        working-directory: frontend
+
+      - name: Comment bundle size on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const totalSize = '${{ steps.bundle.outputs.total_size }}';
+            const jsSize = '${{ steps.bundle.outputs.js_size }}';
+            const chunkCount = '${{ steps.bundle.outputs.chunk_count }}';
+
+            const body = `## 📦 Bundle Size Report
+
+            | Metric | Value |
+            |--------|-------|
+            | Total Build Size | ${totalSize} |
+            | JavaScript Size | ${jsSize} |
+            | Number of Chunks | ${chunkCount} |
+
+            <details>
+            <summary>What do these numbers mean?</summary>
+
+            - **Total Build Size**: The total size of the \`.next\` build output
+            - **JavaScript Size**: Combined size of all JS files
+            - **Number of Chunks**: How many JS chunks were created (more chunks = better code splitting)
+
+            </details>`;
+
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Bundle Size Report')
+            );
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: body
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: body
+              });
+            }
