@@ -17,6 +17,7 @@ const loginRoute = createRoute({
   method: "post",
   path: "/",
   tags: ["認証"],
+  security: [],
   summary: "ログイン",
   description: "メールアドレスとパスワードでログインし、JWTトークンを取得します。",
   request: {

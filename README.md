@@ -137,14 +137,16 @@ attendance-manager/
 
 ---
 
-## アーキテクチャドキュメント
+## ドキュメント
 
-詳細なアーキテクチャドキュメントは `docs/` にあります：
+詳細なドキュメントは `docs/` にあります：
 
 | ドキュメント | 内容 |
 |-------------|------|
+| [development-guide.md](docs/development-guide.md) | 開発環境ガイド（Supabase CLI、起動方法） |
 | [data-fetching-architecture.md](docs/data-fetching-architecture.md) | データ取得設計（SSC + SWR） |
 | [authentication.md](docs/authentication.md) | 認証設計（JWT + HttpOnly Cookie） |
+| [openapi-zod.md](docs/openapi-zod.md) | OpenAPI + Zod スキーマ設計 |
 
 ---
 

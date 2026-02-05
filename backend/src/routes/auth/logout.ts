@@ -20,6 +20,7 @@ const logoutRoute = createRoute({
   method: "post",
   path: "/",
   tags: ["認証"],
+  security: [],
   summary: "ログアウト",
   description: "ログアウトします（クライアント側でトークンを破棄してください）",
   responses: {

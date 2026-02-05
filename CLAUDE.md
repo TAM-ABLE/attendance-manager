@@ -50,6 +50,15 @@ pnpm tsc --noEmit     # Type check
 - Auth: JWT-based authentication
 - Config: `wrangler.jsonc` for Cloudflare Workers settings
 - Environment bindings defined in `backend/src/types/env.ts`
+- OpenAPI: `@hono/zod-openapi` for schema validation + API docs generation
+- Swagger UI: http://localhost:8787/ui (dev), OpenAPI spec: `/doc`
+
+#### OpenAPI + Zod Architecture
+See `docs/openapi-zod.md` for details.
+
+- `backend/lib/openapi-schemas.ts` - Zod schema definitions with OpenAPI metadata
+- `backend/lib/openapi-hono.ts` - OpenAPIHono factory with unified error handling
+- Routes use `createRoute()` + `router.openapi()` pattern for type-safe handlers
 
 ### Frontend (Next.js App Router)
 - Uses `app/` directory structure
