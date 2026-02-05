@@ -6,7 +6,7 @@ import { SWR_KEYS } from "@/lib/swr-keys"
 import { formatYearMonth, toJSTDateString } from "@attendance-manager/shared/lib/time"
 import { formatYearMonthFromDate } from "@attendance-manager/shared/lib/time"
 import type { AttendanceRecord } from "@attendance-manager/shared/types/Attendance"
-import { useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 import useSWR from "swr"
 
 function getMonth(year: number, month: number) {
@@ -14,7 +14,12 @@ function getMonth(year: number, month: number) {
   return apiClient<AttendanceRecord[]>(`/attendance/month/${yearMonth}`)
 }
 
-export function useAttendanceHistory() {
+export type AttendanceHistoryInitialData = {
+  attendanceData: AttendanceRecord[]
+  yearMonth: string
+}
+
+export function useAttendanceHistory(initialData?: AttendanceHistoryInitialData) {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
   const [currentMonth, setCurrentMonth] = useState<Date>(new Date())
 
@@ -22,6 +27,12 @@ export function useAttendanceHistory() {
   const yearMonth = formatYearMonthFromDate(currentMonth)
   const year = currentMonth.getFullYear()
   const month = currentMonth.getMonth() + 1
+
+  // 初期データのyearMonthを保持（月変更検出用）
+  const initialYearMonthRef = useRef(initialData?.yearMonth)
+
+  // 現在の月が初期データの月と一致するかどうか
+  const isInitialMonth = initialYearMonthRef.current === yearMonth
 
   // SWRでデータ取得（キャッシュ付き、401 時は自動リフレッシュ）
   const {
@@ -39,6 +50,10 @@ export function useAttendanceHistory() {
       throw new Error(result.error.message)
     },
     {
+      // 初期データがある場合はfallbackDataとして使用
+      fallbackData: isInitialMonth ? initialData?.attendanceData : undefined,
+      // 初期月以外または初期データがない場合は再取得
+      revalidateOnMount: !isInitialMonth || !initialData,
       // 5分間キャッシュ
       revalidateOnFocus: false,
       dedupingInterval: 60000,

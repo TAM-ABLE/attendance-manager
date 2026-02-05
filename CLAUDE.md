@@ -54,13 +54,24 @@ pnpm tsc --noEmit     # Type check
 ### Frontend (Next.js App Router)
 - Uses `app/` directory structure
 - Auth: Server Components + HttpOnly Cookie (Route Groups for access control)
-- State: SWR for data fetching
+- State: SWR for data fetching with SSC initial data
 - UI: Tailwind CSS 4 + shadcn/ui components (Radix UI based)
 - Path alias: `@/*` maps to root
+- Proxy: `proxy.ts` (Next.js 16) for Cookie → Authorization header conversion
+
+#### Data Fetching Architecture
+See `docs/data-fetching-architecture.md` for details.
+
+- **Initial load (SSC)**: Server Components fetch data via `fetchWithAuth()`, pass to Client Components as `initialData`
+- **Client updates (SWR)**: After user actions, SWR `mutate()` refetches via `/api/proxy/*` → Hono API
+- **No loading on initial render**: `fallbackData` in SWR prevents loading spinners
 
 #### Authentication Architecture
-- `lib/auth/server.ts` - Server Component auth utilities (`getUser`, `requireAuth`, `requireAdmin`)
-- `lib/api-client.ts` - Client-side API client with `credentials: "include"` for Cookie auth
+See `docs/authentication.md` for details.
+
+- `lib/auth/server.ts` - Server Component auth utilities (`getUser`, `requireAuth`, `requireAdmin`, `fetchWithAuth`)
+- `lib/api-client.ts` - Client-side API client via `/api/proxy/*`
+- `proxy.ts` - Cookie → Authorization header conversion + rewrite to Hono
 - Route Groups for access control:
   - `(public)/` - Public pages (login, sign-up)
   - `(auth)/` - Authenticated pages (dashboard, attendance-history)

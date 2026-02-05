@@ -1,10 +1,16 @@
 // app/(auth)/(admin)/report-list/page.tsx
 
+import { fetchWithAuth } from "@/lib/auth/server"
+import type { UserForSelect } from "@attendance-manager/shared/types/DailyReport"
 import { FileText } from "lucide-react"
 import { ReportListView } from "./components/ReportListView"
 
-export default function ReportListPage() {
+export default async function ReportListPage() {
   // 認証・権限チェックは(admin)/layout.tsxで実施済み
+
+  // SSCでユーザー一覧を取得
+  const users = await fetchWithAuth<UserForSelect[]>("/daily-reports/users")
+
   return (
     <div className="space-y-4 sm:space-y-6 p-3 sm:p-4">
       <div className="flex items-center gap-2">
@@ -15,7 +21,7 @@ export default function ReportListPage() {
         </div>
       </div>
 
-      <ReportListView />
+      <ReportListView initialUsers={users ?? undefined} />
     </div>
   )
 }

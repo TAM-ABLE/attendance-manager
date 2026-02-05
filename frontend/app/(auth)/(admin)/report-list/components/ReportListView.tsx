@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import type { UserForSelect } from "@attendance-manager/shared/types/DailyReport"
 import dynamic from "next/dynamic"
 import { useCallback, useState } from "react"
 
@@ -21,9 +22,18 @@ const ReportDetailDialog = dynamic(
   { ssr: false },
 )
 
-export function ReportListView() {
+type ReportListViewProps = {
+  initialUsers?: UserForSelect[]
+}
+
+export function ReportListView({ initialUsers }: ReportListViewProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const { users, selectedUser, setSelectedUser, isLoading: usersLoading } = useReportUsers()
+  const {
+    users,
+    selectedUser,
+    setSelectedUser,
+    isLoading: usersLoading,
+  } = useReportUsers(initialUsers)
   const { reports, isLoading: reportsLoading } = useMonthlyReports(selectedUser, currentMonth)
 
   // 詳細ダイアログ
