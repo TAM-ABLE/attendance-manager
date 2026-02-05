@@ -80,3 +80,42 @@ export async function requireAdmin(): Promise<AuthUser> {
 
   return user
 }
+
+/**
+ * Server Component用の汎用認証付きfetch
+ * Cookie からトークンを取得し、Authorization ヘッダーに変換して Hono に送信
+ * @param endpoint - API エンドポイント（例: "/attendance/today"）
+ * @returns データまたはnull（認証エラーやリクエスト失敗時）
+ */
+export async function fetchWithAuth<T>(endpoint: string): Promise<T | null> {
+  const cookieStore = await cookies()
+  const accessToken = cookieStore.get("accessToken")?.value
+
+  if (!accessToken) {
+    return null
+  }
+
+  try {
+    const res = await fetch(`${API_URL}${endpoint}`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      cache: "no-store",
+    })
+
+    if (!res.ok) {
+      return null
+    }
+
+    const json = await res.json()
+
+    if (!json.success) {
+      return null
+    }
+
+    return json.data as T
+  } catch (err) {
+    console.error("fetchWithAuth error:", err)
+    return null
+  }
+}

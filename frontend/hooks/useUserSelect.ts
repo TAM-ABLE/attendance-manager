@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react"
 
 interface UseUserSelectOptions<T> {
   fetchFn: () => Promise<ApiResult<T[]>>
+  initialData?: T[]
 }
 
 interface UseUserSelectReturn<T> {
@@ -21,13 +22,15 @@ interface UseUserSelectReturn<T> {
 /**
  * ユーザー一覧を取得し、選択状態を管理する汎用hook
  * @param fetchFn - ユーザー一覧を取得する関数（ApiResult<T[]>を返す）
+ * @param initialData - SSCで取得した初期データ（省略可）
  */
 export function useUserSelect<T extends { id: string }>({
   fetchFn,
+  initialData,
 }: UseUserSelectOptions<T>): UseUserSelectReturn<T> {
-  const [users, setUsers] = useState<T[]>([])
-  const [selectedUser, setSelectedUser] = useState<T | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [users, setUsers] = useState<T[]>(initialData ?? [])
+  const [selectedUser, setSelectedUser] = useState<T | null>(initialData?.[0] ?? null)
+  const [isLoading, setIsLoading] = useState(!initialData)
   const [error, setError] = useState<string | null>(null)
 
   const fetchUsers = useCallback(async () => {
@@ -56,6 +59,11 @@ export function useUserSelect<T extends { id: string }>({
   }, [fetchFn, selectedUser])
 
   useEffect(() => {
+    // 初期データがある場合はfetchをスキップ
+    if (initialData) {
+      return
+    }
+
     let mounted = true
 
     const load = async () => {
@@ -93,7 +101,7 @@ export function useUserSelect<T extends { id: string }>({
     return () => {
       mounted = false
     }
-  }, [fetchFn])
+  }, [fetchFn, initialData])
 
   return {
     users,
