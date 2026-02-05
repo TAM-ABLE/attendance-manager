@@ -109,7 +109,7 @@ export const errorResponseSchema = z
 
 export const loginRequestSchema = z
   .object({
-    email: z.string().email().openapi({
+    email: z.email().openapi({
       description: "メールアドレス",
       example: "user@example.com",
     }),
@@ -130,7 +130,7 @@ export const loginResponseSchema = z
     user: z.object({
       id: uuidSchema,
       name: z.string(),
-      email: z.string().email(),
+      email: z.email(),
       role: z.enum(["admin", "user"]),
     }),
   })
@@ -142,7 +142,7 @@ export const registerRequestSchema = z
       description: "ユーザー名",
       example: "山田太郎",
     }),
-    email: z.string().email().openapi({
+    email: z.email().openapi({
       description: "メールアドレス",
       example: "user@example.com",
     }),
@@ -172,7 +172,7 @@ export const registerResponseSchema = z
     user: z.object({
       id: uuidSchema,
       name: z.string(),
-      email: z.string().email(),
+      email: z.email(),
       role: z.enum(["admin", "user"]),
     }),
   })
@@ -287,7 +287,7 @@ export const userSchema = z
   .object({
     id: uuidSchema,
     name: z.string(),
-    email: z.string().email(),
+    email: z.email(),
     employeeNumber: z.string(),
   })
   .openapi("User")

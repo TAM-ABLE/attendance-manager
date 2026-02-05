@@ -27,7 +27,7 @@ const meResponseSchema = z
   .object({
     id: uuidSchema,
     name: z.string(),
-    email: z.string().email(),
+    email: z.email(),
     role: z.enum(["admin", "user"]),
   })
   .openapi("MeResponse")
@@ -36,6 +36,7 @@ const meRoute = createRoute({
   method: "get",
   path: "/",
   tags: ["認証"],
+  security: [{ Bearer: [] }],
   summary: "現在のユーザー情報を取得",
   description: "Authorization ヘッダーの Bearer トークンを検証し、ユーザー情報を返します。",
   responses: {
