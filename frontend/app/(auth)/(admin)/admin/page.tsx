@@ -3,11 +3,17 @@
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { fetchWithAuth } from "@/lib/auth/server"
+import type { User } from "@attendance-manager/shared/types/Attendance"
 import { CalendarDays } from "lucide-react"
 import { MonthlyAttendanceView } from "./components/MonthlyAttendanceView"
 
-export default function AdminPage() {
+export default async function AdminPage() {
   // 認証・権限チェックは(admin)/layout.tsxで実施済み
+
+  // SSCでユーザー一覧を取得
+  const users = await fetchWithAuth<User[]>("/admin/users")
+
   return (
     <div className="space-y-4 sm:space-y-6 p-3 sm:p-4">
       <div className="flex items-center justify-between">
@@ -29,7 +35,7 @@ export default function AdminPage() {
         </TabsList>
 
         <TabsContent value="monthly">
-          <MonthlyAttendanceView />
+          <MonthlyAttendanceView initialUsers={users ?? undefined} />
         </TabsContent>
 
         <TabsContent value="settings">

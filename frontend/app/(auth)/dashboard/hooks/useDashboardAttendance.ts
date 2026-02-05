@@ -81,27 +81,36 @@ async function fetchWeekTotal() {
   return data?.netWorkMs ?? 0
 }
 
-export function useDashboardAttendance(user: AuthUser) {
+export type DashboardInitialData = {
+  attendance: AttendanceRecord | null
+  weekTotalMs: number
+}
+
+export function useDashboardAttendance(user: AuthUser, initialData?: DashboardInitialData) {
   const [error, setError] = useState<string | null>(null)
 
-  // 今日のデータを取得
+  // 今日のデータを取得（initialDataがあればfallbackDataとして使用）
   const {
     data: attendance,
     mutate: mutateToday,
     error: todayError,
   } = useSWR(SWR_KEYS.ATTENDANCE_TODAY, fetchToday, {
+    fallbackData: initialData?.attendance ?? undefined,
+    revalidateOnMount: initialData?.attendance === undefined,
     onError: (err) => {
       console.error("Failed to load today:", err)
       setError(err.message)
     },
   })
 
-  // 週合計を取得
+  // 週合計を取得（initialDataがあればfallbackDataとして使用）
   const {
     data: weekTotalMs,
     mutate: mutateWeekTotal,
     error: weekError,
   } = useSWR(SWR_KEYS.ATTENDANCE_WEEK_TOTAL, fetchWeekTotal, {
+    fallbackData: initialData?.weekTotalMs,
+    revalidateOnMount: initialData?.weekTotalMs === undefined,
     onError: (err) => {
       console.error("Failed to load week total:", err)
     },

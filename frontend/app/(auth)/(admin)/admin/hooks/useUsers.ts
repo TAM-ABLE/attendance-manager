@@ -11,7 +11,7 @@ function getUsers() {
   return apiClient<User[]>("/admin/users")
 }
 
-export function useUsers() {
+export function useUsers(initialData?: User[]) {
   const fetchFn = useCallback(() => withRetry(getUsers), [])
-  return useUserSelect<User>({ fetchFn })
+  return useUserSelect<User>({ fetchFn, initialData })
 }

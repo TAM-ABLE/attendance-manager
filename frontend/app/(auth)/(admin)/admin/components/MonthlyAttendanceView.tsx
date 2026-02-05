@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import type { User } from "@attendance-manager/shared/types/Attendance"
 import { Download } from "lucide-react"
 import dynamic from "next/dynamic"
 import { useCallback, useState } from "react"
@@ -25,9 +26,13 @@ const EditAttendanceDialog = dynamic(
   { ssr: false },
 )
 
-export function MonthlyAttendanceView() {
+type MonthlyAttendanceViewProps = {
+  initialUsers?: User[]
+}
+
+export function MonthlyAttendanceView({ initialUsers }: MonthlyAttendanceViewProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const { users, selectedUser, setSelectedUser } = useUsers()
+  const { users, selectedUser, setSelectedUser } = useUsers(initialUsers)
   const { monthData, refetch } = useMonthlyAttendance(selectedUser, currentMonth)
 
   const editDialog = useEditDialog(selectedUser, refetch)

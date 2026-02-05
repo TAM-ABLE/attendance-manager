@@ -11,7 +11,7 @@ function getDailyReportUsers() {
   return apiClient<UserForSelect[]>("/daily-reports/users")
 }
 
-export function useReportUsers() {
+export function useReportUsers(initialData?: UserForSelect[]) {
   const fetchFn = useCallback(() => withRetry(getDailyReportUsers), [])
-  return useUserSelect<UserForSelect>({ fetchFn })
+  return useUserSelect<UserForSelect>({ fetchFn, initialData })
 }
