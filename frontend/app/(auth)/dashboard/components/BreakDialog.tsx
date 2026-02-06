@@ -1,5 +1,7 @@
 "use client"
 
+import type { ApiResult } from "@attendance-manager/shared/types/ApiResponse"
+import { useState } from "react"
 import { DialogWrapper } from "@/components/DialogWrapper"
 import { Button } from "@/components/ui/button"
 import {
@@ -12,8 +14,6 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useDialogState } from "@/hooks/useDialogState"
-import type { ApiResult } from "@attendance-manager/shared/types/ApiResponse"
-import { useState } from "react"
 
 interface BreakDialogProps {
   open: boolean

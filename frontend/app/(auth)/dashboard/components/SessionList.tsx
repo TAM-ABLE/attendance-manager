@@ -1,7 +1,5 @@
 "use client"
 
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   calculateActiveSession,
   calculateCompletedSession,
@@ -10,6 +8,8 @@ import { formatClockTime, formatDurationMs } from "@attendance-manager/shared/li
 import type { AttendanceRecord, WorkSession } from "@attendance-manager/shared/types/Attendance"
 import { Clock, Coffee } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export function SessionList({
   attendance,

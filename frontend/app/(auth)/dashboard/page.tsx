@@ -1,7 +1,7 @@
 // dashboard/page.tsx
 
-import { fetchWithAuth, getUser } from "@/lib/auth/server"
 import type { AttendanceRecord } from "@attendance-manager/shared/types/Attendance"
+import { fetchWithAuth, getUser } from "@/lib/auth/server"
 import { DashboardClient } from "./components/DashboardClient"
 
 export default async function DashboardPage() {
