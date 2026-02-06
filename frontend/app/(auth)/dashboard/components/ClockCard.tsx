@@ -1,7 +1,7 @@
 "use client"
 
-import { Card, CardContent } from "@/components/ui/card"
 import { useEffect, useState } from "react"
+import { Card, CardContent } from "@/components/ui/card"
 
 export function ClockCard() {
   const [currentTime, setCurrentTime] = useState<Date | null>(null)

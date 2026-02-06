@@ -1,9 +1,9 @@
 // components/Header/index.tsx
 // Server Component
 
+import { Gauge } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import type { AuthUser } from "@/lib/auth/server"
-import { Gauge } from "lucide-react"
 import { LogoutButton } from "./LogoutButton"
 import { MobileMenu } from "./MobileMenu"
 import { NavLinks } from "./NavLinks"

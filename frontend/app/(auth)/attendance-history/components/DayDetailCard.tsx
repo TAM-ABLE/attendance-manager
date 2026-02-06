@@ -1,7 +1,7 @@
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatDurationMs } from "@attendance-manager/shared/lib/time"
 import type { AttendanceRecord } from "@attendance-manager/shared/types/Attendance"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { SessionItem } from "./SessionItem"
 
 interface Props {

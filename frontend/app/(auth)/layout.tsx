@@ -5,11 +5,7 @@ import { Footer } from "@/components/Footer"
 import { Header } from "@/components/Header"
 import { requireAuth } from "@/lib/auth/server"
 
-export default async function AuthLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default async function AuthLayout({ children }: { children: React.ReactNode }) {
   const user = await requireAuth()
 
   return (

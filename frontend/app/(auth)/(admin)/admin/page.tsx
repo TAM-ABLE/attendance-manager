@@ -1,11 +1,11 @@
 // app/(auth)/(admin)/admin/page.tsx
 
+import type { User } from "@attendance-manager/shared/types/Attendance"
+import { CalendarDays } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { fetchWithAuth } from "@/lib/auth/server"
-import type { User } from "@attendance-manager/shared/types/Attendance"
-import { CalendarDays } from "lucide-react"
 import { MonthlyAttendanceView } from "./components/MonthlyAttendanceView"
 
 export default async function AdminPage() {

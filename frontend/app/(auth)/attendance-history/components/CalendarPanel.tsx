@@ -1,8 +1,8 @@
+import type { AttendanceRecord } from "@attendance-manager/shared/types/Attendance"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Calendar as CalendarComponent } from "@/components/ui/calendar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import type { AttendanceRecord } from "@attendance-manager/shared/types/Attendance"
-import { ChevronLeft, ChevronRight } from "lucide-react"
 
 interface Props {
   selectedDate: Date | undefined

@@ -1,8 +1,8 @@
 // app/(auth)/attendance-history/page.tsx
 
-import { fetchWithAuth } from "@/lib/auth/server"
 import { formatYearMonthFromDate } from "@attendance-manager/shared/lib/time"
 import type { AttendanceRecord } from "@attendance-manager/shared/types/Attendance"
+import { fetchWithAuth } from "@/lib/auth/server"
 import { AttendanceHistoryClient } from "./components/AttendanceHistoryClient"
 
 export default async function AttendanceHistoryPage() {

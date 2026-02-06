@@ -1,5 +1,6 @@
 "use client"
 
+import { CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -9,7 +10,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { CheckCircle } from "lucide-react"
 
 export const SuccessDialog = ({
   open,

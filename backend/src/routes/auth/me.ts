@@ -1,6 +1,5 @@
 // backend/src/routes/auth/me.ts
-import { createRoute } from "@hono/zod-openapi"
-import { z } from "@hono/zod-openapi"
+import { createRoute, z } from "@hono/zod-openapi"
 import { createClient } from "@supabase/supabase-js"
 import { successResponse, unauthorizedError } from "../../../lib/errors"
 import { createOpenAPIHono } from "../../../lib/openapi-hono"
