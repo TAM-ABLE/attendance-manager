@@ -2,7 +2,7 @@ import { parseYearMonth } from "@attendance-manager/shared/lib/time"
 // backend/src/routes/admin/users.ts
 import { createRoute, z } from "@hono/zod-openapi"
 import { databaseError, successResponse, validationError } from "../../../lib/errors"
-import { type DbAttendanceRecord, formatAttendanceRecord } from "../../../lib/formatters"
+import { formatAttendanceRecord } from "../../../lib/formatters"
 import { createOpenAPIHono } from "../../../lib/openapi-hono"
 import {
   attendanceRecordSchema,
@@ -15,7 +15,7 @@ import {
   workSessionSchema,
   yearMonthSchema,
 } from "../../../lib/openapi-schemas"
-import { getSupabaseClient } from "../../../lib/supabase"
+import { createRepos, DatabaseError } from "../../../lib/repositories"
 import type { AuthVariables } from "../../middleware/auth"
 import type { Env } from "../../types/env"
 
@@ -52,25 +52,23 @@ const getUsersRoute = createRoute({
 })
 
 usersRouter.openapi(getUsersRoute, async (c) => {
-  const supabase = getSupabaseClient(c.env)
+  const { profile } = createRepos(c.env)
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, name, email, employee_number")
-    .order("employee_number", { ascending: true })
+  try {
+    const data = await profile.findAllUsers()
 
-  if (error) {
-    return databaseError(c, error.message)
+    const users = data.map((u) => ({
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      employeeNumber: u.employee_number,
+    }))
+
+    return successResponse(c, users)
+  } catch (e) {
+    if (e instanceof DatabaseError) return databaseError(c, e.message)
+    throw e
   }
-
-  const users = data.map((u) => ({
-    id: u.id,
-    name: u.name,
-    email: u.email,
-    employeeNumber: u.employee_number,
-  }))
-
-  return successResponse(c, users)
 })
 
 // GET /admin/users/:userId/attendance/month/:yearMonth - ユーザーの月次勤怠
@@ -128,32 +126,15 @@ usersRouter.openapi(getUserMonthlyRoute, async (c) => {
   const lastDay = new Date(year, month, 0).getDate()
   const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
 
-  const supabase = getSupabaseClient(c.env)
+  const { attendance } = createRepos(c.env)
 
-  const { data, error } = await supabase
-    .from("attendance_records")
-    .select(
-      `
-            id,
-            date,
-            work_sessions (
-                id,
-                clock_in,
-                clock_out,
-                breaks ( id, break_start, break_end )
-            )
-        `,
-    )
-    .eq("user_id", userId)
-    .gte("date", start)
-    .lte("date", end)
-    .order("date")
-
-  if (error) {
-    return databaseError(c, error.message)
+  try {
+    const data = await attendance.findRecordsByDateRange(userId, start, end)
+    return successResponse(c, data.map(formatAttendanceRecord))
+  } catch (e) {
+    if (e instanceof DatabaseError) return databaseError(c, e.message)
+    throw e
   }
-
-  return successResponse(c, (data as DbAttendanceRecord[]).map(formatAttendanceRecord))
 })
 
 // GET /admin/users/:userId/attendance/:date/sessions - ユーザーの特定日のセッション取得
@@ -192,52 +173,32 @@ const getUserSessionsRoute = createRoute({
 
 usersRouter.openapi(getUserSessionsRoute, async (c) => {
   const { userId, date } = c.req.valid("param")
+  const { attendance } = createRepos(c.env)
 
-  const supabase = getSupabaseClient(c.env)
+  try {
+    const data = await attendance.findRecordWithSessions(userId, date)
 
-  const { data, error } = await supabase
-    .from("attendance_records")
-    .select(
-      `
-            id,
-            date,
-            work_sessions (
-                id,
-                clock_in,
-                clock_out,
-                breaks (
-                    id,
-                    break_start,
-                    break_end
-                )
-            )
-        `,
-    )
-    .eq("user_id", userId)
-    .eq("date", date)
-    .maybeSingle<DbAttendanceRecord>()
+    if (!data?.work_sessions || !Array.isArray(data.work_sessions)) {
+      return successResponse(c, [])
+    }
 
-  if (error) {
-    return databaseError(c, error.message)
+    // Convert to schema format (null instead of undefined)
+    const sessions = data.work_sessions.map((s) => ({
+      id: s.id,
+      clockIn: s.clock_in ? new Date(s.clock_in).getTime() : null,
+      clockOut: s.clock_out ? new Date(s.clock_out).getTime() : null,
+      breaks: s.breaks.map((b) => ({
+        id: b.id,
+        start: b.break_start ? new Date(b.break_start).getTime() : null,
+        end: b.break_end ? new Date(b.break_end).getTime() : null,
+      })),
+    }))
+
+    return successResponse(c, sessions)
+  } catch (e) {
+    if (e instanceof DatabaseError) return databaseError(c, e.message)
+    throw e
   }
-
-  if (!data?.work_sessions || !Array.isArray(data.work_sessions)) {
-    return successResponse(c, [])
-  }
-
-  // Convert to schema format (null instead of undefined)
-  const sessions = data.work_sessions.map((s) => ({
-    id: s.id,
-    clockIn: s.clock_in ? new Date(s.clock_in).getTime() : null,
-    clockOut: s.clock_out ? new Date(s.clock_out).getTime() : null,
-    breaks: s.breaks.map((b) => ({
-      id: b.id,
-      start: b.break_start ? new Date(b.break_start).getTime() : null,
-      end: b.break_end ? new Date(b.break_end).getTime() : null,
-    })),
-  }))
-
-  return successResponse(c, sessions)
 })
 
 // PUT /admin/users/:userId/attendance/:date/sessions - ユーザーの特定日のセッション更新
@@ -293,109 +254,74 @@ const updateUserSessionsRoute = createRoute({
 usersRouter.openapi(updateUserSessionsRoute, async (c) => {
   const { userId, date } = c.req.valid("param")
   const { sessions } = c.req.valid("json")
+  const repos = createRepos(c.env)
 
-  const supabase = getSupabaseClient(c.env)
-
-  // attendance_records を取得 or 作成
-  const { data: attendanceData } = await supabase
-    .from("attendance_records")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("date", date)
-    .single()
-
-  let attendanceId: string
-
-  if (attendanceData) {
-    attendanceId = attendanceData.id
+  try {
+    // attendance_records を取得 or 作成
+    const { id: attendanceId } = await repos.attendance.findOrCreateRecord(userId, date)
 
     // 既存データ削除
-    const { data: oldSessions } = await supabase
-      .from("work_sessions")
-      .select("id")
-      .eq("attendance_id", attendanceId)
-
-    const ids = oldSessions?.map((s) => s.id) || []
-
-    if (ids.length > 0) {
-      await supabase.from("breaks").delete().in("session_id", ids)
-      await supabase.from("work_sessions").delete().in("id", ids)
-    }
-  } else {
-    const { data: newRecord, error: err } = await supabase
-      .from("attendance_records")
-      .insert({ user_id: userId, date })
-      .select()
-      .single()
-
-    if (err || !newRecord) {
-      return databaseError(c, err?.message || "Failed to create attendance")
+    const oldSessionIds = await repos.workSession.getSessionIdsByAttendanceId(attendanceId)
+    if (oldSessionIds.length > 0) {
+      await repos.break.deleteBySessionIds(oldSessionIds)
+      await repos.workSession.deleteByIds(oldSessionIds)
     }
 
-    attendanceId = newRecord.id
-  }
-
-  // バリデーション（先に全てチェック）
-  const validSessions = sessions.filter((s) => s.clockIn != null)
-  for (const s of validSessions) {
-    if (s.clockOut && s.clockOut < s.clockIn!) {
-      return validationError(c, "Clock out time must be after clock in time")
-    }
-    for (const br of s.breaks || []) {
-      if (!br.start) continue
-      if (br.end && br.end < br.start) {
-        return validationError(c, "Break end time must be after break start time")
+    // バリデーション（先に全てチェック）
+    const validSessions = sessions.filter((s) => s.clockIn != null)
+    for (const s of validSessions) {
+      if (s.clockOut && s.clockOut < s.clockIn!) {
+        return validationError(c, "Clock out time must be after clock in time")
       }
-      // 休憩がセッション時間内かチェック
-      if (br.start < s.clockIn!) {
-        return validationError(c, "Break start time must be after clock in time")
-      }
-      if (s.clockOut && br.end && br.end > s.clockOut) {
-        return validationError(c, "Break end time must be before clock out time")
-      }
-    }
-  }
-
-  // work_sessions を一括挿入
-  if (validSessions.length > 0) {
-    const sessionInserts = validSessions.map((s) => ({
-      attendance_id: attendanceId,
-      clock_in: new Date(s.clockIn!).toISOString(),
-      clock_out: s.clockOut ? new Date(s.clockOut).toISOString() : null,
-    }))
-
-    const { data: insertedSessions, error: wsErr } = await supabase
-      .from("work_sessions")
-      .insert(sessionInserts)
-      .select("id")
-
-    if (wsErr || !insertedSessions) {
-      return databaseError(c, wsErr?.message || "Failed to insert sessions")
-    }
-
-    // breaks を一括挿入
-    const breakInserts: { session_id: string; break_start: string; break_end: string | null }[] = []
-    for (let i = 0; i < validSessions.length; i++) {
-      const sessionId = insertedSessions[i].id
-      for (const br of validSessions[i].breaks || []) {
+      for (const br of s.breaks || []) {
         if (!br.start) continue
-        breakInserts.push({
-          session_id: sessionId,
-          break_start: new Date(br.start).toISOString(),
-          break_end: br.end ? new Date(br.end).toISOString() : null,
-        })
+        if (br.end && br.end < br.start) {
+          return validationError(c, "Break end time must be after break start time")
+        }
+        // 休憩がセッション時間内かチェック
+        if (br.start < s.clockIn!) {
+          return validationError(c, "Break start time must be after clock in time")
+        }
+        if (s.clockOut && br.end && br.end > s.clockOut) {
+          return validationError(c, "Break end time must be before clock out time")
+        }
       }
     }
 
-    if (breakInserts.length > 0) {
-      const { error: brErr } = await supabase.from("breaks").insert(breakInserts)
-      if (brErr) {
-        return databaseError(c, brErr.message)
+    // work_sessions を一括挿入
+    if (validSessions.length > 0) {
+      const insertedSessions = await repos.workSession.insertMultiple(
+        attendanceId,
+        validSessions.map((s) => ({
+          clockIn: new Date(s.clockIn!).toISOString(),
+          clockOut: s.clockOut ? new Date(s.clockOut).toISOString() : null,
+        })),
+      )
+
+      // breaks を一括挿入
+      const breakInserts: { sessionId: string; breakStart: string; breakEnd: string | null }[] = []
+      for (let i = 0; i < validSessions.length; i++) {
+        const sessionId = insertedSessions[i].id
+        for (const br of validSessions[i].breaks || []) {
+          if (!br.start) continue
+          breakInserts.push({
+            sessionId,
+            breakStart: new Date(br.start).toISOString(),
+            breakEnd: br.end ? new Date(br.end).toISOString() : null,
+          })
+        }
+      }
+
+      if (breakInserts.length > 0) {
+        await repos.break.insertMultiple(breakInserts)
       }
     }
+
+    return successResponse(c, null)
+  } catch (e) {
+    if (e instanceof DatabaseError) return databaseError(c, e.message)
+    throw e
   }
-
-  return successResponse(c, null)
 })
 
 export default usersRouter

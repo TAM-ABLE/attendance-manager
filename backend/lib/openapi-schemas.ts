@@ -1,16 +1,36 @@
 // backend/lib/openapi-schemas.ts
 // OpenAPI用のZodスキーマ定義
-// 型は shared/lib/schemas.ts と同期（Single Source of Truth）
+// 共通スキーマは shared/lib/schemas.ts から import し、OpenAPI メタデータを付与
 
+import { MAX_TEXT_FIELD_LENGTH } from "@attendance-manager/shared/lib/constants"
 import {
-  DATE_REGEX,
-  MAX_TASK_HOURS,
-  MAX_TASK_NAME_LENGTH,
-  MAX_TEXT_FIELD_LENGTH,
-  MIN_TASK_HOURS,
-  YEAR_MONTH_REGEX,
-} from "@attendance-manager/shared/lib/constants"
+  attendanceRecordSchema as _attendanceRecordSchema,
+  breakSchema as _breakSchema,
+  dailyReportListItemSchema as _dailyReportListItemSchema,
+  dailyReportSchema as _dailyReportSchema,
+  dailyReportTaskSchema as _dailyReportTaskSchema,
+  dateSchema as _dateSchema,
+  taskSchema as _taskSchema,
+  timestampSchema as _timestampSchema,
+  userForSelectSchema as _userForSelectSchema,
+  userSchema as _userSchema,
+  uuidSchema as _uuidSchema,
+  workSessionSchema as _workSessionSchema,
+  yearMonthSchema as _yearMonthSchema,
+} from "@attendance-manager/shared/lib/schemas"
 import { z } from "@hono/zod-openapi"
+
+// ===== shared スキーマの型安全な OpenAPI メタデータ付与 =====
+// @hono/zod-openapi は extendZodWithOpenApi で ZodType.prototype を拡張するため、
+// shared のスキーマにも .openapi() が実行時に使える。
+// 型レベルで認識させるためにヘルパーで any にキャストする。
+
+function withOpenApi<T>(schema: T, metadata: string | Record<string, unknown>): T {
+  const name = typeof metadata === "string" ? metadata : undefined
+  const config = typeof metadata === "string" ? { title: metadata } : metadata
+  // biome-ignore lint/suspicious/noExplicitAny: OpenAPI extension needs any cast
+  return (schema as any).openapi(name ?? config.title, config) as T
+}
 
 // 型は shared からインポート（Single Source of Truth）
 export type {
@@ -22,65 +42,54 @@ export type {
   WorkSession,
 } from "@attendance-manager/shared/lib/schemas"
 
-// ===== 基本スキーマ =====
+// ===== 基本スキーマ（shared から re-export + OpenAPI メタデータ）=====
 
-export const dateSchema = z.string().regex(DATE_REGEX).openapi({
+export const dateSchema = withOpenApi(_dateSchema, {
+  title: "Date",
   description: "日付 (YYYY-MM-DD形式)",
   example: "2025-01-15",
 })
 
-export const yearMonthSchema = z.string().regex(YEAR_MONTH_REGEX).openapi({
+export const yearMonthSchema = withOpenApi(_yearMonthSchema, {
+  title: "YearMonth",
   description: "年月 (YYYY-MM形式)",
   example: "2025-01",
 })
 
-export const uuidSchema = z.string().uuid().openapi({
+export const uuidSchema = withOpenApi(_uuidSchema, {
+  title: "UUID",
   description: "UUID",
   example: "550e8400-e29b-41d4-a716-446655440000",
 })
 
-export const timestampSchema = z.number().positive().openapi({
+export const timestampSchema = withOpenApi(_timestampSchema, {
+  title: "Timestamp",
   description: "タイムスタンプ（ミリ秒）",
   example: 1705312800000,
 })
 
-// ===== タスク関連 =====
+// ===== タスク・休憩・セッション・勤怠スキーマ（shared → OpenAPI）=====
 
-export const taskSchema = z
-  .object({
-    taskName: z.string().min(1).max(MAX_TASK_NAME_LENGTH).openapi({
-      description: "タスク名",
-      example: "機能Aの実装",
-    }),
-    hours: z.number().min(MIN_TASK_HOURS).max(MAX_TASK_HOURS).nullable().openapi({
-      description: "作業時間（時間）",
-      example: 2.5,
-    }),
-  })
-  .openapi("Task")
+export const taskSchema = withOpenApi(_taskSchema, "Task")
+export const breakSchema = withOpenApi(_breakSchema, "Break")
+export const workSessionSchema = withOpenApi(_workSessionSchema, "WorkSession")
+export const attendanceRecordSchema = withOpenApi(_attendanceRecordSchema, "AttendanceRecord")
 
-// ===== 休憩関連 =====
+// ===== ユーザー関連（shared → OpenAPI）=====
 
-export const breakSchema = z
-  .object({
-    id: uuidSchema,
-    start: z.number().nullable().openapi({ description: "休憩開始時刻（ミリ秒）" }),
-    end: z.number().nullable().openapi({ description: "休憩終了時刻（ミリ秒）" }),
-  })
-  .openapi("Break")
+export const userSchema = withOpenApi(_userSchema, "User")
+export const userForSelectSchema = withOpenApi(_userForSelectSchema, "UserForSelect")
 
-// ===== 勤務セッション関連 =====
+// ===== 日報関連（shared → OpenAPI）=====
 
-export const workSessionSchema = z
-  .object({
-    id: uuidSchema,
-    clockIn: z.number().nullable().openapi({ description: "出勤時刻（ミリ秒）" }),
-    clockOut: z.number().nullable().openapi({ description: "退勤時刻（ミリ秒）" }),
-    breaks: z.array(breakSchema),
-  })
-  .openapi("WorkSession")
+export const dailyReportTaskSchema = withOpenApi(_dailyReportTaskSchema, "DailyReportTask")
+export const dailyReportListItemSchema = withOpenApi(
+  _dailyReportListItemSchema,
+  "DailyReportListItem",
+)
+export const dailyReportSchema = withOpenApi(_dailyReportSchema, "DailyReport")
 
-// ===== APIエラー =====
+// ===== APIエラー（backend固有）=====
 
 export const apiErrorSchema = z
   .object({
@@ -105,7 +114,7 @@ export const errorResponseSchema = z
   })
   .openapi("ErrorResponse")
 
-// ===== 認証関連 =====
+// ===== 認証関連（backend固有）=====
 
 export const loginRequestSchema = z
   .object({
@@ -178,7 +187,7 @@ export const registerResponseSchema = z
   })
   .openapi("RegisterResponse")
 
-// ===== 打刻関連 =====
+// ===== 打刻関連（backend固有）=====
 
 export const clockInRequestSchema = z
   .object({
@@ -257,20 +266,7 @@ export const breakEndRequestSchema = z
 
 export type BreakEndRequest = z.infer<typeof breakEndRequestSchema>
 
-// ===== 勤怠記録 =====
-
-export const attendanceRecordSchema = z
-  .object({
-    date: dateSchema,
-    sessions: z.array(workSessionSchema),
-    workTotalMs: z.number().nonnegative().openapi({
-      description: "勤務時間合計（ミリ秒）",
-    }),
-    breakTotalMs: z.number().nonnegative().openapi({
-      description: "休憩時間合計（ミリ秒）",
-    }),
-  })
-  .openapi("AttendanceRecord")
+// ===== 週間合計（backend固有）=====
 
 export const weekTotalResponseSchema = z
   .object({
@@ -281,29 +277,7 @@ export const weekTotalResponseSchema = z
   })
   .openapi("WeekTotalResponse")
 
-// ===== ユーザー関連 =====
-
-export const userSchema = z
-  .object({
-    id: uuidSchema,
-    name: z.string(),
-    email: z.email(),
-    employeeNumber: z.string(),
-  })
-  .openapi("User")
-
-// userListResponseSchema は配列を直接返す（A案: シンプルなレスポンス）
-export const userListResponseSchema = z.array(userSchema).openapi("UserList")
-
-export const userForSelectSchema = z
-  .object({
-    id: uuidSchema,
-    name: z.string(),
-    employeeNumber: z.string(),
-  })
-  .openapi("UserForSelect")
-
-// ===== 管理者API =====
+// ===== 管理者API（backend固有）=====
 
 export const sessionUpdateSchema = z
   .object({
@@ -359,46 +333,9 @@ export const reportIdParamsSchema = z.object({
 
 export type ReportIdParams = z.infer<typeof reportIdParamsSchema>
 
-// ===== 日報関連 =====
+// ===== レスポンススキーマ（backend固有の合成）=====
 
-export const dailyReportTaskSchema = z
-  .object({
-    id: uuidSchema,
-    taskType: z.enum(["planned", "actual"]),
-    taskName: z.string(),
-    hours: z.number().nullable(),
-    sortOrder: z.number(),
-  })
-  .openapi("DailyReportTask")
-
-export const dailyReportListItemSchema = z
-  .object({
-    id: uuidSchema,
-    userId: uuidSchema,
-    userName: z.string(),
-    employeeNumber: z.string(),
-    date: dateSchema,
-    submittedAt: z.number().nullable(),
-    plannedTaskCount: z.number(),
-    actualTaskCount: z.number(),
-  })
-  .openapi("DailyReportListItem")
-
-export const dailyReportSchema = z
-  .object({
-    id: uuidSchema,
-    userId: uuidSchema,
-    date: dateSchema,
-    summary: z.string().nullable(),
-    issues: z.string().nullable(),
-    notes: z.string().nullable(),
-    submittedAt: z.number().nullable(),
-    plannedTasks: z.array(dailyReportTaskSchema),
-    actualTasks: z.array(dailyReportTaskSchema),
-    createdAt: z.number(),
-    updatedAt: z.number(),
-  })
-  .openapi("DailyReport")
+export const userListResponseSchema = z.array(userSchema).openapi("UserList")
 
 export const dailyReportListResponseSchema = z
   .object({
@@ -408,8 +345,8 @@ export const dailyReportListResponseSchema = z
   })
   .openapi("DailyReportListResponse")
 
-// dailyReportDetailResponseSchema は dailyReportSchema を直接返す（A案）
+// dailyReportDetailResponseSchema は dailyReportSchema を直接返す
 export const dailyReportDetailResponseSchema = dailyReportSchema
 
-// usersForSelectResponseSchema は配列を直接返す（A案）
+// usersForSelectResponseSchema は配列を直接返す
 export const usersForSelectResponseSchema = z.array(userForSelectSchema).openapi("UsersForSelect")

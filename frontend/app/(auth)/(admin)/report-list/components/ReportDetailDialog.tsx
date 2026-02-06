@@ -5,12 +5,8 @@ import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { apiClient } from "@/lib/api-client"
+import { getDailyReportDetail } from "@/lib/api-services/daily-reports"
 import { withRetry } from "@/lib/auth/with-retry"
-
-function getDailyReportDetail(reportId: string) {
-  return apiClient<DailyReport>(`/daily-reports/${reportId}`)
-}
 
 interface ReportDetailDialogProps {
   open: boolean
