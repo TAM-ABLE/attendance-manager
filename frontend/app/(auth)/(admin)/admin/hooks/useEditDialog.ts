@@ -5,19 +5,8 @@
 import { isValidUUID } from "@attendance-manager/shared/lib/constants"
 import type { User, WorkSession } from "@attendance-manager/shared/types/Attendance"
 import { useState } from "react"
-import { apiClient } from "@/lib/api-client"
+import { getUserDateSessions, updateUserDateSessions } from "@/lib/api-services/admin"
 import { withRetry } from "@/lib/auth/with-retry"
-
-function getUserDateSessions(userId: string, date: string) {
-  return apiClient<WorkSession[]>(`/admin/users/${userId}/attendance/${date}/sessions`)
-}
-
-function updateUserDateSessions(userId: string, date: string, sessions: WorkSession[]) {
-  return apiClient<null>(`/admin/users/${userId}/attendance/${date}/sessions`, {
-    method: "PUT",
-    body: { sessions },
-  })
-}
 
 export function useEditDialog(selectedUser: User | null, reloadMonthData: () => void) {
   const [showEditDialog, setShowEditDialog] = useState(false)

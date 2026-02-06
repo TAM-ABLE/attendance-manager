@@ -9,7 +9,7 @@ import {
   errorResponseSchema,
   successResponseSchema,
 } from "../../../lib/openapi-schemas"
-import { getSupabaseClient } from "../../../lib/supabase"
+import { createRepos, DatabaseError } from "../../../lib/repositories"
 import type { AuthVariables } from "../../middleware/auth"
 import type { Env } from "../../types/env"
 
@@ -67,74 +67,36 @@ breaksRouter.openapi(breakStartRoute, async (c) => {
   const { sub: userId } = c.get("jwtPayload")
   const body = c.req.valid("json")
   const breakStartTime = body?.breakStartTime
-  const supabase = getSupabaseClient(c.env)
   const date = todayJSTString()
+  const repos = createRepos(c.env)
 
-  // 1. 今日の attendance_record を取得
-  const { data: record, error: recordErr } = await supabase
-    .from("attendance_records")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("date", date)
-    .maybeSingle()
+  try {
+    // 1. 今日の attendance_record を取得
+    const record = await repos.attendance.findRecordIdByUserAndDate(userId, date)
+    if (!record) {
+      return validationError(c, "No attendance record for today")
+    }
 
-  if (recordErr) {
-    return databaseError(c, recordErr.message)
+    // 2. clock_out が null の最新 session を取得
+    const session = await repos.workSession.findActiveSession(record.id)
+    if (!session) {
+      return validationError(c, "No active session")
+    }
+
+    // 3. この session で「未終了 break」 が無いか確認
+    const activeBreak = await repos.break.findActiveBreak(session.id)
+    if (activeBreak) {
+      return validationError(c, "Break already in progress")
+    }
+
+    // 4. break_start レコードを作成
+    await repos.break.startBreak(session.id, breakStartTime ?? new Date().toISOString())
+
+    return successResponse(c, null)
+  } catch (e) {
+    if (e instanceof DatabaseError) return databaseError(c, e.message)
+    throw e
   }
-
-  if (!record) {
-    return validationError(c, "No attendance record for today")
-  }
-
-  const attendanceId = record.id
-
-  // 2. clock_out が null の最新 session を取得
-  const { data: session, error: sessionErr } = await supabase
-    .from("work_sessions")
-    .select("id")
-    .eq("attendance_id", attendanceId)
-    .is("clock_out", null)
-    .order("clock_in", { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (sessionErr) {
-    return databaseError(c, sessionErr.message)
-  }
-
-  if (!session) {
-    return validationError(c, "No active session")
-  }
-
-  const sessionId = session.id
-
-  // 3. この session で「未終了 break」 が無いか確認
-  const { data: activeBreak, error: breakErr } = await supabase
-    .from("breaks")
-    .select("id")
-    .eq("session_id", sessionId)
-    .is("break_end", null)
-    .maybeSingle()
-
-  if (breakErr) {
-    return databaseError(c, breakErr.message)
-  }
-
-  if (activeBreak) {
-    return validationError(c, "Break already in progress")
-  }
-
-  // 4. break_start レコードを作成（breakStartTimeが指定されていればそれを使用、なければ現在時刻）
-  const { error: insertErr } = await supabase.from("breaks").insert({
-    session_id: sessionId,
-    break_start: breakStartTime ?? new Date().toISOString(),
-  })
-
-  if (insertErr) {
-    return databaseError(c, insertErr.message)
-  }
-
-  return successResponse(c, null)
 })
 
 // POST /attendance/breaks/end
@@ -187,76 +149,36 @@ breaksRouter.openapi(breakEndRoute, async (c) => {
   const { sub: userId } = c.get("jwtPayload")
   const body = c.req.valid("json")
   const breakEndTime = body?.breakEndTime
-  const supabase = getSupabaseClient(c.env)
   const date = todayJSTString()
+  const repos = createRepos(c.env)
 
-  // 1. 今日の attendance_record を取得
-  const { data: record, error: recordErr } = await supabase
-    .from("attendance_records")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("date", date)
-    .maybeSingle()
+  try {
+    // 1. 今日の attendance_record を取得
+    const record = await repos.attendance.findRecordIdByUserAndDate(userId, date)
+    if (!record) {
+      return validationError(c, "No attendance record for today")
+    }
 
-  if (recordErr) {
-    return databaseError(c, recordErr.message)
+    // 2. active session（clock_out が null）の最新 1つ取得
+    const session = await repos.workSession.findActiveSession(record.id)
+    if (!session) {
+      return validationError(c, "No active session")
+    }
+
+    // 3. break_end が null の「現在の break」を取得
+    const activeBreak = await repos.break.findActiveBreak(session.id)
+    if (!activeBreak) {
+      return validationError(c, "No active break to end")
+    }
+
+    // 4. break_end を埋める
+    await repos.break.endBreak(activeBreak.id, breakEndTime ?? new Date().toISOString())
+
+    return successResponse(c, null)
+  } catch (e) {
+    if (e instanceof DatabaseError) return databaseError(c, e.message)
+    throw e
   }
-
-  if (!record) {
-    return validationError(c, "No attendance record for today")
-  }
-
-  const attendanceId = record.id
-
-  // 2. active session（clock_out が null）の最新 1つ取得
-  const { data: session, error: sessionErr } = await supabase
-    .from("work_sessions")
-    .select("id")
-    .eq("attendance_id", attendanceId)
-    .is("clock_out", null)
-    .order("clock_in", { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (sessionErr) {
-    return databaseError(c, sessionErr.message)
-  }
-
-  if (!session) {
-    return validationError(c, "No active session")
-  }
-
-  const sessionId = session.id
-
-  // 3. break_end が null の「現在の break」を取得
-  const { data: activeBreak, error: breakErr } = await supabase
-    .from("breaks")
-    .select("id")
-    .eq("session_id", sessionId)
-    .is("break_end", null)
-    .order("break_start", { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (breakErr) {
-    return databaseError(c, breakErr.message)
-  }
-
-  if (!activeBreak) {
-    return validationError(c, "No active break to end")
-  }
-
-  // 4. break_end を埋める（breakEndTimeが指定されていればそれを使用、なければ現在時刻）
-  const { error: updateErr } = await supabase
-    .from("breaks")
-    .update({ break_end: breakEndTime ?? new Date().toISOString() })
-    .eq("id", activeBreak.id)
-
-  if (updateErr) {
-    return databaseError(c, updateErr.message)
-  }
-
-  return successResponse(c, null)
 })
 
 export default breaksRouter

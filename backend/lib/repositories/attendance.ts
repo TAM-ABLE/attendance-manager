@@ -141,17 +141,23 @@ export class WorkSessionRepository {
   }
 
   /**
-   * セッションを作成
+   * セッションを作成（IDを返す）
    */
-  async createSession(attendanceId: string, clockIn: string): Promise<void> {
-    const { error } = await this.supabase.from("work_sessions").insert({
-      attendance_id: attendanceId,
-      clock_in: clockIn,
-    })
+  async createSession(attendanceId: string, clockIn: string): Promise<{ id: string }> {
+    const { data, error } = await this.supabase
+      .from("work_sessions")
+      .insert({
+        attendance_id: attendanceId,
+        clock_in: clockIn,
+      })
+      .select("id")
+      .single()
 
     if (error) {
       throw new DatabaseError(error.message)
     }
+
+    return data
   }
 
   /**
@@ -166,6 +172,95 @@ export class WorkSessionRepository {
     if (error) {
       throw new DatabaseError(error.message)
     }
+  }
+
+  /**
+   * アクティブなセッションをSlack TS付きで取得
+   */
+  async findActiveSessionWithSlackTs(
+    attendanceId: string,
+  ): Promise<{ id: string; slack_clock_in_ts: string | null } | null> {
+    const { data, error } = await this.supabase
+      .from("work_sessions")
+      .select("id, slack_clock_in_ts")
+      .eq("attendance_id", attendanceId)
+      .is("clock_out", null)
+      .order("clock_in", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (error) {
+      throw new DatabaseError(error.message)
+    }
+
+    return data
+  }
+
+  /**
+   * Slack TSを更新
+   */
+  async updateSlackTs(sessionId: string, slackTs: string): Promise<void> {
+    const { error } = await this.supabase
+      .from("work_sessions")
+      .update({ slack_clock_in_ts: slackTs })
+      .eq("id", sessionId)
+
+    if (error) {
+      throw new DatabaseError(error.message)
+    }
+  }
+
+  /**
+   * attendance_idに紐づくセッションIDを取得
+   */
+  async getSessionIdsByAttendanceId(attendanceId: string): Promise<string[]> {
+    const { data, error } = await this.supabase
+      .from("work_sessions")
+      .select("id")
+      .eq("attendance_id", attendanceId)
+
+    if (error) {
+      throw new DatabaseError(error.message)
+    }
+
+    return (data ?? []).map((s) => s.id)
+  }
+
+  /**
+   * セッションを一括削除
+   */
+  async deleteByIds(ids: string[]): Promise<void> {
+    if (ids.length === 0) return
+
+    const { error } = await this.supabase.from("work_sessions").delete().in("id", ids)
+
+    if (error) {
+      throw new DatabaseError(error.message)
+    }
+  }
+
+  /**
+   * セッションを一括挿入
+   */
+  async insertMultiple(
+    attendanceId: string,
+    sessions: { clockIn: string; clockOut: string | null }[],
+  ): Promise<{ id: string }[]> {
+    if (sessions.length === 0) return []
+
+    const inserts = sessions.map((s) => ({
+      attendance_id: attendanceId,
+      clock_in: s.clockIn,
+      clock_out: s.clockOut,
+    }))
+
+    const { data, error } = await this.supabase.from("work_sessions").insert(inserts).select("id")
+
+    if (error) {
+      throw new DatabaseError(error.message)
+    }
+
+    return data ?? []
   }
 }
 
@@ -217,6 +312,40 @@ export class BreakRepository {
       .from("breaks")
       .update({ break_end: breakEnd })
       .eq("id", breakId)
+
+    if (error) {
+      throw new DatabaseError(error.message)
+    }
+  }
+
+  /**
+   * セッションIDに紐づく休憩を一括削除
+   */
+  async deleteBySessionIds(sessionIds: string[]): Promise<void> {
+    if (sessionIds.length === 0) return
+
+    const { error } = await this.supabase.from("breaks").delete().in("session_id", sessionIds)
+
+    if (error) {
+      throw new DatabaseError(error.message)
+    }
+  }
+
+  /**
+   * 休憩を一括挿入
+   */
+  async insertMultiple(
+    breaks: { sessionId: string; breakStart: string; breakEnd: string | null }[],
+  ): Promise<void> {
+    if (breaks.length === 0) return
+
+    const inserts = breaks.map((b) => ({
+      session_id: b.sessionId,
+      break_start: b.breakStart,
+      break_end: b.breakEnd,
+    }))
+
+    const { error } = await this.supabase.from("breaks").insert(inserts)
 
     if (error) {
       throw new DatabaseError(error.message)

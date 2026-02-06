@@ -1,21 +1,12 @@
 "use client"
 
-import {
-  formatYearMonth,
-  formatYearMonthFromDate,
-  toJSTDateString,
-} from "@attendance-manager/shared/lib/time"
+import { formatYearMonthFromDate, toJSTDateString } from "@attendance-manager/shared/lib/time"
 import type { AttendanceRecord } from "@attendance-manager/shared/types/Attendance"
 import { useMemo, useRef, useState } from "react"
 import useSWR from "swr"
-import { apiClient } from "@/lib/api-client"
+import { getMonth } from "@/lib/api-services/attendance"
 import { withRetry } from "@/lib/auth/with-retry"
 import { SWR_KEYS } from "@/lib/swr-keys"
-
-function getMonth(year: number, month: number) {
-  const yearMonth = formatYearMonth(year, month)
-  return apiClient<AttendanceRecord[]>(`/attendance/month/${yearMonth}`)
-}
 
 export type AttendanceHistoryInitialData = {
   attendanceData: AttendanceRecord[]

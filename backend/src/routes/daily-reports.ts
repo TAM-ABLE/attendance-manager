@@ -18,7 +18,7 @@ import {
   uuidSchema,
   yearMonthSchema,
 } from "../../lib/openapi-schemas"
-import { getSupabaseClient } from "../../lib/supabase"
+import { createRepos, DatabaseError } from "../../lib/repositories"
 import type { AuthVariables } from "../middleware/auth"
 import type { Env } from "../types/env"
 
@@ -53,24 +53,22 @@ const getUsersRoute = createRoute({
 })
 
 dailyReportsRouter.openapi(getUsersRoute, async (c) => {
-  const supabase = getSupabaseClient(c.env)
+  const { profile } = createRepos(c.env)
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, name, employee_number")
-    .order("employee_number", { ascending: true })
+  try {
+    const data = await profile.findAllUsersForSelect()
 
-  if (error) {
-    return databaseError(c, error.message)
+    const users: UserForSelect[] = data.map((user) => ({
+      id: user.id,
+      name: user.name,
+      employeeNumber: user.employee_number,
+    }))
+
+    return successResponse(c, users)
+  } catch (e) {
+    if (e instanceof DatabaseError) return databaseError(c, e.message)
+    throw e
   }
-
-  const users: UserForSelect[] = data.map((user) => ({
-    id: user.id,
-    name: user.name,
-    employeeNumber: user.employee_number,
-  }))
-
-  return successResponse(c, users)
 })
 
 // GET /daily-reports/user/:userId/month/:yearMonth - 特定ユーザーの月別日報一覧取得
@@ -136,70 +134,51 @@ dailyReportsRouter.openapi(getUserMonthlyReportsRoute, async (c) => {
   const lastDay = new Date(year, month, 0).getDate()
   const monthEnd = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
 
-  const supabase = getSupabaseClient(c.env)
+  const repos = createRepos(c.env)
 
-  // ユーザー情報を先に取得
-  const { data: userData, error: userError } = await supabase
-    .from("profiles")
-    .select("id, name, employee_number")
-    .eq("id", userId)
-    .single()
-
-  if (userError) {
-    return notFoundError(c, "User")
-  }
-
-  // 日報一覧を取得
-  const { data: reports, error: reportsError } = await supabase
-    .from("daily_reports")
-    .select(
-      `
-            id,
-            user_id,
-            date,
-            submitted_at,
-            daily_report_tasks (
-                id,
-                task_type
-            )
-        `,
-    )
-    .eq("user_id", userId)
-    .gte("date", monthStart)
-    .lte("date", monthEnd)
-    .order("date", { ascending: true })
-
-  if (reportsError) {
-    return databaseError(c, reportsError.message)
-  }
-
-  const reportList: DailyReportListItem[] = (reports || []).map((report) => {
-    const tasks =
-      (report as { daily_report_tasks: { task_type: string }[] }).daily_report_tasks || []
-    const plannedCount = tasks.filter((t) => t.task_type === "planned").length
-    const actualCount = tasks.filter((t) => t.task_type === "actual").length
-
-    return {
-      id: report.id,
-      userId: report.user_id,
-      userName: userData!.name,
-      employeeNumber: userData!.employee_number,
-      date: report.date,
-      submittedAt: report.submitted_at ? new Date(report.submitted_at).getTime() : null,
-      plannedTaskCount: plannedCount,
-      actualTaskCount: actualCount,
+  try {
+    // ユーザー情報を先に取得
+    let userData: { id: string; name: string; employee_number: string }
+    try {
+      userData = await repos.profile.findById(userId)
+    } catch {
+      return notFoundError(c, "User")
     }
-  })
 
-  return successResponse(c, {
-    user: {
-      id: userData!.id,
-      name: userData!.name,
-      employeeNumber: userData!.employee_number,
-    },
-    yearMonth,
-    reports: reportList,
-  })
+    // 日報一覧を取得
+    const reports = await repos.dailyReport.findReportsByDateRange(userId, monthStart, monthEnd)
+
+    const reportList: DailyReportListItem[] = (reports || []).map((report) => {
+      const tasks =
+        (report as { daily_report_tasks: { task_type: string }[] }).daily_report_tasks || []
+      const plannedCount = tasks.filter((t) => t.task_type === "planned").length
+      const actualCount = tasks.filter((t) => t.task_type === "actual").length
+
+      return {
+        id: report.id,
+        userId: report.user_id,
+        userName: userData.name,
+        employeeNumber: userData.employee_number,
+        date: report.date,
+        submittedAt: report.submitted_at ? new Date(report.submitted_at).getTime() : null,
+        plannedTaskCount: plannedCount,
+        actualTaskCount: actualCount,
+      }
+    })
+
+    return successResponse(c, {
+      user: {
+        id: userData.id,
+        name: userData.name,
+        employeeNumber: userData.employee_number,
+      },
+      yearMonth,
+      reports: reportList,
+    })
+  } catch (e) {
+    if (e instanceof DatabaseError) return databaseError(c, e.message)
+    throw e
+  }
 })
 
 // GET /daily-reports/:id - 日報詳細取得
@@ -245,92 +224,74 @@ const getReportDetailRoute = createRoute({
 
 dailyReportsRouter.openapi(getReportDetailRoute, async (c) => {
   const { id } = c.req.valid("param")
-  const supabase = getSupabaseClient(c.env)
+  const { dailyReport: dailyReportRepo } = createRepos(c.env)
 
-  // 日報とタスクを取得
-  const { data: report, error: reportError } = await supabase
-    .from("daily_reports")
-    .select(
-      `
-            id,
-            user_id,
-            date,
-            summary,
-            issues,
-            notes,
-            submitted_at,
-            created_at,
-            updated_at,
-            daily_report_tasks (
-                id,
-                task_type,
-                task_name,
-                hours,
-                sort_order
-            )
-        `,
-    )
-    .eq("id", id)
-    .single()
+  try {
+    let report: Awaited<ReturnType<typeof dailyReportRepo.findReportWithTasks>>
+    try {
+      report = await dailyReportRepo.findReportWithTasks(id)
+    } catch {
+      return notFoundError(c, "Daily report")
+    }
 
-  if (reportError) {
-    return notFoundError(c, "Daily report")
+    const tasks = report.daily_report_tasks || []
+    const plannedTasks: DailyReportTask[] = tasks
+      .filter((t: { task_type: string }) => t.task_type === "planned")
+      .sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order)
+      .map(
+        (t: {
+          id: string
+          task_type: string
+          task_name: string
+          hours: number | null
+          sort_order: number
+        }) => ({
+          id: t.id,
+          taskType: t.task_type as "planned",
+          taskName: t.task_name,
+          hours: t.hours,
+          sortOrder: t.sort_order,
+        }),
+      )
+
+    const actualTasks: DailyReportTask[] = tasks
+      .filter((t: { task_type: string }) => t.task_type === "actual")
+      .sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order)
+      .map(
+        (t: {
+          id: string
+          task_type: string
+          task_name: string
+          hours: number | null
+          sort_order: number
+        }) => ({
+          id: t.id,
+          taskType: t.task_type as "actual",
+          taskName: t.task_name,
+          hours: t.hours,
+          sortOrder: t.sort_order,
+        }),
+      )
+
+    const dailyReport: DailyReport = {
+      id: report.id,
+      userId: report.user_id,
+      date: report.date,
+      summary: report.summary,
+      issues: report.issues,
+      notes: report.notes,
+      submittedAt: report.submitted_at ? new Date(report.submitted_at).getTime() : null,
+      plannedTasks,
+      actualTasks,
+      createdAt: new Date(report.created_at).getTime(),
+      updatedAt: new Date(report.updated_at).getTime(),
+    }
+
+    return successResponse(c, dailyReport)
+  } catch (e) {
+    if (e instanceof DatabaseError) return databaseError(c, e.message)
+    throw e
   }
-
-  const tasks = report.daily_report_tasks || []
-  const plannedTasks: DailyReportTask[] = tasks
-    .filter((t: { task_type: string }) => t.task_type === "planned")
-    .sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order)
-    .map(
-      (t: {
-        id: string
-        task_type: string
-        task_name: string
-        hours: number | null
-        sort_order: number
-      }) => ({
-        id: t.id,
-        taskType: t.task_type as "planned",
-        taskName: t.task_name,
-        hours: t.hours,
-        sortOrder: t.sort_order,
-      }),
-    )
-
-  const actualTasks: DailyReportTask[] = tasks
-    .filter((t: { task_type: string }) => t.task_type === "actual")
-    .sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order)
-    .map(
-      (t: {
-        id: string
-        task_type: string
-        task_name: string
-        hours: number | null
-        sort_order: number
-      }) => ({
-        id: t.id,
-        taskType: t.task_type as "actual",
-        taskName: t.task_name,
-        hours: t.hours,
-        sortOrder: t.sort_order,
-      }),
-    )
-
-  const dailyReport: DailyReport = {
-    id: report.id,
-    userId: report.user_id,
-    date: report.date,
-    summary: report.summary,
-    issues: report.issues,
-    notes: report.notes,
-    submittedAt: report.submitted_at ? new Date(report.submitted_at).getTime() : null,
-    plannedTasks,
-    actualTasks,
-    createdAt: new Date(report.created_at).getTime(),
-    updatedAt: new Date(report.updated_at).getTime(),
-  }
-
-  return successResponse(c, dailyReport)
 })
 
 export default dailyReportsRouter
