@@ -1,5 +1,9 @@
 "use client"
 
+import type { UserForSelect } from "@attendance-manager/shared/types/DailyReport"
+import dynamic from "next/dynamic"
+import { useCallback, useState } from "react"
+import { MonthNavigator } from "@/components/MonthNavigator"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Select,
@@ -8,11 +12,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import type { UserForSelect } from "@attendance-manager/shared/types/DailyReport"
-import dynamic from "next/dynamic"
-import { useCallback, useState } from "react"
-
-import { MonthNavigator } from "@/components/MonthNavigator"
 import { useMonthlyReports } from "../hooks/useMonthlyReports"
 import { useReportUsers } from "../hooks/useReportUsers"
 import { ReportTable } from "./ReportTable"

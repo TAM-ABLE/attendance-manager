@@ -1,12 +1,12 @@
 "use client"
 
+import type { DailyReport } from "@attendance-manager/shared/types/DailyReport"
+import { useEffect, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { apiClient } from "@/lib/api-client"
 import { withRetry } from "@/lib/auth/with-retry"
-import type { DailyReport } from "@attendance-manager/shared/types/DailyReport"
-import { useEffect, useState } from "react"
 
 function getDailyReportDetail(reportId: string) {
   return apiClient<DailyReport>(`/daily-reports/${reportId}`)

@@ -1,6 +1,9 @@
 // ClockInDialog.tsx
 "use client"
 
+import type { ApiResult } from "@attendance-manager/shared/types/ApiResponse"
+import type { Task } from "@attendance-manager/shared/types/Attendance"
+import { useState } from "react"
 import { DialogWrapper } from "@/components/DialogWrapper"
 import { TaskListEditor } from "@/components/TaskListEditor"
 import { Button } from "@/components/ui/button"
@@ -15,10 +18,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useDialogState } from "@/hooks/useDialogState"
-import { type TaskFormItem, createInitialTasks, toTasks } from "@/lib/task-form"
-import type { ApiResult } from "@attendance-manager/shared/types/ApiResponse"
-import type { Task } from "@attendance-manager/shared/types/Attendance"
-import { useState } from "react"
+import { createInitialTasks, type TaskFormItem, toTasks } from "@/lib/task-form"
 
 interface ClockInDialogProps {
   open: boolean

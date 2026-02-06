@@ -1,5 +1,5 @@
 // backend/lib/supabase.ts
-import { type SupabaseClient, createClient } from "@supabase/supabase-js"
+import { createClient, type SupabaseClient } from "@supabase/supabase-js"
 import type { Database } from "../src/types/supabase"
 
 export const getSupabaseClient = (env: {

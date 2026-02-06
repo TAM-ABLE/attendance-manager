@@ -1,11 +1,11 @@
 // frontend/app/admin/hooks/useUsers.ts
 "use client"
 
+import type { User } from "@attendance-manager/shared/types/Attendance"
+import { useCallback } from "react"
 import { useUserSelect } from "@/hooks/useUserSelect"
 import { apiClient } from "@/lib/api-client"
 import { withRetry } from "@/lib/auth/with-retry"
-import type { User } from "@attendance-manager/shared/types/Attendance"
-import { useCallback } from "react"
 
 function getUsers() {
   return apiClient<User[]>("/admin/users")

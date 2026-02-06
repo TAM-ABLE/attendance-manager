@@ -1,8 +1,8 @@
 // app/(auth)/(admin)/report-list/page.tsx
 
-import { fetchWithAuth } from "@/lib/auth/server"
 import type { UserForSelect } from "@attendance-manager/shared/types/DailyReport"
 import { FileText } from "lucide-react"
+import { fetchWithAuth } from "@/lib/auth/server"
 import { ReportListView } from "./components/ReportListView"
 
 export default async function ReportListPage() {

@@ -1,3 +1,12 @@
+import {
+  formatClockTime,
+  formatDurationMs,
+  formatDurationMsToHM,
+  getDateLabel,
+  getWeekdayLabel,
+} from "@attendance-manager/shared/lib/time"
+import type { AttendanceRecord, User } from "@attendance-manager/shared/types/Attendance"
+import { Edit } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -10,15 +19,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import {
-  formatClockTime,
-  formatDurationMs,
-  formatDurationMsToHM,
-  getDateLabel,
-  getWeekdayLabel,
-} from "@attendance-manager/shared/lib/time"
-import type { AttendanceRecord, User } from "@attendance-manager/shared/types/Attendance"
-import { Edit } from "lucide-react"
 
 interface Props {
   user: User

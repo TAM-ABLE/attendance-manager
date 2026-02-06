@@ -4,12 +4,12 @@ import { createRoute } from "@hono/zod-openapi"
 import { databaseError, successResponse, validationError } from "../../../lib/errors"
 import { createOpenAPIHono } from "../../../lib/openapi-hono"
 import {
-  type Task,
   clockInRequestSchema,
   clockOutRequestSchema,
   clockResponseSchema,
   errorResponseSchema,
   successResponseSchema,
+  type Task,
 } from "../../../lib/openapi-schemas"
 import {
   getSlackConfig,

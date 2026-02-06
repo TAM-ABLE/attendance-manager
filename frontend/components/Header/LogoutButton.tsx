@@ -1,8 +1,8 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { logout } from "@/lib/api-client"
-import { useRouter } from "next/navigation"
 
 type LogoutButtonProps = {
   className?: string
