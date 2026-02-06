@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatDurationMs } from "@attendance-manager/shared/lib/time"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface Props {
   totalDays: number

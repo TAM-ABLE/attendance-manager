@@ -1,9 +1,5 @@
 "use client"
 
-import { apiClient } from "@/lib/api-client"
-import type { AuthUser } from "@/lib/auth/server"
-import { withRetry, withRetryFetcher } from "@/lib/auth/with-retry"
-import { SWR_KEYS } from "@/lib/swr-keys"
 import type {
   AttendanceRecord,
   Task,
@@ -11,6 +7,10 @@ import type {
 } from "@attendance-manager/shared/types/Attendance"
 import { useCallback, useMemo, useState } from "react"
 import useSWR from "swr"
+import { apiClient } from "@/lib/api-client"
+import type { AuthUser } from "@/lib/auth/server"
+import { withRetry, withRetryFetcher } from "@/lib/auth/with-retry"
+import { SWR_KEYS } from "@/lib/swr-keys"
 
 // ============ API呼び出し関数 ============
 

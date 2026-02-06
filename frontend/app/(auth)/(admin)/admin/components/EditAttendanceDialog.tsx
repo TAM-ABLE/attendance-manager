@@ -1,5 +1,8 @@
 "use client"
 
+import { formatClockTime, mergeDateAndTime } from "@attendance-manager/shared/lib/time"
+import type { Break, WorkSession } from "@attendance-manager/shared/types/Attendance"
+import { useState } from "react"
 import { Loader } from "@/components/Loader"
 import { SuccessDialog } from "@/components/SuccessDialog"
 import { Button } from "@/components/ui/button"
@@ -13,9 +16,6 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { formatClockTime, mergeDateAndTime } from "@attendance-manager/shared/lib/time"
-import type { Break, WorkSession } from "@attendance-manager/shared/types/Attendance"
-import { useState } from "react"
 
 interface Props {
   open: boolean

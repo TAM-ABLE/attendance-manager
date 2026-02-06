@@ -1,8 +1,8 @@
 "use client"
 
+import { Clock, Coffee, LogIn, LogOut, Pause, Play } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Clock, Coffee, LogIn, LogOut, Pause, Play } from "lucide-react"
 
 interface Props {
   onClockIn: () => void

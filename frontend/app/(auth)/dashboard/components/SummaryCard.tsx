@@ -1,6 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatDurationMs } from "@attendance-manager/shared/lib/time"
 import type { AttendanceRecord } from "@attendance-manager/shared/types/Attendance"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export function SummaryCard({ attendance }: { attendance: AttendanceRecord | null }) {
   if (!attendance || !attendance.sessions) return null

@@ -11,11 +11,7 @@ export const metadata: Metadata = {
   description: "勤怠管理・日報システム",
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
       <body className={`min-h-screen bg-background ${geistSans.variable} ${geistMono.variable}`}>
