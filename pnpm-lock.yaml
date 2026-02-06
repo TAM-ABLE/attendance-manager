@@ -22,7 +22,7 @@ importers:
         version: 0.5.3(hono@4.11.8)
       '@hono/zod-openapi':
         specifier: ^1.2.1
-        version: 1.2.1(hono@4.11.8)(zod@4.3.5)
+        version: 1.2.1(hono@4.11.8)(zod@4.3.6)
       '@supabase/supabase-js':
         specifier: ^2.94.1
         version: 2.95.2
@@ -33,8 +33,8 @@ importers:
         specifier: ^4.11.7
         version: 4.11.8
       zod:
-        specifier: ^4.2.1
-        version: 4.3.5
+        specifier: ^4.3.6
+        version: 4.3.6
     devDependencies:
       '@biomejs/biome':
         specifier: ^1.9.4
@@ -3033,14 +3033,17 @@ packages:
   zod@4.3.5:
     resolution: {integrity: sha512-k7Nwx6vuWx1IJ9Bjuf4Zt1PEllcwe7cls3VNzm4CQ1/hgtFUK2bRNG3rvnpPUhFjmqJKAKtjV576KnUkHocg/g==}
 
+  zod@4.3.6:
+    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
+
 snapshots:
 
   '@alloc/quick-lru@5.2.0': {}
 
-  '@asteasolutions/zod-to-openapi@8.4.0(zod@4.3.5)':
+  '@asteasolutions/zod-to-openapi@8.4.0(zod@4.3.6)':
     dependencies:
       openapi3-ts: 4.5.0
-      zod: 4.3.5
+      zod: 4.3.6
 
   '@babel/code-frame@7.27.1':
     dependencies:
@@ -3367,18 +3370,18 @@ snapshots:
     dependencies:
       hono: 4.11.8
 
-  '@hono/zod-openapi@1.2.1(hono@4.11.8)(zod@4.3.5)':
+  '@hono/zod-openapi@1.2.1(hono@4.11.8)(zod@4.3.6)':
     dependencies:
-      '@asteasolutions/zod-to-openapi': 8.4.0(zod@4.3.5)
-      '@hono/zod-validator': 0.7.6(hono@4.11.8)(zod@4.3.5)
+      '@asteasolutions/zod-to-openapi': 8.4.0(zod@4.3.6)
+      '@hono/zod-validator': 0.7.6(hono@4.11.8)(zod@4.3.6)
       hono: 4.11.8
       openapi3-ts: 4.5.0
-      zod: 4.3.5
+      zod: 4.3.6
 
-  '@hono/zod-validator@0.7.6(hono@4.11.8)(zod@4.3.5)':
+  '@hono/zod-validator@0.7.6(hono@4.11.8)(zod@4.3.6)':
     dependencies:
       hono: 4.11.8
-      zod: 4.3.5
+      zod: 4.3.6
 
   '@humanfs/core@0.19.1': {}
 
@@ -4714,8 +4717,8 @@ snapshots:
       '@babel/parser': 7.28.5
       eslint: 9.39.2(jiti@2.6.1)
       hermes-parser: 0.25.1
-      zod: 4.3.5
-      zod-validation-error: 4.0.2(zod@4.3.5)
+      zod: 4.3.6
+      zod-validation-error: 4.0.2(zod@4.3.6)
     transitivePeerDependencies:
       - supports-color
 
@@ -5986,10 +5989,12 @@ snapshots:
       cookie: 1.1.1
       youch-core: 0.3.3
 
-  zod-validation-error@4.0.2(zod@4.3.5):
+  zod-validation-error@4.0.2(zod@4.3.6):
     dependencies:
-      zod: 4.3.5
+      zod: 4.3.6
 
   zod@3.25.76: {}
 
   zod@4.3.5: {}
+
+  zod@4.3.6: {}
