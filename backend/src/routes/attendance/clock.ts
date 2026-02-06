@@ -11,12 +11,12 @@ import {
   successResponseSchema,
   type Task,
 } from "../../../lib/openapi-schemas"
+import { createRepos, DatabaseError } from "../../../lib/repositories"
 import {
   getSlackConfig,
   sendClockInNotification,
   sendClockOutNotification,
 } from "../../../lib/slack"
-import { getSupabaseClient } from "../../../lib/supabase"
 import type { AuthVariables } from "../../middleware/auth"
 import type { Env } from "../../types/env"
 
@@ -71,97 +71,63 @@ const clockInRoute = createRoute({
 clockRouter.openapi(clockInRoute, async (c) => {
   const { sub: userId } = c.get("jwtPayload")
   const { userName, plannedTasks, clockInTime } = c.req.valid("json")
-
-  const supabase = getSupabaseClient(c.env)
   const date = todayJSTString()
+  const repos = createRepos(c.env)
 
-  // 1. attendance_record を取得または作成
-  const { data: record, error: recordErr } = await supabase
-    .from("attendance_records")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("date", date)
-    .maybeSingle()
+  try {
+    // 1. attendance_record を取得または作成
+    const { id: attendanceId } = await repos.attendance.findOrCreateRecord(userId, date)
 
-  if (recordErr) {
-    return databaseError(c, recordErr.message)
-  }
+    // 2. work_session を作成
+    const session = await repos.workSession.createSession(
+      attendanceId,
+      clockInTime ?? new Date().toISOString(),
+    )
 
-  let attendanceId = record?.id
+    // 3. 日報を作成し、予定タスクを保存
+    try {
+      const dailyReport = await repos.dailyReport.createReport(userId, date)
 
-  if (!attendanceId) {
-    const { data: newRecord, error: newRecordErr } = await supabase
-      .from("attendance_records")
-      .insert({ user_id: userId, date })
-      .select("id")
-      .single()
-
-    if (newRecordErr) {
-      return databaseError(c, newRecordErr.message)
+      if (plannedTasks.length > 0) {
+        try {
+          await repos.dailyReport.insertTasks(
+            dailyReport.id,
+            plannedTasks.map((task: Task, index: number) => ({
+              taskType: "planned",
+              taskName: task.taskName,
+              hours: task.hours,
+              sortOrder: index,
+            })),
+          )
+        } catch (e) {
+          // タスク保存失敗は警告として記録するが、出勤処理は成功扱い
+          console.error("Failed to insert planned tasks:", e)
+        }
+      }
+    } catch (e) {
+      // 日報作成失敗は致命的エラー
+      if (e instanceof DatabaseError) return databaseError(c, e.message)
+      throw e
     }
 
-    attendanceId = newRecord.id
-  }
+    // 4. Slack に通知を送信
+    const slackConfig = getSlackConfig(c.env)
+    const slackResult = await sendClockInNotification(slackConfig, userName, plannedTasks)
 
-  // 2. work_session を作成（clockInTimeが指定されていればそれを使用、なければ現在時刻）
-  const { data: session, error: sessionErr } = await supabase
-    .from("work_sessions")
-    .insert({
-      attendance_id: attendanceId,
-      clock_in: clockInTime ?? new Date().toISOString(),
-    })
-    .select("id")
-    .single()
-
-  if (sessionErr) {
-    return databaseError(c, sessionErr.message)
-  }
-
-  // 3. 日報を作成し、予定タスクを保存
-  const { data: dailyReport, error: reportErr } = await supabase
-    .from("daily_reports")
-    .insert({ user_id: userId, date })
-    .select("id")
-    .single()
-
-  if (reportErr) {
-    return databaseError(c, reportErr.message)
-  }
-
-  if (plannedTasks.length > 0) {
-    const taskInserts = plannedTasks.map((task: Task, index: number) => ({
-      daily_report_id: dailyReport.id,
-      task_type: "planned",
-      task_name: task.taskName,
-      hours: task.hours,
-      sort_order: index,
-    }))
-
-    const { error: tasksErr } = await supabase.from("daily_report_tasks").insert(taskInserts)
-
-    if (tasksErr) {
-      // タスク保存失敗は警告として記録するが、出勤処理は成功扱い
-      console.error("Failed to insert planned tasks:", tasksErr)
+    // 5. Slackメッセージのtsをwork_sessionに保存（スレッド返信用）
+    if (slackResult.ts) {
+      try {
+        await repos.workSession.updateSlackTs(session.id, slackResult.ts)
+      } catch (e) {
+        console.error("Failed to save slack_clock_in_ts:", e)
+      }
     }
+
+    return successResponse(c, { slack_ts: slackResult.ts })
+  } catch (e) {
+    if (e instanceof DatabaseError) return databaseError(c, e.message)
+    throw e
   }
-
-  // 4. Slack に通知を送信
-  const slackConfig = getSlackConfig(c.env)
-  const slackResult = await sendClockInNotification(slackConfig, userName, plannedTasks)
-
-  // 5. Slackメッセージのtsをwork_sessionに保存（スレッド返信用）
-  if (slackResult.ts) {
-    const { error: updateTsErr } = await supabase
-      .from("work_sessions")
-      .update({ slack_clock_in_ts: slackResult.ts })
-      .eq("id", session.id)
-
-    if (updateTsErr) {
-      console.error("Failed to save slack_clock_in_ts:", updateTsErr)
-    }
-  }
-
-  return successResponse(c, { slack_ts: slackResult.ts })
 })
 
 // POST /attendance/clock-out
@@ -213,115 +179,77 @@ const clockOutRoute = createRoute({
 clockRouter.openapi(clockOutRoute, async (c) => {
   const { sub: userId } = c.get("jwtPayload")
   const { userName, actualTasks, summary, issues, notes, clockOutTime } = c.req.valid("json")
-
-  const supabase = getSupabaseClient(c.env)
   const date = todayJSTString()
+  const repos = createRepos(c.env)
 
-  // 1. 今日のattendance_recordを取得
-  const { data: record, error: recordErr } = await supabase
-    .from("attendance_records")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("date", date)
-    .maybeSingle()
-
-  if (recordErr) {
-    return databaseError(c, recordErr.message)
-  }
-
-  if (!record) {
-    return validationError(c, "No attendance record for today")
-  }
-
-  const attendanceId = record.id
-
-  // 2. アクティブなセッションを取得（slack_clock_in_tsも取得してスレッド返信に使用）
-  const { data: session, error: sessionErr } = await supabase
-    .from("work_sessions")
-    .select("id, slack_clock_in_ts")
-    .eq("attendance_id", attendanceId)
-    .is("clock_out", null)
-    .order("clock_in", { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (sessionErr) {
-    return databaseError(c, sessionErr.message)
-  }
-
-  if (!session) {
-    return validationError(c, "No active session to clock out")
-  }
-
-  // 3. 退勤時刻を記録（clockOutTimeが指定されていればそれを使用、なければ現在時刻）
-  const { error: updateErr } = await supabase
-    .from("work_sessions")
-    .update({ clock_out: clockOutTime ?? new Date().toISOString() })
-    .eq("id", session.id)
-
-  if (updateErr) {
-    return databaseError(c, updateErr.message)
-  }
-
-  // 4. 日報を更新し、実績タスクを保存
-  const { data: dailyReport, error: reportFetchErr } = await supabase
-    .from("daily_reports")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("date", date)
-    .is("submitted_at", null)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  if (reportFetchErr) {
-    // 日報取得失敗は警告として記録するが、退勤処理は続行
-    console.error("Failed to fetch daily report:", reportFetchErr)
-  }
-
-  if (dailyReport) {
-    const { error: reportUpdateErr } = await supabase
-      .from("daily_reports")
-      .update({
-        summary: summary || null,
-        issues: issues || null,
-        notes: notes || null,
-        submitted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", dailyReport.id)
-
-    if (reportUpdateErr) {
-      console.error("Failed to update daily report:", reportUpdateErr)
+  try {
+    // 1. 今日のattendance_recordを取得
+    const record = await repos.attendance.findRecordIdByUserAndDate(userId, date)
+    if (!record) {
+      return validationError(c, "No attendance record for today")
     }
 
-    if (actualTasks.length > 0) {
-      const taskInserts = actualTasks.map((task: Task, index: number) => ({
-        daily_report_id: dailyReport.id,
-        task_type: "actual",
-        task_name: task.taskName,
-        hours: task.hours,
-        sort_order: index,
-      }))
+    // 2. アクティブなセッションを取得（slack_clock_in_tsも取得してスレッド返信に使用）
+    const session = await repos.workSession.findActiveSessionWithSlackTs(record.id)
+    if (!session) {
+      return validationError(c, "No active session to clock out")
+    }
 
-      const { error: tasksErr } = await supabase.from("daily_report_tasks").insert(taskInserts)
+    // 3. 退勤時刻を記録
+    await repos.workSession.updateClockOut(session.id, clockOutTime ?? new Date().toISOString())
 
-      if (tasksErr) {
-        console.error("Failed to insert actual tasks:", tasksErr)
+    // 4. 日報を更新し、実績タスクを保存
+    try {
+      const dailyReport = await repos.dailyReport.findUnsubmittedReport(userId, date)
+
+      if (dailyReport) {
+        try {
+          await repos.dailyReport.updateReport(dailyReport.id, {
+            summary: summary || null,
+            issues: issues || null,
+            notes: notes || null,
+            submittedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          })
+        } catch (e) {
+          console.error("Failed to update daily report:", e)
+        }
+
+        if (actualTasks.length > 0) {
+          try {
+            await repos.dailyReport.insertTasks(
+              dailyReport.id,
+              actualTasks.map((task: Task, index: number) => ({
+                taskType: "actual",
+                taskName: task.taskName,
+                hours: task.hours,
+                sortOrder: index,
+              })),
+            )
+          } catch (e) {
+            console.error("Failed to insert actual tasks:", e)
+          }
+        }
       }
+    } catch (e) {
+      // 日報取得失敗は警告として記録するが、退勤処理は続行
+      console.error("Failed to fetch daily report:", e)
     }
+
+    // 5. Slack に通知を送信（出勤メッセージのスレッドに返信）
+    const slackConfig = getSlackConfig(c.env)
+    const slackResult = await sendClockOutNotification(slackConfig, userName, actualTasks, {
+      summary,
+      issues,
+      notes,
+      threadTs: session.slack_clock_in_ts ?? undefined,
+    })
+
+    return successResponse(c, { slack_ts: slackResult.ts })
+  } catch (e) {
+    if (e instanceof DatabaseError) return databaseError(c, e.message)
+    throw e
   }
-
-  // 5. Slack に通知を送信（出勤メッセージのスレッドに返信）
-  const slackConfig = getSlackConfig(c.env)
-  const slackResult = await sendClockOutNotification(slackConfig, userName, actualTasks, {
-    summary,
-    issues,
-    notes,
-    threadTs: session.slack_clock_in_ts ?? undefined,
-  })
-
-  return successResponse(c, { slack_ts: slackResult.ts })
 })
 
 export default clockRouter
