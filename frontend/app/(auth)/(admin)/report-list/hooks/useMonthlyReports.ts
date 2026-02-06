@@ -6,18 +6,8 @@ import type {
   UserForSelect,
 } from "@attendance-manager/shared/types/DailyReport"
 import { useCallback, useEffect, useState } from "react"
-import { apiClient } from "@/lib/api-client"
+import { getUserMonthlyReports } from "@/lib/api-services/daily-reports"
 import { withRetry } from "@/lib/auth/with-retry"
-
-interface UserMonthlyReportsResponse {
-  user: UserForSelect | null
-  yearMonth: string
-  reports: DailyReportListItem[]
-}
-
-function getUserMonthlyReports(userId: string, yearMonth: string) {
-  return apiClient<UserMonthlyReportsResponse>(`/daily-reports/user/${userId}/month/${yearMonth}`)
-}
 
 export function useMonthlyReports(user: UserForSelect | null, currentMonth: Date) {
   const [reports, setReports] = useState<DailyReportListItem[]>([])

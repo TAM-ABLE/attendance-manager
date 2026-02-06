@@ -2,7 +2,7 @@ import { parseYearMonth, todayJSTString } from "@attendance-manager/shared/lib/t
 // backend/src/routes/attendance/queries.ts
 import { createRoute, z } from "@hono/zod-openapi"
 import { databaseError, successResponse, validationError } from "../../../lib/errors"
-import { type DbAttendanceRecord, formatAttendanceRecord } from "../../../lib/formatters"
+import { formatAttendanceRecord } from "../../../lib/formatters"
 import { createOpenAPIHono } from "../../../lib/openapi-hono"
 import {
   attendanceRecordSchema,
@@ -11,7 +11,7 @@ import {
   weekTotalResponseSchema,
   yearMonthSchema,
 } from "../../../lib/openapi-schemas"
-import { getSupabaseClient } from "../../../lib/supabase"
+import { createRepos, DatabaseError } from "../../../lib/repositories"
 import type { AuthVariables } from "../../middleware/auth"
 import type { Env } from "../../types/env"
 
@@ -48,40 +48,20 @@ const todayRoute = createRoute({
 queriesRouter.openapi(todayRoute, async (c) => {
   const { sub: userId } = c.get("jwtPayload")
   const date = todayJSTString()
+  const { attendance } = createRepos(c.env)
 
-  const supabase = getSupabaseClient(c.env)
+  try {
+    const data = await attendance.findRecordWithSessions(userId, date)
 
-  const { data, error } = await supabase
-    .from("attendance_records")
-    .select(
-      `
-            id,
-            date,
-            work_sessions (
-                id,
-                clock_in,
-                clock_out,
-                breaks (
-                    id,
-                    break_start,
-                    break_end
-                )
-            )
-        `,
-    )
-    .eq("user_id", userId)
-    .eq("date", date)
-    .maybeSingle<DbAttendanceRecord>()
+    if (!data) {
+      return successResponse(c, null)
+    }
 
-  if (error) {
-    return databaseError(c, error.message)
+    return successResponse(c, formatAttendanceRecord(data))
+  } catch (e) {
+    if (e instanceof DatabaseError) return databaseError(c, e.message)
+    throw e
   }
-
-  if (!data) {
-    return successResponse(c, null)
-  }
-
-  return successResponse(c, formatAttendanceRecord(data))
 })
 
 // GET /attendance/month/:yearMonth
@@ -139,37 +119,15 @@ queriesRouter.openapi(monthRoute, async (c) => {
   const lastDay = new Date(year, month, 0).getDate()
   const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
 
-  const supabase = getSupabaseClient(c.env)
+  const { attendance } = createRepos(c.env)
 
-  const { data, error } = await supabase
-    .from("attendance_records")
-    .select(
-      `
-            id,
-            date,
-            work_sessions (
-                id,
-                clock_in,
-                clock_out,
-                breaks (
-                    id,
-                    break_start,
-                    break_end
-                )
-            )
-        `,
-    )
-    .eq("user_id", userId)
-    .gte("date", start)
-    .lte("date", end)
-    .order("date", { ascending: true })
-    .returns<DbAttendanceRecord[]>()
-
-  if (error) {
-    return databaseError(c, error.message)
+  try {
+    const data = await attendance.findRecordsByDateRange(userId, start, end)
+    return successResponse(c, data.map(formatAttendanceRecord))
+  } catch (e) {
+    if (e instanceof DatabaseError) return databaseError(c, e.message)
+    throw e
   }
-
-  return successResponse(c, data.map(formatAttendanceRecord))
 })
 
 // GET /attendance/week/total
@@ -217,43 +175,22 @@ queriesRouter.openapi(weekTotalRoute, async (c) => {
   const startDate = monday.toISOString().split("T")[0]
   const endDate = sunday.toISOString().split("T")[0]
 
-  const supabase = getSupabaseClient(c.env)
+  const { attendance } = createRepos(c.env)
 
-  const { data, error } = await supabase
-    .from("attendance_records")
-    .select(
-      `
-            id,
-            date,
-            work_sessions (
-                id,
-                clock_in,
-                clock_out,
-                breaks (
-                    id,
-                    break_start,
-                    break_end
-                )
-            )
-        `,
-    )
-    .eq("user_id", userId)
-    .gte("date", startDate)
-    .lte("date", endDate)
+  try {
+    const data = await attendance.findRecordsByDateRange(userId, startDate, endDate)
 
-  if (error) {
-    return databaseError(c, error.message)
+    // formatAttendanceRecordで変換・計算し、workTotalMsを集計
+    const netWorkMs = data.reduce((sum, rec) => {
+      const formatted = formatAttendanceRecord(rec)
+      return sum + formatted.workTotalMs
+    }, 0)
+
+    return successResponse(c, { netWorkMs })
+  } catch (e) {
+    if (e instanceof DatabaseError) return databaseError(c, e.message)
+    throw e
   }
-
-  const dbRecords = data as DbAttendanceRecord[]
-
-  // formatAttendanceRecordで変換・計算し、workTotalMsを集計
-  const netWorkMs = dbRecords.reduce((sum, rec) => {
-    const formatted = formatAttendanceRecord(rec)
-    return sum + formatted.workTotalMs
-  }, 0)
-
-  return successResponse(c, { netWorkMs })
 })
 
 export default queriesRouter
