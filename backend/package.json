@@ -13,16 +13,16 @@
   "dependencies": {
     "@attendance-manager/shared": "workspace:*",
     "@hono/swagger-ui": "^0.5.2",
-    "@hono/zod-openapi": "^1.2.0",
-    "@supabase/supabase-js": "^2.83.0",
+    "@hono/zod-openapi": "^1.2.1",
+    "@supabase/supabase-js": "^2.94.1",
     "bcryptjs": "^3.0.3",
-    "hono": "^4.10.4",
+    "hono": "^4.11.7",
     "zod": "^4.2.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@types/node": "^24.10.0",
     "tsx": "^4.19.0",
-    "wrangler": "^4.4.0"
+    "wrangler": "^4.63.0"
   }
 }
