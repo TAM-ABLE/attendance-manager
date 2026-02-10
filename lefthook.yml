@@ -1,21 +1,10 @@
 pre-commit:
-  parallel: true
   commands:
-    backend-lint:
-      root: backend/
-      glob: "*.{ts,tsx,js,jsx,json}"
-      run: pnpm lint
-    frontend-lint:
-      root: frontend/
+    lint:
       glob: "*.{ts,tsx,js,jsx,json}"
       run: pnpm lint
 
 pre-push:
-  parallel: true
   commands:
-    backend-typecheck:
-      root: backend/
-      run: pnpm tsc --noEmit
-    frontend-typecheck:
-      root: frontend/
+    typecheck:
       run: pnpm tsc --noEmit
