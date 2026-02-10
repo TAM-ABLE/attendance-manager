@@ -27,21 +27,20 @@ Zodスキーマ定義 → OpenAPI仕様（JSON）→ Swagger UI で確認
 ## Swagger UI へのアクセス
 
 ```bash
-cd backend
 pnpm dev
 ```
 
-- **Swagger UI**: http://localhost:8787/ui
-- **OpenAPI仕様（JSON）**: http://localhost:8787/doc
+- **Swagger UI**: http://localhost:3000/api/ui
+- **OpenAPI仕様（JSON）**: http://localhost:3000/api/doc
 
 ## ファイル構成
 
 | ファイル | 役割 |
 |----------|------|
-| `backend/lib/openapi-schemas.ts` | Zodスキーマ定義（リクエスト/レスポンス） |
-| `backend/lib/openapi-hono.ts` | OpenAPIHono のファクトリ関数 |
-| `backend/src/index.ts` | Swagger UI・OpenAPI仕様エンドポイント設定 |
-| `backend/src/routes/**/*.ts` | 各ルートの定義 |
+| `server/lib/openapi-schemas.ts` | Zodスキーマ定義（リクエスト/レスポンス） |
+| `server/lib/openapi-hono.ts` | OpenAPIHono のファクトリ関数 |
+| `server/app.ts` | Swagger UI・OpenAPI仕様エンドポイント設定 |
+| `server/routes/**/*.ts` | 各ルートの定義 |
 
 ## スキーマ定義の書き方
 
@@ -50,7 +49,7 @@ pnpm dev
 `@hono/zod-openapi` の `z` を使用し、`.openapi()` でメタデータを追加します。
 
 ```typescript
-// backend/lib/openapi-schemas.ts
+// server/lib/openapi-schemas.ts
 import { z } from "@hono/zod-openapi"
 
 // 基本スキーマ（説明とサンプル値を追加）
@@ -116,7 +115,7 @@ export const errorResponseSchema = z
 ### 1. createRoute でルート定義
 
 ```typescript
-// backend/src/routes/auth/login.ts
+// server/routes/auth/login.ts
 import { createRoute } from "@hono/zod-openapi"
 import {
   loginRequestSchema,
@@ -220,7 +219,7 @@ router.openapi(getUserRoute, async (c) => {
 
 ## バリデーションエラーのカスタマイズ
 
-`backend/lib/openapi-hono.ts` で統一されたエラーレスポンスを設定:
+`server/lib/openapi-hono.ts` で統一されたエラーレスポンスを設定:
 
 ```typescript
 import { OpenAPIHono } from "@hono/zod-openapi"
@@ -248,24 +247,24 @@ export function createOpenAPIHono<E extends Env = Env>() {
 
 ## 新しいエンドポイントを追加する手順
 
-1. **スキーマ定義**（`backend/lib/openapi-schemas.ts`）
+1. **スキーマ定義**（`server/lib/openapi-schemas.ts`）
    - リクエスト/レスポンスのZodスキーマを追加
    - `.openapi()` でメタデータを追加
 
-2. **ルート定義**（`backend/src/routes/[domain]/[action].ts`）
+2. **ルート定義**（`server/routes/[domain]/[action].ts`）
    - `createRoute` でルート定義
    - `router.openapi()` でハンドラー結合
 
-3. **ルーターをマウント**（`backend/src/index.ts`）
+3. **ルーターをマウント**（`server/app.ts`）
    - 必要に応じて新しいルーターをマウント
 
 4. **確認**
-   - http://localhost:8787/ui でSwagger UIを確認
+   - http://localhost:3000/api/ui でSwagger UIを確認
    - 新しいエンドポイントが表示されているか確認
 
 ## タグ（グループ分け）
 
-`backend/src/index.ts` でタグを定義:
+`server/app.ts` でタグを定義:
 
 ```typescript
 app.doc("/doc", {
@@ -290,7 +289,7 @@ app.doc("/doc", {
 Bearer Token 認証の設定:
 
 ```typescript
-// backend/src/index.ts
+// server/app.ts
 
 // セキュリティスキーム定義
 app.openAPIRegistry.registerComponent("securitySchemes", "Bearer", {
