@@ -26,8 +26,10 @@ export interface FormattedAttendanceRecord {
   breakTotalMs: number
 }
 
-export function formatAttendanceRecord(record: DbAttendanceRecord): FormattedAttendanceRecord {
-  const sessions: WorkSession[] = record.work_sessions.map((s) => ({
+type DbWorkSession = DbAttendanceRecord["work_sessions"][number]
+
+export function formatWorkSessions(workSessions: DbWorkSession[]): WorkSession[] {
+  return workSessions.map((s) => ({
     id: s.id,
     clockIn: s.clock_in ? new Date(s.clock_in).getTime() : null,
     clockOut: s.clock_out ? new Date(s.clock_out).getTime() : null,
@@ -37,7 +39,10 @@ export function formatAttendanceRecord(record: DbAttendanceRecord): FormattedAtt
       end: b.break_end ? new Date(b.break_end).getTime() : null,
     })),
   }))
+}
 
+export function formatAttendanceRecord(record: DbAttendanceRecord): FormattedAttendanceRecord {
+  const sessions = formatWorkSessions(record.work_sessions)
   const { workTotalMs, breakTotalMs } = calculateSessionsTotals(sessions)
 
   return {
