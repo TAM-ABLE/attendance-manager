@@ -4,6 +4,7 @@ import { Download } from "lucide-react"
 import dynamic from "next/dynamic"
 import { useCallback, useState } from "react"
 import { MonthNavigator } from "@/components/MonthNavigator"
+import { UserMonthlyAttendance } from "@/components/UserMonthlyAttendance"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -18,10 +19,9 @@ import type { User } from "@/types/Attendance"
 import { useEditDialog } from "../hooks/useEditDialog"
 import { useMonthlyAttendance } from "../hooks/useMonthlyAttendance"
 import { useUsers } from "../hooks/useUsers"
-import { UserMonthlyAttendance } from "./UserMonthlyAttendance"
 
 const EditAttendanceDialog = dynamic(
-  () => import("./EditAttendanceDialog").then((mod) => mod.EditAttendanceDialog),
+  () => import("@/components/EditAttendanceDialog").then((mod) => mod.EditAttendanceDialog),
   { ssr: false },
 )
 
