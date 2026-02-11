@@ -1,6 +1,6 @@
 import { apiClient } from "@/lib/api-client"
 import { formatYearMonth } from "@/lib/time"
-import type { AttendanceRecord, Task } from "@/types/Attendance"
+import type { AttendanceRecord, Task, WorkSession } from "@/types/Attendance"
 
 export function clockIn(userName: string, plannedTasks: Task[], clockInTime?: string) {
   return apiClient<{ slack_ts?: string }>("/attendance/clock-in", {
@@ -48,4 +48,15 @@ export function getWeekTotal() {
 export function getMonth(year: number, month: number) {
   const yearMonth = formatYearMonth(year, month)
   return apiClient<AttendanceRecord[]>(`/attendance/month/${yearMonth}`)
+}
+
+export function getDateSessions(date: string) {
+  return apiClient<WorkSession[]>(`/attendance/${date}/sessions`)
+}
+
+export function updateDateSessions(date: string, sessions: WorkSession[]) {
+  return apiClient<null>(`/attendance/${date}/sessions`, {
+    method: "PUT",
+    body: { sessions },
+  })
 }

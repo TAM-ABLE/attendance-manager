@@ -1,12 +1,13 @@
 "use client"
 
-import { FileText, History, LayoutDashboard, Menu, Users, X } from "lucide-react"
+import { Menu, X } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useState } from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { logout } from "@/lib/api-client"
+import { getNavigation } from "./nav-items"
 
 type MobileMenuProps = {
   userName: string
@@ -14,21 +15,11 @@ type MobileMenuProps = {
   isAdmin: boolean
 }
 
-const navItems = [
-  { href: "/dashboard", label: "ダッシュボード", icon: LayoutDashboard },
-  { href: "/attendance-history", label: "勤怠履歴", icon: History },
-]
-
-const adminNavItems = [
-  { href: "/report-list", label: "日報一覧", icon: FileText },
-  { href: "/admin", label: "管理者", icon: Users },
-]
-
 export function MobileMenu({ userName, userEmail, isAdmin }: MobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
   const pathname = usePathname()
   const router = useRouter()
-  const navigation = isAdmin ? [...navItems, ...adminNavItems] : navItems
+  const navigation = getNavigation(isAdmin)
 
   const getInitials = (name: string) => name.charAt(0).toUpperCase()
 
