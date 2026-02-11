@@ -1,7 +1,7 @@
 import { createRoute, z } from "@hono/zod-openapi"
 import { parseYearMonth } from "@/lib/time"
 import { databaseError, successResponse, validationError } from "../../lib/errors"
-import { formatAttendanceRecord } from "../../lib/formatters"
+import { formatAttendanceRecord, formatWorkSessions } from "../../lib/formatters"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
 import {
   attendanceRecordSchema,
@@ -15,6 +15,7 @@ import {
   yearMonthSchema,
 } from "../../lib/openapi-schemas"
 import { createRepos, DatabaseError } from "../../lib/repositories"
+import { replaceSessions } from "../../lib/sessions"
 import type { AuthVariables } from "../../middleware/auth"
 import type { Env } from "../../types/env"
 
@@ -178,18 +179,7 @@ usersRouter.openapi(getUserSessionsRoute, async (c) => {
       return successResponse(c, [])
     }
 
-    const sessions = data.work_sessions.map((s) => ({
-      id: s.id,
-      clockIn: s.clock_in ? new Date(s.clock_in).getTime() : null,
-      clockOut: s.clock_out ? new Date(s.clock_out).getTime() : null,
-      breaks: s.breaks.map((b) => ({
-        id: b.id,
-        start: b.break_start ? new Date(b.break_start).getTime() : null,
-        end: b.break_end ? new Date(b.break_end).getTime() : null,
-      })),
-    }))
-
-    return successResponse(c, sessions)
+    return successResponse(c, formatWorkSessions(data.work_sessions))
   } catch (e) {
     if (e instanceof DatabaseError) return databaseError(c, e.message)
     throw e
@@ -251,60 +241,10 @@ usersRouter.openapi(updateUserSessionsRoute, async (c) => {
   const repos = createRepos(c.env)
 
   try {
-    const { id: attendanceId } = await repos.attendance.findOrCreateRecord(userId, date)
-
-    const oldSessionIds = await repos.workSession.getSessionIdsByAttendanceId(attendanceId)
-    if (oldSessionIds.length > 0) {
-      await repos.break.deleteBySessionIds(oldSessionIds)
-      await repos.workSession.deleteByIds(oldSessionIds)
+    const result = await replaceSessions(repos, userId, date, sessions)
+    if (result.error) {
+      return validationError(c, result.error)
     }
-
-    const validSessions = sessions.filter((s) => s.clockIn != null)
-    for (const s of validSessions) {
-      if (s.clockOut && s.clockOut < s.clockIn!) {
-        return validationError(c, "Clock out time must be after clock in time")
-      }
-      for (const br of s.breaks || []) {
-        if (!br.start) continue
-        if (br.end && br.end < br.start) {
-          return validationError(c, "Break end time must be after break start time")
-        }
-        if (br.start < s.clockIn!) {
-          return validationError(c, "Break start time must be after clock in time")
-        }
-        if (s.clockOut && br.end && br.end > s.clockOut) {
-          return validationError(c, "Break end time must be before clock out time")
-        }
-      }
-    }
-
-    if (validSessions.length > 0) {
-      const insertedSessions = await repos.workSession.insertMultiple(
-        attendanceId,
-        validSessions.map((s) => ({
-          clockIn: new Date(s.clockIn!).toISOString(),
-          clockOut: s.clockOut ? new Date(s.clockOut).toISOString() : null,
-        })),
-      )
-
-      const breakInserts: { sessionId: string; breakStart: string; breakEnd: string | null }[] = []
-      for (let i = 0; i < validSessions.length; i++) {
-        const sessionId = insertedSessions[i].id
-        for (const br of validSessions[i].breaks || []) {
-          if (!br.start) continue
-          breakInserts.push({
-            sessionId,
-            breakStart: new Date(br.start).toISOString(),
-            breakEnd: br.end ? new Date(br.end).toISOString() : null,
-          })
-        }
-      }
-
-      if (breakInserts.length > 0) {
-        await repos.break.insertMultiple(breakInserts)
-      }
-    }
-
     return successResponse(c, null)
   } catch (e) {
     if (e instanceof DatabaseError) return databaseError(c, e.message)

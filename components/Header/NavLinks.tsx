@@ -1,27 +1,17 @@
 "use client"
 
-import { FileText, History, LayoutDashboard, Users } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { getNavigation } from "./nav-items"
 
 type NavLinksProps = {
   isAdmin: boolean
 }
 
-const navItems = [
-  { href: "/dashboard", label: "ダッシュボード", icon: LayoutDashboard },
-  { href: "/attendance-history", label: "勤怠履歴", icon: History },
-]
-
-const adminNavItems = [
-  { href: "/report-list", label: "日報一覧", icon: FileText },
-  { href: "/admin", label: "管理者", icon: Users },
-]
-
 export function NavLinks({ isAdmin }: NavLinksProps) {
   const pathname = usePathname()
-  const navigation = isAdmin ? [...navItems, ...adminNavItems] : navItems
+  const navigation = getNavigation(isAdmin)
 
   return (
     <nav className="hidden md:flex gap-2 ml-auto">

@@ -2,7 +2,6 @@ import { Edit } from "lucide-react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-// components/admin/UserMonthlyAttendance.tsx
 import {
   Table,
   TableBody,
@@ -18,10 +17,10 @@ import {
   getDateLabel,
   getWeekdayLabel,
 } from "@/lib/time"
-import type { AttendanceRecord, User } from "@/types/Attendance"
+import type { AttendanceRecord } from "@/types/Attendance"
 
 interface Props {
-  user: User
+  user: { name: string; email: string }
   monthData: AttendanceRecord[]
   openEditDialog: (date: string) => void
 }
