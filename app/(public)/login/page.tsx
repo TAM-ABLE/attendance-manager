@@ -135,15 +135,6 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" size="lg" disabled={loading}>
               {loading ? "ログイン中..." : "ログイン"}
             </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() => router.push("/sign-up")}
-            >
-              新規アカウント作成
-            </Button>
           </form>
         </CardContent>
       </Card>

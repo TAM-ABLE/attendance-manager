@@ -7,15 +7,18 @@ export type NavItem = {
   icon: LucideIcon
 }
 
-export const navItems: NavItem[] = [
+export const userNavItems: NavItem[] = [
   { href: "/dashboard", label: "ダッシュボード", icon: LayoutDashboard },
   { href: "/attendance-history", label: "勤怠履歴", icon: History },
   { href: "/edit-attendance", label: "勤怠編集", icon: Pencil },
   { href: "/report-list", label: "日報一覧", icon: FileText },
 ]
 
-export const adminNavItems: NavItem[] = [{ href: "/admin", label: "管理者", icon: Users }]
+export const adminNavItems: NavItem[] = [
+  { href: "/admin", label: "管理者", icon: Users },
+  { href: "/report-list", label: "日報一覧", icon: FileText },
+]
 
 export function getNavigation(isAdmin: boolean): NavItem[] {
-  return isAdmin ? [...navItems, ...adminNavItems] : navItems
+  return isAdmin ? adminNavItems : userNavItems
 }

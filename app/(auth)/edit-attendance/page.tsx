@@ -1,10 +1,10 @@
-import { fetchWithAuth, requireAuth } from "@/lib/auth/server"
+import { fetchWithAuth, requireUser } from "@/lib/auth/server"
 import { formatYearMonthFromDate } from "@/lib/time"
 import type { AttendanceRecord } from "@/types/Attendance"
 import { EditAttendanceClient } from "./components/EditAttendanceClient"
 
 export default async function EditAttendancePage() {
-  const authUser = await requireAuth()
+  const authUser = await requireUser()
 
   const now = new Date()
   const yearMonth = formatYearMonthFromDate(now)
