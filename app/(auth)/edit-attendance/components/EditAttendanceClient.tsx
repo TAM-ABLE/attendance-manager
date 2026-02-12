@@ -97,6 +97,8 @@ export function EditAttendanceClient({ user, initialData }: EditAttendanceClient
         <UserMonthlyAttendance
           user={user}
           monthData={monthData}
+          year={year}
+          month={month}
           openEditDialog={editDialog.openDialog}
         />
       )}
