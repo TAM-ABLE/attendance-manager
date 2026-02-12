@@ -121,6 +121,8 @@ export function MonthlyAttendanceView({ initialUsers }: MonthlyAttendanceViewPro
         <UserMonthlyAttendance
           user={selectedUser}
           monthData={monthData}
+          year={currentMonth.getFullYear()}
+          month={currentMonth.getMonth() + 1}
           openEditDialog={editDialog.openDialog}
         />
       )}

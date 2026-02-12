@@ -162,3 +162,18 @@ export function formatYearMonth(year: number, month: number): string {
 export function formatYearMonthFromDate(date: Date): string {
   return formatYearMonth(date.getFullYear(), date.getMonth() + 1)
 }
+
+/**
+ * 指定月の全日をYYYY-MM-DD形式の配列で返す
+ * @param year 年（4桁）
+ * @param month 月（1-12）
+ */
+export function generateMonthDates(year: number, month: number): string[] {
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const mm = String(month).padStart(2, "0")
+  const dates: string[] = []
+  for (let d = 1; d <= daysInMonth; d++) {
+    dates.push(`${year}-${mm}-${String(d).padStart(2, "0")}`)
+  }
+  return dates
+}
