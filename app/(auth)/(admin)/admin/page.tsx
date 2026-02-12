@@ -25,27 +25,27 @@ export default async function AdminPage() {
         </div>
       </div>
 
-      <Tabs defaultValue="monthly" className="space-y-4 sm:space-y-6">
+      <Tabs defaultValue="users" className="space-y-4 sm:space-y-6">
         <TabsList className="grid grid-cols-3 w-full sm:max-w-lg">
-          <TabsTrigger value="monthly" className="text-xs sm:text-sm">
-            <CalendarDays className="h-4 w-4 mr-1 sm:mr-2" />
-            月別詳細
-          </TabsTrigger>
           <TabsTrigger value="users" className="text-xs sm:text-sm">
             <Users className="h-4 w-4 mr-1 sm:mr-2" />
             ユーザー管理
+          </TabsTrigger>
+          <TabsTrigger value="monthly" className="text-xs sm:text-sm">
+            <CalendarDays className="h-4 w-4 mr-1 sm:mr-2" />
+            月別詳細
           </TabsTrigger>
           <TabsTrigger value="settings" className="text-xs sm:text-sm">
             通知設定
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="monthly">
-          <MonthlyAttendanceView initialUsers={regularUsers ?? undefined} />
-        </TabsContent>
-
         <TabsContent value="users">
           <UserManagementView initialUsers={users ?? undefined} />
+        </TabsContent>
+
+        <TabsContent value="monthly">
+          <MonthlyAttendanceView initialUsers={regularUsers ?? undefined} />
         </TabsContent>
 
         <TabsContent value="settings">
