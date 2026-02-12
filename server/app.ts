@@ -35,8 +35,8 @@ app.route("/attendance", attendanceRoute)
 app.use("/admin/*", authMiddleware, adminMiddleware)
 app.route("/admin", adminRoute)
 
-// 認証 + 管理者権限が必要なルート: /api/daily-reports/*
-app.use("/daily-reports/*", authMiddleware, adminMiddleware)
+// 認証が必要なルート: /api/daily-reports/*
+app.use("/daily-reports/*", authMiddleware)
 app.route("/daily-reports", dailyReportsRoute)
 
 // OpenAPI 仕様書エンドポイント
