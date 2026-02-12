@@ -1,9 +1,11 @@
 import { createRoute, z } from "@hono/zod-openapi"
 import { parseYearMonth } from "@/lib/time"
-import { databaseError, successResponse, validationError } from "../../lib/errors"
+import { databaseError, internalError, successResponse, validationError } from "../../lib/errors"
 import { formatAttendanceRecord, formatWorkSessions } from "../../lib/formatters"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
 import {
+  adminCreateUserRequestSchema,
+  adminCreateUserResponseSchema,
   attendanceRecordSchema,
   dateSchema,
   errorResponseSchema,
@@ -16,6 +18,7 @@ import {
 } from "../../lib/openapi-schemas"
 import { createRepos, DatabaseError } from "../../lib/repositories"
 import { replaceSessions } from "../../lib/sessions"
+import { getSupabaseClient } from "../../lib/supabase"
 import type { AuthVariables } from "../../middleware/auth"
 import type { Env } from "../../types/env"
 
@@ -61,12 +64,103 @@ usersRouter.openapi(getUsersRoute, async (c) => {
       name: u.name,
       email: u.email,
       employeeNumber: u.employee_number,
+      role: u.role as "admin" | "user",
     }))
 
     return successResponse(c, users)
   } catch (e) {
     if (e instanceof DatabaseError) return databaseError(c, e.message)
     throw e
+  }
+})
+
+// ===== POST /admin/users - 管理者によるユーザー作成 =====
+
+function generateNextEmployeeNumber(maxNumber: string | null): string {
+  if (!maxNumber) return "A-0001"
+  const num = Number.parseInt(maxNumber.replace("A-", ""), 10)
+  return `A-${String(num + 1).padStart(4, "0")}`
+}
+
+const createUserRoute = createRoute({
+  method: "post",
+  path: "/",
+  tags: ["管理者"],
+  summary: "ユーザー作成",
+  description: "管理者が新規ユーザーを登録します。roleは自動的にuserとなります。",
+  security: [{ Bearer: [] }],
+  request: {
+    body: {
+      content: {
+        "application/json": {
+          schema: adminCreateUserRequestSchema,
+        },
+      },
+      required: true,
+    },
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: successResponseSchema(adminCreateUserResponseSchema),
+        },
+      },
+      description: "作成成功",
+    },
+    400: {
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+      description: "バリデーションエラー",
+    },
+    500: {
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+      description: "サーバーエラー",
+    },
+  },
+})
+
+usersRouter.openapi(createUserRoute, async (c) => {
+  const { name, email, password } = c.req.valid("json")
+  const { profile } = createRepos(c.env)
+  const supabase = getSupabaseClient(c.env)
+
+  try {
+    const maxNumber = await profile.findMaxEmployeeNumber()
+    const employeeNumber = generateNextEmployeeNumber(maxNumber)
+
+    const { data, error } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        name,
+        role: "user",
+        employee_number: employeeNumber,
+      },
+    })
+
+    if (error || !data.user) {
+      return validationError(c, error?.message ?? "ユーザー作成に失敗しました")
+    }
+
+    return successResponse(c, {
+      id: data.user.id,
+      name,
+      email: data.user.email ?? email,
+      employeeNumber,
+      role: "user" as const,
+    })
+  } catch (e) {
+    if (e instanceof DatabaseError) return databaseError(c, e.message)
+    return internalError(c, e instanceof Error ? e.message : "Unknown error")
   }
 })
 

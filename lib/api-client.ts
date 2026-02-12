@@ -107,42 +107,6 @@ export async function login(email: string, password: string): Promise<LoginResul
   }
 }
 
-type RegisterResult = { success: true } | { success: false; error: string }
-
-/**
- * ユーザー登録
- * Hono API が Cookie にトークンを保存
- */
-export async function register(
-  name: string,
-  email: string,
-  password: string,
-  employeeNumber: string,
-  role: "admin" | "user" = "user",
-): Promise<RegisterResult> {
-  try {
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password, employeeNumber, role }),
-    })
-
-    const json = await res.json()
-
-    if (!res.ok || !json.success) {
-      return {
-        success: false,
-        error: json.error?.message ?? "登録に失敗しました",
-      }
-    }
-
-    return { success: true }
-  } catch (err) {
-    console.error("Register error:", err)
-    return { success: false, error: "登録に失敗しました" }
-  }
-}
-
 /**
  * ログアウト
  * Hono API が Cookie を削除

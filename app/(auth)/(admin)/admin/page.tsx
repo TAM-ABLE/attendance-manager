@@ -1,18 +1,20 @@
 // app/(auth)/(admin)/admin/page.tsx
 
-import { CalendarDays } from "lucide-react"
+import { CalendarDays, Users } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { fetchWithAuth } from "@/lib/auth/server"
 import type { User } from "@/types/Attendance"
 import { MonthlyAttendanceView } from "./components/MonthlyAttendanceView"
+import { UserManagementView } from "./components/UserManagementView"
 
 export default async function AdminPage() {
   // 認証・権限チェックは(admin)/layout.tsxで実施済み
 
   // SSCでユーザー一覧を取得
   const users = await fetchWithAuth<User[]>("/admin/users")
+  const regularUsers = users?.filter((u) => u.role !== "admin")
 
   return (
     <div className="space-y-4 sm:space-y-6 p-3 sm:p-4">
@@ -24,10 +26,14 @@ export default async function AdminPage() {
       </div>
 
       <Tabs defaultValue="monthly" className="space-y-4 sm:space-y-6">
-        <TabsList className="grid grid-cols-2 w-full sm:max-w-md">
+        <TabsList className="grid grid-cols-3 w-full sm:max-w-lg">
           <TabsTrigger value="monthly" className="text-xs sm:text-sm">
             <CalendarDays className="h-4 w-4 mr-1 sm:mr-2" />
             月別詳細
+          </TabsTrigger>
+          <TabsTrigger value="users" className="text-xs sm:text-sm">
+            <Users className="h-4 w-4 mr-1 sm:mr-2" />
+            ユーザー管理
           </TabsTrigger>
           <TabsTrigger value="settings" className="text-xs sm:text-sm">
             通知設定
@@ -35,7 +41,11 @@ export default async function AdminPage() {
         </TabsList>
 
         <TabsContent value="monthly">
-          <MonthlyAttendanceView initialUsers={users ?? undefined} />
+          <MonthlyAttendanceView initialUsers={regularUsers ?? undefined} />
+        </TabsContent>
+
+        <TabsContent value="users">
+          <UserManagementView initialUsers={users ?? undefined} />
         </TabsContent>
 
         <TabsContent value="settings">

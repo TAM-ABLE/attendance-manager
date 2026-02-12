@@ -1,12 +1,11 @@
 // dashboard/page.tsx
 
-import { fetchWithAuth, getUser } from "@/lib/auth/server"
+import { fetchWithAuth, requireUser } from "@/lib/auth/server"
 import type { AttendanceRecord } from "@/types/Attendance"
 import { DashboardClient } from "./components/DashboardClient"
 
 export default async function DashboardPage() {
-  // 認証チェックは(auth)/layout.tsxで実施済み
-  const user = (await getUser())!
+  const user = await requireUser()
 
   // SSCで初期データを並列取得
   const [attendance, weekData] = await Promise.all([

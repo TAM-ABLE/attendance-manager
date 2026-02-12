@@ -25,7 +25,7 @@ type MonthlyAttendanceViewProps = {
 
 export function MonthlyAttendanceView({ initialUsers }: MonthlyAttendanceViewProps) {
   const { currentMonth, handlePrevMonth, handleNextMonth, handleToday } = useMonthNavigation()
-  const { users, selectedUser, setSelectedUser } = useUsers(initialUsers)
+  const { users, selectedUser, setSelectedUser } = useUsers(initialUsers, true)
   const { monthData, refetch } = useMonthlyAttendance(selectedUser, currentMonth)
 
   const editDialog = useEditDialog(selectedUser, refetch)

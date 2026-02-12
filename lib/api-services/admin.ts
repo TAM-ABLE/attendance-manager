@@ -23,3 +23,16 @@ export function updateUserDateSessions(userId: string, date: string, sessions: W
     body: { sessions },
   })
 }
+
+export function createUser(data: { name: string; email: string; password: string }) {
+  return apiClient<{
+    id: string
+    name: string
+    email: string
+    employeeNumber: string
+    role: "user"
+  }>("/admin/users", {
+    method: "POST",
+    body: data,
+  })
+}
