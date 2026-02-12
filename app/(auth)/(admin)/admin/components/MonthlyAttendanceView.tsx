@@ -2,18 +2,12 @@
 
 import { Download } from "lucide-react"
 import dynamic from "next/dynamic"
-import { useCallback, useState } from "react"
 import { MonthNavigator } from "@/components/MonthNavigator"
 import { UserMonthlyAttendance } from "@/components/UserMonthlyAttendance"
+import { UserSelect } from "@/components/UserSelect"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { useMonthNavigation } from "@/hooks/useMonthNavigation"
 import { exportMonthlyAttendanceCSV } from "@/lib/exportCsv"
 import type { User } from "@/types/Attendance"
 import { useEditDialog } from "../hooks/useEditDialog"
@@ -30,31 +24,11 @@ type MonthlyAttendanceViewProps = {
 }
 
 export function MonthlyAttendanceView({ initialUsers }: MonthlyAttendanceViewProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const { currentMonth, handlePrevMonth, handleNextMonth, handleToday } = useMonthNavigation()
   const { users, selectedUser, setSelectedUser } = useUsers(initialUsers)
   const { monthData, refetch } = useMonthlyAttendance(selectedUser, currentMonth)
 
   const editDialog = useEditDialog(selectedUser, refetch)
-
-  const handlePrevMonth = useCallback(() => {
-    setCurrentMonth((prev) => {
-      const d = new Date(prev)
-      d.setMonth(prev.getMonth() - 1)
-      return d
-    })
-  }, [])
-
-  const handleNextMonth = useCallback(() => {
-    setCurrentMonth((prev) => {
-      const d = new Date(prev)
-      d.setMonth(prev.getMonth() + 1)
-      return d
-    })
-  }, [])
-
-  const handleToday = useCallback(() => {
-    setCurrentMonth(new Date())
-  }, [])
 
   const handleExportCSV = () => {
     if (!selectedUser) {
@@ -83,25 +57,7 @@ export function MonthlyAttendanceView({ initialUsers }: MonthlyAttendanceViewPro
 
           {/* ユーザー選択 & CSV */}
           <div className="flex items-center gap-2">
-            {/* 個人選択 */}
-            <Select
-              value={selectedUser?.employeeNumber}
-              onValueChange={(employeeNumber) => {
-                const user = users.find((u) => u.employeeNumber === employeeNumber)
-                if (user) setSelectedUser(user)
-              }}
-            >
-              <SelectTrigger className="flex-1 sm:flex-none sm:w-40">
-                <SelectValue placeholder="ユーザーを選択" />
-              </SelectTrigger>
-              <SelectContent>
-                {users.map((u) => (
-                  <SelectItem key={u.employeeNumber} value={u.employeeNumber}>
-                    {u.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <UserSelect users={users} value={selectedUser} onChange={setSelectedUser} />
 
             {/* CSVダウンロードボタン */}
             <Button
