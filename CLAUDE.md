@@ -16,6 +16,7 @@ pnpm lint             # Run Biome + ESLint (Next.js rules)
 pnpm lint:fix         # Auto-fix lint issues
 pnpm format           # Format code with Biome
 pnpm tsc --noEmit     # Type check
+pnpm gen:types        # Generate DB types from Supabase (requires local Supabase running)
 ```
 
 ## Architecture
