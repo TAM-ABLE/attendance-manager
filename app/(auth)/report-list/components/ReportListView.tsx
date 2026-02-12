@@ -1,16 +1,11 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { useCallback, useState } from "react"
+import { useState } from "react"
 import { MonthNavigator } from "@/components/MonthNavigator"
+import { UserSelect } from "@/components/UserSelect"
 import { Card, CardContent } from "@/components/ui/card"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
+import { useMonthNavigation } from "@/hooks/useMonthNavigation"
 import type { UserForSelect } from "@/types/DailyReport"
 import { useMonthlyReports } from "../hooks/useMonthlyReports"
 import { useReportUsers } from "../hooks/useReportUsers"
@@ -26,7 +21,7 @@ type ReportListViewProps = {
 }
 
 export function ReportListView({ initialUsers }: ReportListViewProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const { currentMonth, handlePrevMonth, handleNextMonth, handleToday } = useMonthNavigation()
   const {
     users,
     selectedUser,
@@ -49,26 +44,6 @@ export function ReportListView({ initialUsers }: ReportListViewProps) {
     setDetailReportId(null)
   }
 
-  const handlePrevMonth = useCallback(() => {
-    setCurrentMonth((prev) => {
-      const d = new Date(prev)
-      d.setMonth(prev.getMonth() - 1)
-      return d
-    })
-  }, [])
-
-  const handleNextMonth = useCallback(() => {
-    setCurrentMonth((prev) => {
-      const d = new Date(prev)
-      d.setMonth(prev.getMonth() + 1)
-      return d
-    })
-  }, [])
-
-  const handleToday = useCallback(() => {
-    setCurrentMonth(new Date())
-  }, [])
-
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* 月移動＆ユーザー選択 */}
@@ -84,25 +59,12 @@ export function ReportListView({ initialUsers }: ReportListViewProps) {
 
           {/* ユーザー選択 */}
           <div className="flex items-center gap-2">
-            <Select
-              value={selectedUser?.id}
-              onValueChange={(userId) => {
-                const user = users.find((u) => u.id === userId)
-                if (user) setSelectedUser(user)
-              }}
+            <UserSelect
+              users={users}
+              value={selectedUser}
+              onChange={setSelectedUser}
               disabled={usersLoading}
-            >
-              <SelectTrigger className="flex-1 sm:flex-none sm:w-48">
-                <SelectValue placeholder="ユーザーを選択" />
-              </SelectTrigger>
-              <SelectContent>
-                {users.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.employeeNumber} - {u.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            />
           </div>
         </CardContent>
       </Card>
