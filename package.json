@@ -10,6 +10,7 @@
     "lint": "biome check . && eslint",
     "lint:fix": "biome check --write . && eslint --fix",
     "format": "biome format --write .",
+    "gen:types": "supabase gen types typescript --local > server/types/supabase.ts",
     "prepare": "lefthook install"
   },
   "dependencies": {

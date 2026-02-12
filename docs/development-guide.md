@@ -7,6 +7,9 @@
 - Node.js 20+
 - pnpm
 - Docker（Supabase ローカル環境に必要）
+- Windows の場合: WSL2 + Docker Desktop for Windows
+
+> **Windows ユーザー**: Docker Desktop をインストールし、Settings > Resources > WSL Integration で WSL2 ディストリビューションを有効にしてください。以降の操作はすべて WSL2 上で行います。
 
 ### pnpm のインストール
 
@@ -33,21 +36,14 @@ pnpm install
 ### インストール
 
 ```bash
-# macOS
+# macOS / Linux / WSL2（Homebrew）
 brew install supabase/tap/supabase
 
-# Linux
-brew install supabase/tap/supabase
-# または
+# Homebrew なしの場合
 curl -sSL https://supabase.com/install.sh | bash
-
-# Windows (scoop)
-scoop bucket add supabase https://github.com/supabase/scoop-bucket.git
-scoop install supabase
-
-# npm（どのOSでも可）
-npm install -g supabase
 ```
+
+> **Note**: インストール後、`supabase --version` でバージョンを確認できます。
 
 ### ローカル環境の起動
 
@@ -77,6 +73,9 @@ supabase stop
 # 完全リセット（データも削除）
 supabase stop --no-backup
 supabase start
+
+# CLI のアップデート
+brew upgrade supabase
 ```
 
 ### マイグレーション
@@ -94,6 +93,21 @@ supabase db reset
 # リモート（本番）へマイグレーション実行
 supabase db push --linked
 ```
+
+### 型の自動生成
+
+Supabase CLI はデータベーススキーマから TypeScript の型定義を自動生成できます。マイグレーション実行後やスキーマ変更後に型を再生成してください。
+
+```bash
+# ローカル Supabase から型を生成（Supabase が起動している必要あり）
+pnpm gen:types
+```
+
+生成先: `server/types/supabase.ts`
+
+このファイルには `Database` 型が定義されており、Supabase クライアントの型安全な操作に使用されます。
+
+> **重要**: マイグレーションでテーブルやカラムを変更した場合は、必ず `pnpm gen:types` を実行して型定義を最新の状態に保ってください。
 
 ### リモートプロジェクトとの連携
 
