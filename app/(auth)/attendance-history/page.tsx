@@ -1,12 +1,12 @@
 // app/(auth)/attendance-history/page.tsx
 
-import { fetchWithAuth } from "@/lib/auth/server"
+import { fetchWithAuth, requireUser } from "@/lib/auth/server"
 import { formatYearMonthFromDate } from "@/lib/time"
 import type { AttendanceRecord } from "@/types/Attendance"
 import { AttendanceHistoryClient } from "./components/AttendanceHistoryClient"
 
 export default async function AttendanceHistoryPage() {
-  // 認証チェックは(auth)/layout.tsxで実施済み
+  await requireUser()
 
   // 今月のyearMonthを計算
   const now = new Date()

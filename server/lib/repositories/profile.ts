@@ -7,7 +7,7 @@ export class ProfileRepository {
   async findAllUsers() {
     const { data, error } = await this.supabase
       .from("profiles")
-      .select("id, name, email, employee_number")
+      .select("id, name, email, employee_number, role")
       .order("employee_number", { ascending: true })
 
     if (error) {
@@ -21,6 +21,7 @@ export class ProfileRepository {
     const { data, error } = await this.supabase
       .from("profiles")
       .select("id, name, employee_number")
+      .neq("role", "admin")
       .order("employee_number", { ascending: true })
 
     if (error) {
@@ -42,5 +43,20 @@ export class ProfileRepository {
     }
 
     return data
+  }
+
+  async findMaxEmployeeNumber(): Promise<string | null> {
+    const { data, error } = await this.supabase
+      .from("profiles")
+      .select("employee_number")
+      .like("employee_number", "A-%")
+      .order("employee_number", { ascending: false })
+      .limit(1)
+
+    if (error) {
+      throw new DatabaseError(error.message)
+    }
+
+    return data.length > 0 ? data[0].employee_number : null
   }
 }

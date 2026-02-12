@@ -132,7 +132,9 @@ export const loginResponseSchema = z
   })
   .openapi("LoginResponse")
 
-export const registerRequestSchema = z
+// ===== 管理者ユーザー登録 =====
+
+export const adminCreateUserRequestSchema = z
   .object({
     name: z.string().min(1).openapi({
       description: "ユーザー名",
@@ -142,33 +144,29 @@ export const registerRequestSchema = z
       description: "メールアドレス",
       example: "user@example.com",
     }),
-    password: z.string().min(6).openapi({
-      description: "パスワード（6文字以上）",
-      example: "password123",
-    }),
-    employeeNumber: z.string().min(1).openapi({
-      description: "社員番号",
-      example: "EMP001",
-    }),
-    role: z.enum(["admin", "user"]).default("user").openapi({
-      description: "ユーザー権限",
-      example: "user",
-    }),
+    password: z
+      .string()
+      .min(8)
+      .regex(/[a-zA-Z]/, "英字を含めてください")
+      .regex(/[0-9]/, "数字を含めてください")
+      .openapi({
+        description: "パスワード（8文字以上、英字・数字を含む）",
+        example: "password123",
+      }),
   })
-  .openapi("RegisterRequest")
+  .openapi("AdminCreateUserRequest")
 
-export type RegisterRequest = z.infer<typeof registerRequestSchema>
+export type AdminCreateUserRequest = z.infer<typeof adminCreateUserRequestSchema>
 
-export const registerResponseSchema = z
+export const adminCreateUserResponseSchema = z
   .object({
-    user: z.object({
-      id: uuidSchema,
-      name: z.string(),
-      email: z.email(),
-      role: z.enum(["admin", "user"]),
-    }),
+    id: uuidSchema,
+    name: z.string(),
+    email: z.email(),
+    employeeNumber: z.string(),
+    role: z.literal("user"),
   })
-  .openapi("RegisterResponse")
+  .openapi("AdminCreateUserResponse")
 
 // ===== 打刻関連 =====
 
