@@ -274,7 +274,7 @@ app.doc("/doc", {
     version: "1.0.0",
   },
   tags: [
-    { name: "認証", description: "ログイン・ユーザー登録" },
+    { name: "認証", description: "ログイン・ログアウト" },
     { name: "勤怠", description: "出勤・退勤・休憩管理" },
     { name: "管理者", description: "管理者用のユーザー・勤怠管理" },
     { name: "日報", description: "日報の閲覧" },
