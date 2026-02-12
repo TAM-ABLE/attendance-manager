@@ -1,4 +1,4 @@
-// app/(auth)/(admin)/report-list/page.tsx
+// app/(auth)/report-list/page.tsx
 
 import { FileText } from "lucide-react"
 import { fetchWithAuth } from "@/lib/auth/server"
@@ -6,7 +6,7 @@ import type { UserForSelect } from "@/types/DailyReport"
 import { ReportListView } from "./components/ReportListView"
 
 export default async function ReportListPage() {
-  // 認証・権限チェックは(admin)/layout.tsxで実施済み
+  // 認証チェックは(auth)/layout.tsxで実施済み
 
   // SSCでユーザー一覧を取得
   const users = await fetchWithAuth<UserForSelect[]>("/daily-reports/users")

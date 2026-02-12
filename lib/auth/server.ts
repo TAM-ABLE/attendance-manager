@@ -66,6 +66,19 @@ export async function requireAuth(): Promise<AuthUser> {
 }
 
 /**
+ * 一般ユーザー専用ページ用 - 管理者なら管理者画面へリダイレクト
+ */
+export async function requireUser(): Promise<AuthUser> {
+  const user = await requireAuth()
+
+  if (user.role === "admin") {
+    redirect("/admin")
+  }
+
+  return user
+}
+
+/**
  * 管理者専用ページ用 - 管理者でなければダッシュボードへリダイレクト
  */
 export async function requireAdmin(): Promise<AuthUser> {

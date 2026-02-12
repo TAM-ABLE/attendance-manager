@@ -99,7 +99,7 @@ BEGIN
         '$2a$10$qDP0ALTQaH4QrEAXqHmBvuj/ZiCULRFTTrGIDtrDQqFe71DuXj2V2',
         now(),
         '{"provider": "email", "providers": ["email"]}',
-        '{"name": "管理者", "role": "admin"}',
+        '{"name": "管理者", "role": "admin", "employee_number": "EMP001"}',
         'authenticated',
         'authenticated',
         now(),
@@ -141,7 +141,7 @@ BEGIN
         '$2a$10$qDP0ALTQaH4QrEAXqHmBvuj/ZiCULRFTTrGIDtrDQqFe71DuXj2V2',
         now(),
         '{"provider": "email", "providers": ["email"]}',
-        '{"name": "一般ユーザー", "role": "user"}',
+        '{"name": "一般ユーザー", "role": "user", "employee_number": "A-0001"}',
         'authenticated',
         'authenticated',
         now(),
@@ -183,7 +183,7 @@ BEGIN
         '$2a$10$qDP0ALTQaH4QrEAXqHmBvuj/ZiCULRFTTrGIDtrDQqFe71DuXj2V2',
         now(),
         '{"provider": "email", "providers": ["email"]}',
-        '{"name": "佐藤 次郎", "role": "user"}',
+        '{"name": "佐藤 次郎", "role": "user", "employee_number": "A-0002"}',
         'authenticated',
         'authenticated',
         now(),
@@ -259,11 +259,6 @@ BEGIN
         now(),
         now()
     );
-
-    -- Update profiles with correct employee_number (trigger creates them with partial data)
-    UPDATE public.profiles SET employee_number = 'EMP001' WHERE id = v_admin_id;
-    UPDATE public.profiles SET employee_number = 'EMP002' WHERE id = v_user_id;
-    UPDATE public.profiles SET employee_number = 'EMP003' WHERE id = v_sato_id;
 
     -- ============================
     -- Attendance Records (last week Mon-Fri)
