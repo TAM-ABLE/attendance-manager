@@ -1,4 +1,5 @@
 import { Edit } from "lucide-react"
+import { useMemo } from "react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,6 +15,7 @@ import {
   formatClockTime,
   formatDurationMs,
   formatDurationMsToHM,
+  generateMonthDates,
   getDateLabel,
   getWeekdayLabel,
 } from "@/lib/time"
@@ -22,14 +24,33 @@ import type { AttendanceRecord } from "@/types/Attendance"
 interface Props {
   user: { name: string; email: string }
   monthData: AttendanceRecord[]
+  year: number
+  month: number
   openEditDialog: (date: string) => void
 }
 
-export const UserMonthlyAttendance = ({ user, monthData, openEditDialog }: Props) => {
+export const UserMonthlyAttendance = ({ user, monthData, year, month, openEditDialog }: Props) => {
   const workMonthDays = monthData.filter((d) => d.sessions.length > 0).length
   const totalMonthHours = monthData.reduce((acc, d) => acc + d.workTotalMs, 0)
 
+  const allDates = useMemo(() => generateMonthDates(year, month), [year, month])
+
+  const dataByDate = useMemo(() => {
+    const map = new Map<string, AttendanceRecord>()
+    for (const record of monthData) {
+      map.set(record.date, record)
+    }
+    return map
+  }, [monthData])
+
   const getInitials = (name: string) => name.slice(0, 2)
+
+  const getWeekdayStyle = (dateStr: string) => {
+    const day = new Date(dateStr).getDay()
+    if (day === 0) return "bg-red-50"
+    if (day === 6) return "bg-blue-50"
+    return ""
+  }
 
   return (
     <Card>
@@ -77,13 +98,15 @@ export const UserMonthlyAttendance = ({ user, monthData, openEditDialog }: Props
               </TableRow>
             </TableHeader>
             <TableBody>
-              {monthData.map((dayData) => {
-                const hasData = dayData.sessions.length > 0
-                const dateLabel = getDateLabel(dayData.date)
-                const weekday = getWeekdayLabel(dayData.date)
+              {allDates.map((dateStr) => {
+                const dayData = dataByDate.get(dateStr)
+                const hasData = dayData != null && dayData.sessions.length > 0
+                const dateLabel = getDateLabel(dateStr)
+                const weekday = getWeekdayLabel(dateStr)
 
                 // 各セッションの出退勤時刻を取得（最大3セッション）
                 const getSessionTime = (index: number, type: "clockIn" | "clockOut") => {
+                  if (!dayData) return "-"
                   const session = dayData.sessions[index]
                   if (!session) return "-"
                   const time = session[type]
@@ -91,7 +114,7 @@ export const UserMonthlyAttendance = ({ user, monthData, openEditDialog }: Props
                 }
 
                 return (
-                  <TableRow key={dayData.date}>
+                  <TableRow key={dateStr} className={getWeekdayStyle(dateStr)}>
                     <TableCell className="whitespace-nowrap">{dateLabel}</TableCell>
                     <TableCell className="whitespace-nowrap">{weekday}</TableCell>
                     <TableCell className="whitespace-nowrap">
@@ -122,7 +145,7 @@ export const UserMonthlyAttendance = ({ user, monthData, openEditDialog }: Props
                       <Button
                         size="sm"
                         className="h-7 px-2 sm:px-3 bg-primary text-primary-foreground hover:bg-primary/90"
-                        onClick={() => openEditDialog(dayData.date)}
+                        onClick={() => openEditDialog(dateStr)}
                       >
                         <Edit className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                         <span className="hidden sm:inline">編集</span>
