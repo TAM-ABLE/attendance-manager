@@ -23,6 +23,7 @@
 - 日報一覧の確認
 
 ### 管理者機能
+- ユーザー登録（管理者のみ）
 - ユーザー一覧表示
 - 勤怠データの確認・編集
 - ユーザーの月次勤怠データをCSV形式でエクスポート
@@ -77,16 +78,16 @@ attendance-manager/
 │   ├── page.tsx               # トップページ（リダイレクト）
 │   ├── api/[...route]/        # Hono API catch-all route
 │   ├── (public)/              # 公開ページ
-│   │   ├── login/             # /login
-│   │   └── sign-up/           # /sign-up
+│   │   └── login/             # /login
 │   └── (auth)/                # 認証必須ページ
 │       ├── layout.tsx         # requireAuth()
 │       ├── dashboard/         # /dashboard
 │       ├── attendance-history/ # /attendance-history
+│       ├── edit-attendance/   # /edit-attendance
+│       ├── report-list/       # /report-list
 │       └── (admin)/           # 管理者専用
 │           ├── layout.tsx     # requireAdmin()
-│           ├── admin/         # /admin
-│           └── report-list/   # /report-list
+│           └── admin/         # /admin
 ├── components/                # React コンポーネント
 │   ├── ui/                    # shadcn/ui コンポーネント
 │   ├── Header/                # ヘッダー
@@ -94,11 +95,13 @@ attendance-manager/
 ├── hooks/                     # カスタムフック
 ├── lib/                       # ユーティリティ
 │   ├── api-client.ts          # API クライアント
+│   ├── api-services/          # API サービス層（admin, attendance, daily-reports）
 │   ├── auth/                  # 認証ユーティリティ
 │   ├── schemas.ts             # Zod スキーマ定義
 │   ├── time.ts                # 時間フォーマット
 │   ├── calculation.ts         # 勤務時間計算
 │   ├── constants.ts           # 定数
+│   ├── exportCsv.ts           # CSV エクスポート
 │   └── ...
 ├── types/                     # TypeScript 型定義
 │   ├── Attendance.ts          # 勤怠関連型
@@ -146,7 +149,7 @@ attendance-manager/
 
 ## 認証アーキテクチャ
 
-- **Cookie 管理**: Hono login/register ルートが HttpOnly Cookie を設定
+- **Cookie 管理**: Hono login ルートが HttpOnly Cookie を設定
 - **Server Component**: `fetchWithAuth()` → `app.fetch()` で直接 Hono API を呼び出し
 - **Client Component**: `/api/*` 経由（Cookie は自動送信）
 - **Route Groups**: URL に影響を与えずにアクセス制御を適用
@@ -155,9 +158,9 @@ attendance-manager/
 
 | Route Group | 認証 | 含まれるページ |
 |-------------|------|---------------|
-| `(public)` | 不要 | /login, /sign-up |
-| `(auth)` | 必須 | /dashboard, /attendance-history |
-| `(auth)/(admin)` | 管理者のみ | /admin, /report-list |
+| `(public)` | 不要 | /login |
+| `(auth)` | 必須 | /dashboard, /attendance-history, /edit-attendance, /report-list |
+| `(auth)/(admin)` | 管理者のみ | /admin |
 
 ---
 
@@ -214,7 +217,6 @@ pnpm tsc --noEmit     # 型チェック
 | Method | Endpoint | 説明 |
 |--------|----------|------|
 | POST | `/api/auth/login` | ログイン |
-| POST | `/api/auth/register` | 新規登録 |
 | POST | `/api/auth/logout` | ログアウト |
 | GET | `/api/auth/me` | 現在のユーザー情報取得 |
 
@@ -226,14 +228,26 @@ pnpm tsc --noEmit     # 型チェック
 | POST | `/api/attendance/break-start` | 休憩開始 |
 | POST | `/api/attendance/break-end` | 休憩終了 |
 | GET | `/api/attendance/today` | 本日の勤怠取得 |
-| GET | `/api/attendance/history` | 勤怠履歴取得 |
+| GET | `/api/attendance/month/{yearMonth}` | 月別勤怠取得 |
+| GET | `/api/attendance/week/total` | 週間勤務時間取得 |
+| GET | `/api/attendance/{date}/sessions` | 特定日のセッション取得 |
+| PUT | `/api/attendance/{date}/sessions` | 特定日のセッション更新 |
 
 ### 管理者
 | Method | Endpoint | 説明 |
 |--------|----------|------|
 | GET | `/api/admin/users` | ユーザー一覧取得 |
-| GET | `/api/admin/attendance` | 勤怠データ取得 |
-| PUT | `/api/admin/attendance/:id` | 勤怠データ編集 |
+| POST | `/api/admin/users` | ユーザー作成 |
+| GET | `/api/admin/users/{userId}/attendance/month/{yearMonth}` | ユーザーの月別勤怠取得 |
+| GET | `/api/admin/users/{userId}/attendance/{date}/sessions` | ユーザーの特定日セッション取得 |
+| PUT | `/api/admin/users/{userId}/attendance/{date}/sessions` | ユーザーの特定日セッション更新 |
+
+### 日報
+| Method | Endpoint | 説明 |
+|--------|----------|------|
+| GET | `/api/daily-reports/users` | ユーザー一覧取得（日報用） |
+| GET | `/api/daily-reports/user/{userId}/month/{yearMonth}` | ユーザーの月別日報一覧取得 |
+| GET | `/api/daily-reports/{id}` | 日報詳細取得 |
 
 ---
 
