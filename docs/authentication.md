@@ -83,18 +83,18 @@
 ```
 app/
 ├── (public)/              # 公開ページ（認証不要）
-│   ├── login/
-│   └── sign-up/
+│   └── login/
 │
 ├── (auth)/                # 認証必須ページ
 │   ├── layout.tsx         # requireAuth() でチェック
 │   ├── dashboard/
 │   ├── attendance-history/
+│   ├── edit-attendance/
+│   ├── report-list/
 │   │
 │   └── (admin)/           # 管理者専用ページ
 │       ├── layout.tsx     # requireAdmin() でチェック
-│       ├── admin/
-│       └── report-list/
+│       └── admin/
 ```
 
 ### layout.tsx での認証チェック
@@ -125,7 +125,6 @@ export default async function AdminLayout({ children }) {
 |----------|------|
 | `server/routes/auth/login.ts` | ログイン処理、Cookie にトークン保存 |
 | `server/routes/auth/logout.ts` | ログアウト処理、Cookie 削除 |
-| `server/routes/auth/register.ts` | ユーザー登録、Cookie にトークン保存 |
 | `server/middleware/auth.ts` | JWT 認証ミドルウェア（Cookie or Authorization ヘッダー） |
 | `app/api/[...route]/route.ts` | Hono アプリを Next.js API Routes にマウント |
 | `lib/auth/server.ts` | SSC 用認証ユーティリティ（`app.fetch()` で直接呼び出し） |
@@ -134,7 +133,7 @@ export default async function AdminLayout({ children }) {
 
 ## Cookie 設定
 
-Hono の login/register ルートが直接 Cookie を設定:
+Hono の login ルートが直接 Cookie を設定:
 
 ```typescript
 setCookie(c, "accessToken", accessToken, {
@@ -178,6 +177,10 @@ export const getUser = cache(async (): Promise<AuthUser | null> => {
 ### requireAuth()
 
 認証必須ページ用。未認証なら `/login` へリダイレクト。
+
+### requireUser()
+
+一般ユーザー専用ページ用。管理者なら `/admin` へリダイレクト。ダッシュボード等で使用。
 
 ### requireAdmin()
 

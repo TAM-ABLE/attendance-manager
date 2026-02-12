@@ -142,6 +142,7 @@ export async function apiClient<T>(endpoint: string, options = {}) {
 |--------|---------------|
 | `/dashboard` | 今日の勤怠、週合計 |
 | `/attendance-history` | 今月の勤怠一覧 |
+| `/edit-attendance` | 特定日のセッション |
 | `/admin` | ユーザー一覧 |
 | `/report-list` | ユーザー一覧 |
 
@@ -152,6 +153,10 @@ lib/
 ├── auth/
 │   └── server.ts        # fetchWithAuth（SSC用、app.fetch()で直接呼び出し）
 ├── api-client.ts        # apiClient（Client用、/api/* に直接リクエスト）
+├── api-services/        # ドメイン別APIサービス
+│   ├── admin.ts         # 管理者API
+│   ├── attendance.ts    # 勤怠API
+│   └── daily-reports.ts # 日報API
 └── swr-keys.ts          # SWRキャッシュキー定義
 hooks/
 └── useUserSelect.ts     # 汎用ユーザー選択hook（initialData対応）
@@ -168,17 +173,19 @@ app/(auth)/
     │   │   └── AttendanceHistoryClient.tsx
     │   └── hooks/
     │       └── useAttendanceHistory.ts
+    ├── edit-attendance/
+    │   └── page.tsx
+    ├── report-list/
+    │   ├── page.tsx
+    │   ├── components/
+    │   │   └── ReportListView.tsx
+    │   └── hooks/
+    │       └── useReportUsers.ts
     └── (admin)/
-        ├── admin/
-        │   ├── page.tsx
-        │   ├── components/
-        │   │   └── MonthlyAttendanceView.tsx
-        │   └── hooks/
-        │       └── useUsers.ts
-        └── report-list/
+        └── admin/
             ├── page.tsx
             ├── components/
-            │   └── ReportListView.tsx
+            │   └── MonthlyAttendanceView.tsx
             └── hooks/
-                └── useReportUsers.ts
+                └── useUsers.ts
 ```

@@ -8,6 +8,16 @@
 - pnpm
 - Docker（Supabase ローカル環境に必要）
 
+### pnpm のインストール
+
+```bash
+# Node.js 16.13+ に組み込みの corepack を使う（推奨）
+corepack enable
+
+# または npm でグローバルインストール
+npm install -g pnpm
+```
+
 ---
 
 ## 1. 依存関係のインストール
@@ -174,7 +184,7 @@ supabase start
 ### ポートが使用中
 
 デフォルトポートが使用中の場合:
-- Frontend: `pnpm dev -- -p 3001` で別ポート指定
+- `pnpm dev -p 3001` で別ポート指定
 
 ### 認証エラー
 

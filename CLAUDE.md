@@ -33,12 +33,12 @@ pnpm tsc --noEmit     # Type check
 - Entry: `server/app.ts` - Hono app with `.basePath("/api")`
 - Catch-all: `app/api/[...route]/route.ts` - mounts Hono via `hono/vercel`
 - Routes (all under `/api`):
-  - `/api/auth` - Authentication (login, register, logout, me)
+  - `/api/auth` - Authentication (login, logout, me)
   - `/api/attendance` - Attendance CRUD (clock-in/out, breaks, queries)
   - `/api/admin` - Admin operations (user management, attendance editing)
   - `/api/daily-reports` - Daily report management
 - Database: Supabase (via `@supabase/supabase-js`)
-- Auth: JWT via Supabase + HttpOnly Cookie (set by Hono login/register routes)
+- Auth: JWT via Supabase + HttpOnly Cookie (set by Hono login route)
 - Auth middleware reads token from Authorization header or Cookie fallback
 - OpenAPI: `@hono/zod-openapi` for schema validation + API docs
 - Swagger UI: `/api/ui` (dev), OpenAPI spec: `/api/doc`
@@ -50,13 +50,13 @@ server/
 ├── app.ts                    ← Hono app with basePath("/api")
 ├── middleware/auth.ts         ← JWT auth + cookie fallback
 ├── routes/
-│   ├── auth/{index,login,register,logout,me}.ts
-│   ├── attendance/{index,clock,queries,breaks}.ts
+│   ├── auth/{index,login,logout,me}.ts
+│   ├── attendance/{index,clock,queries,breaks,sessions}.ts
 │   ├── admin/{index,users}.ts
 │   └── daily-reports.ts
 ├── lib/
 │   ├── errors.ts, formatters.ts, openapi-hono.ts
-│   ├── openapi-schemas.ts, slack.ts, supabase.ts
+│   ├── openapi-schemas.ts, sessions.ts, slack.ts, supabase.ts
 │   └── repositories/{index,attendance,profile,daily-report}.ts
 └── types/{env.ts, supabase.ts}
 ```
@@ -85,19 +85,21 @@ See `docs/data-fetching-architecture.md` for details.
 #### Authentication Architecture
 See `docs/authentication.md` for details.
 
-- `lib/auth/server.ts` - Server Component auth utilities (`getUser`, `requireAuth`, `requireAdmin`, `fetchWithAuth`) using `app.fetch()` for direct Hono invocation
+- `lib/auth/server.ts` - Server Component auth utilities (`getUser`, `requireAuth`, `requireUser`, `requireAdmin`, `fetchWithAuth`) using `app.fetch()` for direct Hono invocation
 - `lib/api-client.ts` - Client-side API client via `/api/*` (Cookie sent automatically by browser)
+- `lib/api-services/` - Domain-specific API service modules (admin, attendance, daily-reports)
 - Route Groups for access control:
-  - `(public)/` - Public pages (login, sign-up)
-  - `(auth)/` - Authenticated pages (dashboard, attendance-history)
-  - `(auth)/(admin)/` - Admin-only pages (admin, report-list)
+  - `(public)/` - Public pages (login)
+  - `(auth)/` - Authenticated pages (dashboard, attendance-history, edit-attendance, report-list)
+  - `(auth)/(admin)/` - Admin-only pages (admin)
 
 #### Key Pages
 - `/dashboard` - Main employee view (clock-in/out, break management, session list)
-- `/admin` - Admin view (user management, attendance editing, CSV export)
-- `/attendance-history` - Historical attendance records
-- `/report-list` - Daily reports list (admin only)
-- `/login`, `/sign-up` - Authentication pages
+- `/admin` - Admin view (user management, user registration, attendance editing, CSV export)
+- `/attendance-history` - Historical attendance records (calendar view)
+- `/edit-attendance` - Edit attendance sessions for a specific date
+- `/report-list` - Daily reports list (all authenticated users)
+- `/login` - Authentication page
 
 #### Component Organization
 - `components/` - Shared components (Header, Footer, Loader, SuccessDialog)
