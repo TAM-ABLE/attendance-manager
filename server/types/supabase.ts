@@ -1,10 +1,30 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
   public: {
     Tables: {
@@ -69,77 +89,33 @@ export type Database = {
           },
         ]
       }
-      daily_reports: {
-        Row: {
-          id: string
-          user_id: string
-          date: string
-          summary: string | null
-          issues: string | null
-          notes: string | null
-          submitted_at: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          date: string
-          summary?: string | null
-          issues?: string | null
-          notes?: string | null
-          submitted_at?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          date?: string
-          summary?: string | null
-          issues?: string | null
-          notes?: string | null
-          submitted_at?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "daily_reports_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       daily_report_tasks: {
         Row: {
-          id: string
-          daily_report_id: string
-          task_type: string
-          task_name: string
-          hours: number | null
-          sort_order: number
           created_at: string
+          daily_report_id: string
+          hours: number | null
+          id: string
+          sort_order: number
+          task_name: string
+          task_type: string
         }
         Insert: {
-          id?: string
-          daily_report_id: string
-          task_type: string
-          task_name: string
-          hours?: number | null
-          sort_order?: number
           created_at?: string
+          daily_report_id: string
+          hours?: number | null
+          id?: string
+          sort_order?: number
+          task_name: string
+          task_type: string
         }
         Update: {
-          id?: string
-          daily_report_id?: string
-          task_type?: string
-          task_name?: string
-          hours?: number | null
-          sort_order?: number
           created_at?: string
+          daily_report_id?: string
+          hours?: number | null
+          id?: string
+          sort_order?: number
+          task_name?: string
+          task_type?: string
         }
         Relationships: [
           {
@@ -147,6 +123,50 @@ export type Database = {
             columns: ["daily_report_id"]
             isOneToOne: false
             referencedRelation: "daily_reports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      daily_reports: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          issues: string | null
+          notes: string | null
+          submitted_at: string | null
+          summary: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          issues?: string | null
+          notes?: string | null
+          submitted_at?: string | null
+          summary?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          issues?: string | null
+          notes?: string | null
+          submitted_at?: string | null
+          summary?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_reports_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -165,7 +185,7 @@ export type Database = {
           created_at?: string
           email: string
           employee_number: string
-          id?: string
+          id: string
           name: string
           role?: string
           updated_at?: string
@@ -348,6 +368,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },
