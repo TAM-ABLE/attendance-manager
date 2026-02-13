@@ -260,7 +260,6 @@ pnpm tsc --noEmit     # 型チェック
 GitHub Actions による自動チェック（main/develop ブランチへの push/PR 時）:
 - **CI**: Biome lint + ESLint (Next.js ルール) + 型チェック + ビルド
 - **CodeQL**: セキュリティ分析（main への push/PR + 週次スケジュール）
-- **Dependency Review**: PR 時に追加・変更された依存の脆弱性とライセンスをチェック
 - **Migration Check**: Drizzle スキーマと SQL マイグレーションの整合性を検証（関連ファイル変更時のみ）
 - **Bundle Size**: PR 時にバンドルサイズの変化をレポート
 - **Dependabot Lockfile Sync**: Dependabot PR のロックファイルを自動更新
