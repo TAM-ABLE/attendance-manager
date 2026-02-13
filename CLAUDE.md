@@ -16,7 +16,6 @@ pnpm lint             # Run Biome + ESLint (Next.js rules)
 pnpm lint:fix         # Auto-fix lint issues
 pnpm format           # Format code with Biome
 pnpm tsc --noEmit     # Type check
-pnpm gen:types        # Generate DB types from Supabase (requires local Supabase running)
 ```
 
 ## Architecture
@@ -38,12 +37,12 @@ pnpm gen:types        # Generate DB types from Supabase (requires local Supabase
   - `/api/attendance` - Attendance CRUD (clock-in/out, breaks, queries)
   - `/api/admin` - Admin operations (user management, attendance editing)
   - `/api/daily-reports` - Daily report management
-- Database: Supabase (via `@supabase/supabase-js`)
-- Auth: JWT via Supabase + HttpOnly Cookie (set by Hono login route)
+- Database: Drizzle ORM + postgres.js (direct TCP connection to PostgreSQL)
+- Auth: JWT verification via jose (local, no HTTP roundtrip) + GoTrue REST API via fetch (login, user creation)
 - Auth middleware reads token from Authorization header or Cookie fallback
 - OpenAPI: `@hono/zod-openapi` for schema validation + API docs
 - Swagger UI: `/api/ui` (dev), OpenAPI spec: `/api/doc`
-- Environment variables: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `SLACK_BOT_TOKEN`, `SLACK_CHANNEL_ID`
+- Environment variables: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `SLACK_BOT_TOKEN`, `SLACK_CHANNEL_ID`
 
 #### Server Code Structure
 ```
@@ -55,11 +54,15 @@ server/
 │   ├── attendance/{index,clock,queries,breaks,sessions}.ts
 │   ├── admin/{index,users}.ts
 │   └── daily-reports.ts
+├── db/
+│   ├── schema.ts                 ← Drizzle table + relation definitions
+│   └── index.ts                  ← DB client singleton (postgres.js + drizzle)
 ├── lib/
+│   ├── auth-helpers.ts           ← jose JWT verification + GoTrue REST API helpers
 │   ├── errors.ts, formatters.ts, openapi-hono.ts
-│   ├── openapi-schemas.ts, sessions.ts, slack.ts, supabase.ts
+│   ├── openapi-schemas.ts, sessions.ts, slack.ts
 │   └── repositories/{index,attendance,profile,daily-report}.ts
-└── types/{env.ts, supabase.ts}
+└── types/env.ts
 ```
 
 #### OpenAPI + Zod Architecture

@@ -1,21 +1,17 @@
-import type { SupabaseClient } from "@supabase/supabase-js"
+import { and, asc, desc, eq, gte, isNull, lte } from "drizzle-orm"
+import type { Db } from "../../db"
+import { dailyReports, dailyReportTasks } from "../../db/schema"
 import { DatabaseError } from "./attendance"
 
 export class DailyReportRepository {
-  constructor(private supabase: SupabaseClient) {}
+  constructor(private db: Db) {}
 
   async createReport(userId: string, date: string): Promise<{ id: string }> {
-    const { data, error } = await this.supabase
-      .from("daily_reports")
-      .insert({ user_id: userId, date })
-      .select("id")
-      .single()
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
-
-    return data
+    const [result] = await this.db
+      .insert(dailyReports)
+      .values({ userId, date })
+      .returning({ id: dailyReports.id })
+    return result
   }
 
   async insertTasks(
@@ -23,38 +19,31 @@ export class DailyReportRepository {
     tasks: { taskType: string; taskName: string; hours: number | null; sortOrder: number }[],
   ): Promise<void> {
     if (tasks.length === 0) return
-
-    const inserts = tasks.map((t) => ({
-      daily_report_id: reportId,
-      task_type: t.taskType,
-      task_name: t.taskName,
-      hours: t.hours,
-      sort_order: t.sortOrder,
-    }))
-
-    const { error } = await this.supabase.from("daily_report_tasks").insert(inserts)
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
+    await this.db.insert(dailyReportTasks).values(
+      tasks.map((t) => ({
+        dailyReportId: reportId,
+        taskType: t.taskType,
+        taskName: t.taskName,
+        hours: t.hours != null ? String(t.hours) : null,
+        sortOrder: t.sortOrder,
+      })),
+    )
   }
 
   async findUnsubmittedReport(userId: string, date: string): Promise<{ id: string } | null> {
-    const { data, error } = await this.supabase
-      .from("daily_reports")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("date", date)
-      .is("submitted_at", null)
-      .order("created_at", { ascending: false })
+    const result = await this.db
+      .select({ id: dailyReports.id })
+      .from(dailyReports)
+      .where(
+        and(
+          eq(dailyReports.userId, userId),
+          eq(dailyReports.date, date),
+          isNull(dailyReports.submittedAt),
+        ),
+      )
+      .orderBy(desc(dailyReports.createdAt))
       .limit(1)
-      .maybeSingle()
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
-
-    return data
+    return result[0] ?? null
   }
 
   async updateReport(
@@ -71,76 +60,63 @@ export class DailyReportRepository {
     if (fields.summary !== undefined) updateData.summary = fields.summary
     if (fields.issues !== undefined) updateData.issues = fields.issues
     if (fields.notes !== undefined) updateData.notes = fields.notes
-    if (fields.submittedAt !== undefined) updateData.submitted_at = fields.submittedAt
-    if (fields.updatedAt !== undefined) updateData.updated_at = fields.updatedAt
+    if (fields.submittedAt !== undefined) updateData.submittedAt = fields.submittedAt
+    if (fields.updatedAt !== undefined) updateData.updatedAt = fields.updatedAt
 
-    const { error } = await this.supabase
-      .from("daily_reports")
-      .update(updateData)
-      .eq("id", reportId)
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
+    await this.db.update(dailyReports).set(updateData).where(eq(dailyReports.id, reportId))
   }
 
   async findReportsByDateRange(userId: string, startDate: string, endDate: string) {
-    const { data, error } = await this.supabase
-      .from("daily_reports")
-      .select(
-        `
-        id,
-        user_id,
-        date,
-        submitted_at,
-        daily_report_tasks (
-          id,
-          task_type
-        )
-      `,
-      )
-      .eq("user_id", userId)
-      .gte("date", startDate)
-      .lte("date", endDate)
-      .order("date", { ascending: true })
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
-
-    return data
+    return this.db.query.dailyReports.findMany({
+      where: and(
+        eq(dailyReports.userId, userId),
+        gte(dailyReports.date, startDate),
+        lte(dailyReports.date, endDate),
+      ),
+      orderBy: [asc(dailyReports.date)],
+      columns: {
+        id: true,
+        userId: true,
+        date: true,
+        submittedAt: true,
+      },
+      with: {
+        tasks: {
+          columns: {
+            id: true,
+            taskType: true,
+          },
+        },
+      },
+    })
   }
 
   async findReportWithTasks(reportId: string) {
-    const { data, error } = await this.supabase
-      .from("daily_reports")
-      .select(
-        `
-        id,
-        user_id,
-        date,
-        summary,
-        issues,
-        notes,
-        submitted_at,
-        created_at,
-        updated_at,
-        daily_report_tasks (
-          id,
-          task_type,
-          task_name,
-          hours,
-          sort_order
-        )
-      `,
-      )
-      .eq("id", reportId)
-      .single()
+    const result = await this.db.query.dailyReports.findFirst({
+      where: eq(dailyReports.id, reportId),
+      with: {
+        tasks: {
+          columns: {
+            id: true,
+            taskType: true,
+            taskName: true,
+            hours: true,
+            sortOrder: true,
+          },
+        },
+      },
+    })
 
-    if (error) {
-      throw new DatabaseError(error.message)
+    if (!result) {
+      throw new DatabaseError("Report not found")
     }
 
-    return data
+    return {
+      ...result,
+      tasks: result.tasks.map((t) => ({
+        ...t,
+        hours: t.hours != null ? Number(t.hours) : null,
+      })),
+    }
   }
 }

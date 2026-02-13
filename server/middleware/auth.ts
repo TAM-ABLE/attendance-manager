@@ -1,6 +1,6 @@
-import { createClient } from "@supabase/supabase-js"
 import type { Context, Next } from "hono"
 import { getCookie } from "hono/cookie"
+import { verifyJwt } from "../lib/auth-helpers"
 import { forbiddenError, unauthorizedError } from "../lib/errors"
 import type { Env } from "../types/env"
 
@@ -34,27 +34,11 @@ export const authMiddleware = async (
   }
 
   try {
-    const supabase = createClient(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    })
-
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser(token)
-
-    if (error || !user) {
-      return unauthorizedError(c, "Invalid token")
-    }
-
-    const role = (user.user_metadata?.role as "admin" | "user") ?? "user"
+    const payload = await verifyJwt(token, c.env.JWT_SECRET)
 
     c.set("jwtPayload", {
-      sub: user.id,
-      role,
+      sub: payload.sub,
+      role: payload.role,
     })
 
     await next()
