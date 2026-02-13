@@ -1,0 +1,78 @@
+name: Migration Check
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'server/db/schema.ts'
+      - 'supabase/migrations/**'
+      - 'drizzle.config.ts'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'server/db/schema.ts'
+      - 'supabase/migrations/**'
+      - 'drizzle.config.ts'
+
+jobs:
+  migration-check:
+    name: Schema / Migration Drift Check
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Apply migrations via psql
+        env:
+          PGHOST: localhost
+          PGPORT: 5432
+          PGUSER: postgres
+          PGPASSWORD: postgres
+          PGDATABASE: test_db
+        run: |
+          for f in supabase/migrations/*.sql; do
+            echo "Applying $f ..."
+            psql -f "$f" || true
+          done
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check for schema drift
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+        run: |
+          output=$(pnpm drizzle-kit push --force 2>&1)
+          echo "$output"
+          if echo "$output" | grep -qE '^\s*(ALTER|CREATE|DROP)\s'; then
+            echo ""
+            echo "::error::Schema drift detected! The Drizzle schema and SQL migrations are out of sync."
+            echo "Run 'pnpm drizzle-kit generate' to create a new migration, or update server/db/schema.ts to match."
+            exit 1
+          fi
+          echo "No schema drift detected."
