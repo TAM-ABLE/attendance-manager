@@ -12,6 +12,7 @@ const app = createOpenAPIHono<{ Bindings: Env; Variables: AuthVariables }>().bas
 // Next.js環境では c.env が自動設定されないため、process.env から注入する
 app.use("*", async (c, next) => {
   c.env = {
+    DATABASE_URL: process.env.DATABASE_URL ?? "",
     SUPABASE_URL: process.env.SUPABASE_URL ?? "",
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ?? "",
     JWT_SECRET: process.env.JWT_SECRET ?? "",

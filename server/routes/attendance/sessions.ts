@@ -58,11 +58,11 @@ sessionsRouter.openapi(getDateSessionsRoute, async (c) => {
   try {
     const data = await attendance.findRecordWithSessions(userId, date)
 
-    if (!data?.work_sessions || !Array.isArray(data.work_sessions)) {
+    if (!data?.workSessions || !Array.isArray(data.workSessions)) {
       return successResponse(c, [])
     }
 
-    return successResponse(c, formatWorkSessions(data.work_sessions))
+    return successResponse(c, formatWorkSessions(data.workSessions))
   } catch (e) {
     if (e instanceof DatabaseError) return databaseError(c, e.message)
     throw e

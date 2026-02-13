@@ -14,26 +14,26 @@
 ### ログイン
 
 ```
-┌──────────┐    ┌──────────────────────┐    ┌──────────┐
-│ ブラウザ  │    │ Hono API             │    │ Supabase │
-│          │    │ /api/auth/login       │    │          │
-└────┬─────┘    └──────────┬───────────┘    └────┬─────┘
-     │                     │                     │
-     │ POST /api/auth/login│                     │
-     │ {email, password}   │                     │
-     │────────────────────>│                     │
-     │                     │                     │
-     │                     │ 認証リクエスト        │
-     │                     │────────────────────>│
-     │                     │                     │
-     │                     │  JWT発行             │
-     │                     │<────────────────────│
-     │                     │                     │
-     │ Set-Cookie:         │                     │
-     │ accessToken=xxx     │                     │
-     │ (HttpOnly)          │                     │
-     │<────────────────────│                     │
-     │                     │                     │
+┌──────────┐    ┌──────────────────────┐    ┌───────────────┐
+│ ブラウザ  │    │ Hono API             │    │ GoTrue API    │
+│          │    │ /api/auth/login       │    │ (Supabase Auth)│
+└────┬─────┘    └──────────┬───────────┘    └──────┬────────┘
+     │                     │                       │
+     │ POST /api/auth/login│                       │
+     │ {email, password}   │                       │
+     │────────────────────>│                       │
+     │                     │                       │
+     │                     │ fetch (GoTrue REST API)│
+     │                     │──────────────────────>│
+     │                     │                       │
+     │                     │  JWT発行               │
+     │                     │<──────────────────────│
+     │                     │                       │
+     │ Set-Cookie:         │                       │
+     │ accessToken=xxx     │                       │
+     │ (HttpOnly)          │                       │
+     │<────────────────────│                       │
+     │                     │                       │
 ```
 
 ### 認証付きリクエスト（Client）
@@ -50,6 +50,7 @@
      │                     │
      │                     │ auth middleware が
      │                     │ Cookie から token 読み取り
+     │                     │ jose で JWT をローカル検証
      │                     │
      │   レスポンス         │
      │<────────────────────│
@@ -125,7 +126,8 @@ export default async function AdminLayout({ children }) {
 |----------|------|
 | `server/routes/auth/login.ts` | ログイン処理、Cookie にトークン保存 |
 | `server/routes/auth/logout.ts` | ログアウト処理、Cookie 削除 |
-| `server/middleware/auth.ts` | JWT 認証ミドルウェア（Cookie or Authorization ヘッダー） |
+| `server/middleware/auth.ts` | JWT 認証ミドルウェア（jose でローカル検証、Cookie or Authorization ヘッダー） |
+| `server/lib/auth-helpers.ts` | jose JWT 検証 + GoTrue REST API ヘルパー（login, user creation） |
 | `app/api/[...route]/route.ts` | Hono アプリを Next.js API Routes にマウント |
 | `lib/auth/server.ts` | SSC 用認証ユーティリティ（`app.fetch()` で直接呼び出し） |
 | `lib/auth/with-retry.ts` | 401 エラー時のリダイレクト処理 |

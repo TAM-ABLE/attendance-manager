@@ -36,6 +36,7 @@ jobs:
       - name: Build
         run: pnpm build
         env:
+          DATABASE_URL: postgresql://localhost/dummy
           SUPABASE_URL: https://example.supabase.co
           SUPABASE_SERVICE_ROLE_KEY: dummy-key
           JWT_SECRET: dummy-secret

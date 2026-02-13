@@ -1,20 +1,16 @@
-import { getSupabaseClient } from "../supabase"
+import { getDb } from "../../db"
 import { AttendanceRepository, BreakRepository, WorkSessionRepository } from "./attendance"
 import { DailyReportRepository } from "./daily-report"
 import { ProfileRepository } from "./profile"
 
-export function createRepos(env: {
-  SUPABASE_URL: string
-  SUPABASE_SERVICE_ROLE_KEY: string
-  JWT_SECRET: string
-}) {
-  const supabase = getSupabaseClient(env)
+export function createRepos(env: { DATABASE_URL: string }) {
+  const db = getDb(env.DATABASE_URL)
   return {
-    attendance: new AttendanceRepository(supabase),
-    workSession: new WorkSessionRepository(supabase),
-    break: new BreakRepository(supabase),
-    dailyReport: new DailyReportRepository(supabase),
-    profile: new ProfileRepository(supabase),
+    attendance: new AttendanceRepository(db),
+    workSession: new WorkSessionRepository(db),
+    break: new BreakRepository(db),
+    dailyReport: new DailyReportRepository(db),
+    profile: new ProfileRepository(db),
   }
 }
 

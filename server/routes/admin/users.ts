@@ -1,5 +1,6 @@
 import { createRoute, z } from "@hono/zod-openapi"
 import { parseYearMonth } from "@/lib/time"
+import { adminCreateUser } from "../../lib/auth-helpers"
 import { databaseError, internalError, successResponse, validationError } from "../../lib/errors"
 import { formatAttendanceRecord, formatWorkSessions } from "../../lib/formatters"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
@@ -18,7 +19,6 @@ import {
 } from "../../lib/openapi-schemas"
 import { createRepos, DatabaseError } from "../../lib/repositories"
 import { replaceSessions } from "../../lib/sessions"
-import { getSupabaseClient } from "../../lib/supabase"
 import type { AuthVariables } from "../../middleware/auth"
 import type { Env } from "../../types/env"
 
@@ -130,13 +130,12 @@ const createUserRoute = createRoute({
 usersRouter.openapi(createUserRoute, async (c) => {
   const { name, email, password } = c.req.valid("json")
   const { profile } = createRepos(c.env)
-  const supabase = getSupabaseClient(c.env)
 
   try {
     const maxNumber = await profile.findMaxEmployeeNumber()
     const employeeNumber = generateNextEmployeeNumber(maxNumber)
 
-    const { data, error } = await supabase.auth.admin.createUser({
+    const user = await adminCreateUser(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY, {
       email,
       password,
       email_confirm: true,
@@ -147,14 +146,10 @@ usersRouter.openapi(createUserRoute, async (c) => {
       },
     })
 
-    if (error || !data.user) {
-      return validationError(c, error?.message ?? "ユーザー作成に失敗しました")
-    }
-
     return successResponse(c, {
-      id: data.user.id,
+      id: user.id,
       name,
-      email: data.user.email ?? email,
+      email: user.email ?? email,
       employeeNumber,
       role: "user" as const,
     })
@@ -269,11 +264,11 @@ usersRouter.openapi(getUserSessionsRoute, async (c) => {
   try {
     const data = await attendance.findRecordWithSessions(userId, date)
 
-    if (!data?.work_sessions || !Array.isArray(data.work_sessions)) {
+    if (!data?.workSessions || !Array.isArray(data.workSessions)) {
       return successResponse(c, [])
     }
 
-    return successResponse(c, formatWorkSessions(data.work_sessions))
+    return successResponse(c, formatWorkSessions(data.workSessions))
   } catch (e) {
     if (e instanceof DatabaseError) return databaseError(c, e.message)
     throw e
