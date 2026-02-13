@@ -144,18 +144,17 @@ dailyReportsRouter.openapi(getUserMonthlyReportsRoute, async (c) => {
     const reports = await repos.dailyReport.findReportsByDateRange(userId, monthStart, monthEnd)
 
     const reportList: DailyReportListItem[] = (reports || []).map((report) => {
-      const tasks =
-        (report as { daily_report_tasks: { task_type: string }[] }).daily_report_tasks || []
-      const plannedCount = tasks.filter((t) => t.task_type === "planned").length
-      const actualCount = tasks.filter((t) => t.task_type === "actual").length
+      const tasks = report.tasks || []
+      const plannedCount = tasks.filter((t) => t.taskType === "planned").length
+      const actualCount = tasks.filter((t) => t.taskType === "actual").length
 
       return {
         id: report.id,
-        userId: report.user_id,
+        userId: report.userId,
         userName: userData.name,
         employeeNumber: userData.employee_number,
         date: report.date,
-        submittedAt: report.submitted_at ? new Date(report.submitted_at).getTime() : null,
+        submittedAt: report.submittedAt ? new Date(report.submittedAt).getTime() : null,
         plannedTaskCount: plannedCount,
         actualTaskCount: actualCount,
       }
@@ -228,57 +227,41 @@ dailyReportsRouter.openapi(getReportDetailRoute, async (c) => {
       return notFoundError(c, "Daily report")
     }
 
-    const tasks = report.daily_report_tasks || []
+    const tasks = report.tasks || []
     const plannedTasks: DailyReportTask[] = tasks
-      .filter((t: { task_type: string }) => t.task_type === "planned")
-      .sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order)
-      .map(
-        (t: {
-          id: string
-          task_type: string
-          task_name: string
-          hours: number | null
-          sort_order: number
-        }) => ({
-          id: t.id,
-          taskType: t.task_type as "planned",
-          taskName: t.task_name,
-          hours: t.hours,
-          sortOrder: t.sort_order,
-        }),
-      )
+      .filter((t) => t.taskType === "planned")
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((t) => ({
+        id: t.id,
+        taskType: t.taskType as "planned",
+        taskName: t.taskName,
+        hours: t.hours,
+        sortOrder: t.sortOrder,
+      }))
 
     const actualTasks: DailyReportTask[] = tasks
-      .filter((t: { task_type: string }) => t.task_type === "actual")
-      .sort((a: { sort_order: number }, b: { sort_order: number }) => a.sort_order - b.sort_order)
-      .map(
-        (t: {
-          id: string
-          task_type: string
-          task_name: string
-          hours: number | null
-          sort_order: number
-        }) => ({
-          id: t.id,
-          taskType: t.task_type as "actual",
-          taskName: t.task_name,
-          hours: t.hours,
-          sortOrder: t.sort_order,
-        }),
-      )
+      .filter((t) => t.taskType === "actual")
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((t) => ({
+        id: t.id,
+        taskType: t.taskType as "actual",
+        taskName: t.taskName,
+        hours: t.hours,
+        sortOrder: t.sortOrder,
+      }))
 
     const dailyReport: DailyReport = {
       id: report.id,
-      userId: report.user_id,
+      userId: report.userId,
       date: report.date,
       summary: report.summary,
       issues: report.issues,
       notes: report.notes,
-      submittedAt: report.submitted_at ? new Date(report.submitted_at).getTime() : null,
+      submittedAt: report.submittedAt ? new Date(report.submittedAt).getTime() : null,
       plannedTasks,
       actualTasks,
-      createdAt: new Date(report.created_at).getTime(),
-      updatedAt: new Date(report.updated_at).getTime(),
+      createdAt: new Date(report.createdAt).getTime(),
+      updatedAt: new Date(report.updatedAt).getTime(),
     }
 
     return successResponse(c, dailyReport)

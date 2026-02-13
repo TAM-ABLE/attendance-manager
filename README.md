@@ -55,7 +55,9 @@
 |------|------|
 | Hono | Web フレームワーク (Next.js API Routes 上で動作) |
 | Hono Zod OpenAPI | API スキーマ定義 |
-| Supabase | データベース (PostgreSQL) + 認証 |
+| Drizzle ORM | データベースアクセス (PostgreSQL) |
+| jose | JWT 検証 (ローカル検証) |
+| Supabase | PostgreSQL ホスティング + GoTrue 認証 |
 | Zod | バリデーション |
 
 ### インフラ・ツール
@@ -109,7 +111,8 @@ attendance-manager/
 │   └── ApiResponse.ts         # API レスポンス型
 ├── server/                    # Hono API
 │   ├── app.ts                 # エントリーポイント
-│   ├── middleware/auth.ts     # JWT 認証ミドルウェア
+│   ├── db/                    # Drizzle ORM スキーマ・クライアント
+│   ├── middleware/auth.ts     # JWT 認証ミドルウェア (jose)
 │   ├── routes/                # API ルート
 │   ├── lib/                   # サーバーユーティリティ
 │   └── types/                 # サーバー型定義
@@ -189,6 +192,7 @@ pnpm install
 
 ### 環境変数 (`.env.local`)
 ```
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
 SUPABASE_URL=your_supabase_url
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 JWT_SECRET=your_jwt_secret

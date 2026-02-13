@@ -1,74 +1,50 @@
-import type { SupabaseClient } from "@supabase/supabase-js"
+import { and, asc, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm"
+import type { Db } from "../../db"
+import { attendanceRecords, breaks, workSessions } from "../../db/schema"
 import type { DbAttendanceRecord } from "../formatters"
 
-const ATTENDANCE_SELECT_QUERY = `
-    id,
-    date,
-    work_sessions (
-        id,
-        clock_in,
-        clock_out,
-        breaks (
-            id,
-            break_start,
-            break_end
-        )
-    )
-`
-
 export class AttendanceRepository {
-  constructor(private supabase: SupabaseClient) {}
+  constructor(private db: Db) {}
 
   async findRecordIdByUserAndDate(userId: string, date: string): Promise<{ id: string } | null> {
-    const { data, error } = await this.supabase
-      .from("attendance_records")
-      .select("id")
-      .eq("user_id", userId)
-      .eq("date", date)
-      .maybeSingle()
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
-
-    return data
+    const result = await this.db
+      .select({ id: attendanceRecords.id })
+      .from(attendanceRecords)
+      .where(and(eq(attendanceRecords.userId, userId), eq(attendanceRecords.date, date)))
+      .limit(1)
+    return result[0] ?? null
   }
 
   async createRecord(userId: string, date: string): Promise<{ id: string }> {
-    const { data, error } = await this.supabase
-      .from("attendance_records")
-      .insert({ user_id: userId, date })
-      .select("id")
-      .single()
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
-
-    return data
+    const [result] = await this.db
+      .insert(attendanceRecords)
+      .values({ userId, date })
+      .returning({ id: attendanceRecords.id })
+    return result
   }
 
   async findOrCreateRecord(userId: string, date: string): Promise<{ id: string }> {
     const existing = await this.findRecordIdByUserAndDate(userId, date)
-    if (existing) {
-      return existing
-    }
+    if (existing) return existing
     return this.createRecord(userId, date)
   }
 
   async findRecordWithSessions(userId: string, date: string): Promise<DbAttendanceRecord | null> {
-    const { data, error } = await this.supabase
-      .from("attendance_records")
-      .select(ATTENDANCE_SELECT_QUERY)
-      .eq("user_id", userId)
-      .eq("date", date)
-      .maybeSingle<DbAttendanceRecord>()
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
-
-    return data
+    const result = await this.db.query.attendanceRecords.findFirst({
+      where: and(eq(attendanceRecords.userId, userId), eq(attendanceRecords.date, date)),
+      columns: { id: true, date: true },
+      with: {
+        workSessions: {
+          columns: { id: true, clockIn: true, clockOut: true },
+          with: {
+            breaks: {
+              columns: { id: true, breakStart: true, breakEnd: true },
+            },
+          },
+        },
+      },
+    })
+    return (result as DbAttendanceRecord | undefined) ?? null
   }
 
   async findRecordsByDateRange(
@@ -76,122 +52,87 @@ export class AttendanceRepository {
     startDate: string,
     endDate: string,
   ): Promise<DbAttendanceRecord[]> {
-    const { data, error } = await this.supabase
-      .from("attendance_records")
-      .select(ATTENDANCE_SELECT_QUERY)
-      .eq("user_id", userId)
-      .gte("date", startDate)
-      .lte("date", endDate)
-      .order("date", { ascending: true })
-      .returns<DbAttendanceRecord[]>()
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
-
-    return data
+    const result = await this.db.query.attendanceRecords.findMany({
+      where: and(
+        eq(attendanceRecords.userId, userId),
+        gte(attendanceRecords.date, startDate),
+        lte(attendanceRecords.date, endDate),
+      ),
+      orderBy: [asc(attendanceRecords.date)],
+      columns: { id: true, date: true },
+      with: {
+        workSessions: {
+          columns: { id: true, clockIn: true, clockOut: true },
+          with: {
+            breaks: {
+              columns: { id: true, breakStart: true, breakEnd: true },
+            },
+          },
+        },
+      },
+    })
+    return result as DbAttendanceRecord[]
   }
 }
 
 export class WorkSessionRepository {
-  constructor(private supabase: SupabaseClient) {}
+  constructor(private db: Db) {}
 
   async findActiveSession(attendanceId: string): Promise<{ id: string } | null> {
-    const { data, error } = await this.supabase
-      .from("work_sessions")
-      .select("id")
-      .eq("attendance_id", attendanceId)
-      .is("clock_out", null)
-      .order("clock_in", { ascending: false })
+    const result = await this.db
+      .select({ id: workSessions.id })
+      .from(workSessions)
+      .where(and(eq(workSessions.attendanceId, attendanceId), isNull(workSessions.clockOut)))
+      .orderBy(desc(workSessions.clockIn))
       .limit(1)
-      .maybeSingle()
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
-
-    return data
+    return result[0] ?? null
   }
 
   async createSession(attendanceId: string, clockIn: string): Promise<{ id: string }> {
-    const { data, error } = await this.supabase
-      .from("work_sessions")
-      .insert({
-        attendance_id: attendanceId,
-        clock_in: clockIn,
-      })
-      .select("id")
-      .single()
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
-
-    return data
+    const [result] = await this.db
+      .insert(workSessions)
+      .values({ attendanceId, clockIn })
+      .returning({ id: workSessions.id })
+    return result
   }
 
   async updateClockOut(sessionId: string, clockOut: string): Promise<void> {
-    const { error } = await this.supabase
-      .from("work_sessions")
-      .update({ clock_out: clockOut })
-      .eq("id", sessionId)
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
+    await this.db.update(workSessions).set({ clockOut }).where(eq(workSessions.id, sessionId))
   }
 
   async findActiveSessionWithSlackTs(
     attendanceId: string,
   ): Promise<{ id: string; slack_clock_in_ts: string | null } | null> {
-    const { data, error } = await this.supabase
-      .from("work_sessions")
-      .select("id, slack_clock_in_ts")
-      .eq("attendance_id", attendanceId)
-      .is("clock_out", null)
-      .order("clock_in", { ascending: false })
+    const result = await this.db
+      .select({
+        id: workSessions.id,
+        slack_clock_in_ts: workSessions.slackClockInTs,
+      })
+      .from(workSessions)
+      .where(and(eq(workSessions.attendanceId, attendanceId), isNull(workSessions.clockOut)))
+      .orderBy(desc(workSessions.clockIn))
       .limit(1)
-      .maybeSingle()
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
-
-    return data
+    return result[0] ?? null
   }
 
   async updateSlackTs(sessionId: string, slackTs: string): Promise<void> {
-    const { error } = await this.supabase
-      .from("work_sessions")
-      .update({ slack_clock_in_ts: slackTs })
-      .eq("id", sessionId)
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
+    await this.db
+      .update(workSessions)
+      .set({ slackClockInTs: slackTs })
+      .where(eq(workSessions.id, sessionId))
   }
 
   async getSessionIdsByAttendanceId(attendanceId: string): Promise<string[]> {
-    const { data, error } = await this.supabase
-      .from("work_sessions")
-      .select("id")
-      .eq("attendance_id", attendanceId)
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
-
-    return (data ?? []).map((s) => s.id)
+    const result = await this.db
+      .select({ id: workSessions.id })
+      .from(workSessions)
+      .where(eq(workSessions.attendanceId, attendanceId))
+    return result.map((s) => s.id)
   }
 
   async deleteByIds(ids: string[]): Promise<void> {
     if (ids.length === 0) return
-
-    const { error } = await this.supabase.from("work_sessions").delete().in("id", ids)
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
+    await this.db.delete(workSessions).where(inArray(workSessions.id, ids))
   }
 
   async insertMultiple(
@@ -199,91 +140,50 @@ export class WorkSessionRepository {
     sessions: { clockIn: string; clockOut: string | null }[],
   ): Promise<{ id: string }[]> {
     if (sessions.length === 0) return []
-
-    const inserts = sessions.map((s) => ({
-      attendance_id: attendanceId,
-      clock_in: s.clockIn,
-      clock_out: s.clockOut,
-    }))
-
-    const { data, error } = await this.supabase.from("work_sessions").insert(inserts).select("id")
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
-
-    return data ?? []
+    return this.db
+      .insert(workSessions)
+      .values(
+        sessions.map((s) => ({
+          attendanceId,
+          clockIn: s.clockIn,
+          clockOut: s.clockOut,
+        })),
+      )
+      .returning({ id: workSessions.id })
   }
 }
 
 export class BreakRepository {
-  constructor(private supabase: SupabaseClient) {}
+  constructor(private db: Db) {}
 
   async findActiveBreak(sessionId: string): Promise<{ id: string } | null> {
-    const { data, error } = await this.supabase
-      .from("breaks")
-      .select("id")
-      .eq("session_id", sessionId)
-      .is("break_end", null)
-      .order("break_start", { ascending: false })
+    const result = await this.db
+      .select({ id: breaks.id })
+      .from(breaks)
+      .where(and(eq(breaks.sessionId, sessionId), isNull(breaks.breakEnd)))
+      .orderBy(desc(breaks.breakStart))
       .limit(1)
-      .maybeSingle()
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
-
-    return data
+    return result[0] ?? null
   }
 
   async startBreak(sessionId: string, breakStart: string): Promise<void> {
-    const { error } = await this.supabase.from("breaks").insert({
-      session_id: sessionId,
-      break_start: breakStart,
-    })
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
+    await this.db.insert(breaks).values({ sessionId, breakStart })
   }
 
   async endBreak(breakId: string, breakEnd: string): Promise<void> {
-    const { error } = await this.supabase
-      .from("breaks")
-      .update({ break_end: breakEnd })
-      .eq("id", breakId)
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
+    await this.db.update(breaks).set({ breakEnd }).where(eq(breaks.id, breakId))
   }
 
   async deleteBySessionIds(sessionIds: string[]): Promise<void> {
     if (sessionIds.length === 0) return
-
-    const { error } = await this.supabase.from("breaks").delete().in("session_id", sessionIds)
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
+    await this.db.delete(breaks).where(inArray(breaks.sessionId, sessionIds))
   }
 
   async insertMultiple(
-    breaks: { sessionId: string; breakStart: string; breakEnd: string | null }[],
+    breaksData: { sessionId: string; breakStart: string; breakEnd: string | null }[],
   ): Promise<void> {
-    if (breaks.length === 0) return
-
-    const inserts = breaks.map((b) => ({
-      session_id: b.sessionId,
-      break_start: b.breakStart,
-      break_end: b.breakEnd,
-    }))
-
-    const { error } = await this.supabase.from("breaks").insert(inserts)
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
+    if (breaksData.length === 0) return
+    await this.db.insert(breaks).values(breaksData)
   }
 }
 
