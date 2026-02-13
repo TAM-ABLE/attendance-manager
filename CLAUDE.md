@@ -129,6 +129,11 @@ See `docs/authentication.md` for details.
 
 ### CI/CD
 
-GitHub Actions (`.github/workflows/ci.yml`) runs on push/PR to main/develop:
-- Biome lint + ESLint (Next.js rules) + type check + build
+GitHub Actions workflows (push/PR to main/develop):
+- **CI** (`ci.yml`): Biome lint + ESLint (Next.js rules) + type check + build
+- **CodeQL** (`codeql.yml`): Security analysis (push/PR to main + weekly schedule)
+- **Dependency Review** (`dependency-review.yml`): PR only — blocks high/critical vulnerabilities, denies GPL-3.0/AGPL-3.0 licenses
+- **Migration Check** (`migration-check.yml`): Detects drift between Drizzle schema (`server/db/schema.ts`) and SQL migrations (`supabase/migrations/`). Triggered only when schema/migration files change
+- **Bundle Size** (`bundle-size.yml`): Reports bundle size changes on PRs
+- **Dependabot Lockfile Sync** (`dependabot-lockfile-sync.yml`): Auto-updates lockfile for Dependabot PRs
 - Uses pnpm as package manager
