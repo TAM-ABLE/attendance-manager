@@ -94,20 +94,9 @@ supabase db reset
 supabase db push --linked
 ```
 
-### 型の自動生成
+### DB スキーマ定義 (Drizzle ORM)
 
-Supabase CLI はデータベーススキーマから TypeScript の型定義を自動生成できます。マイグレーション実行後やスキーマ変更後に型を再生成してください。
-
-```bash
-# ローカル Supabase から型を生成（Supabase が起動している必要あり）
-pnpm gen:types
-```
-
-生成先: `server/types/supabase.ts`
-
-このファイルには `Database` 型が定義されており、Supabase クライアントの型安全な操作に使用されます。
-
-> **重要**: マイグレーションでテーブルやカラムを変更した場合は、必ず `pnpm gen:types` を実行して型定義を最新の状態に保ってください。
+DB のテーブル定義・リレーションは `server/db/schema.ts` に Drizzle ORM のスキーマとして記述されています。マイグレーションでテーブルやカラムを変更した場合は、このファイルも合わせて更新してください。
 
 ### リモートプロジェクトとの連携
 
@@ -131,14 +120,15 @@ supabase db diff
 `.env.local` を作成：
 
 ```
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
 SUPABASE_URL=http://127.0.0.1:54321
 SUPABASE_SERVICE_ROLE_KEY=<supabase status で表示される service_role key>
-JWT_SECRET=<任意の文字列>
+JWT_SECRET=<supabase status で表示される jwt_secret>
 SLACK_BOT_TOKEN=<Slack Bot Token（任意）>
 SLACK_CHANNEL_ID=<Slack Channel ID（任意）>
 ```
 
-> **Note**: ローカル Supabase の service_role key は `supabase status` で確認できます。
+> **Note**: ローカル Supabase のキー情報は `supabase status` で確認できます。`DATABASE_URL` はローカル Supabase の PostgreSQL に直接接続するための URL です。
 
 ### 起動
 

@@ -1,6 +1,6 @@
 import { createRoute, z } from "@hono/zod-openapi"
-import { createClient } from "@supabase/supabase-js"
 import { getCookie } from "hono/cookie"
+import { verifyJwt } from "../../lib/auth-helpers"
 import { successResponse, unauthorizedError } from "../../lib/errors"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
 import { errorResponseSchema, successResponseSchema, uuidSchema } from "../../lib/openapi-schemas"
@@ -64,27 +64,13 @@ meRouter.openapi(meRoute, async (c) => {
   }
 
   try {
-    const supabase = createClient(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    })
-
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser(accessToken)
-
-    if (error || !user) {
-      return unauthorizedError(c, "Invalid token")
-    }
+    const payload = await verifyJwt(accessToken, c.env.JWT_SECRET)
 
     return successResponse(c, {
-      id: user.id,
-      name: (user.user_metadata?.name as string) ?? "",
-      email: user.email ?? "",
-      role: (user.user_metadata?.role as "admin" | "user") ?? "user",
+      id: payload.sub,
+      name: payload.name,
+      email: payload.email,
+      role: payload.role,
     })
   } catch (err) {
     console.error("Auth me error:", err)

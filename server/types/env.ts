@@ -1,4 +1,5 @@
 export type Env = {
+  DATABASE_URL: string
   SLACK_BOT_TOKEN: string
   SLACK_CHANNEL_ID: string
   SLACK_ICON_CLOCK_IN?: string

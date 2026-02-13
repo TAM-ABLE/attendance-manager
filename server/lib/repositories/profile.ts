@@ -1,62 +1,62 @@
-import type { SupabaseClient } from "@supabase/supabase-js"
+import { asc, desc, eq, like, ne } from "drizzle-orm"
+import type { Db } from "../../db"
+import { profiles } from "../../db/schema"
 import { DatabaseError } from "./attendance"
 
 export class ProfileRepository {
-  constructor(private supabase: SupabaseClient) {}
+  constructor(private db: Db) {}
 
   async findAllUsers() {
-    const { data, error } = await this.supabase
-      .from("profiles")
-      .select("id, name, email, employee_number, role")
-      .order("employee_number", { ascending: true })
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
-
-    return data
+    return this.db
+      .select({
+        id: profiles.id,
+        name: profiles.name,
+        email: profiles.email,
+        employee_number: profiles.employeeNumber,
+        role: profiles.role,
+      })
+      .from(profiles)
+      .orderBy(asc(profiles.employeeNumber))
   }
 
   async findAllUsersForSelect() {
-    const { data, error } = await this.supabase
-      .from("profiles")
-      .select("id, name, employee_number")
-      .neq("role", "admin")
-      .order("employee_number", { ascending: true })
-
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
-
-    return data
+    return this.db
+      .select({
+        id: profiles.id,
+        name: profiles.name,
+        employee_number: profiles.employeeNumber,
+      })
+      .from(profiles)
+      .where(ne(profiles.role, "admin"))
+      .orderBy(asc(profiles.employeeNumber))
   }
 
   async findById(userId: string) {
-    const { data, error } = await this.supabase
-      .from("profiles")
-      .select("id, name, employee_number")
-      .eq("id", userId)
-      .single()
+    const result = await this.db
+      .select({
+        id: profiles.id,
+        name: profiles.name,
+        employee_number: profiles.employeeNumber,
+      })
+      .from(profiles)
+      .where(eq(profiles.id, userId))
+      .limit(1)
 
-    if (error) {
-      throw new DatabaseError(error.message)
+    if (!result[0]) {
+      throw new DatabaseError("Profile not found")
     }
 
-    return data
+    return result[0]
   }
 
   async findMaxEmployeeNumber(): Promise<string | null> {
-    const { data, error } = await this.supabase
-      .from("profiles")
-      .select("employee_number")
-      .like("employee_number", "A-%")
-      .order("employee_number", { ascending: false })
+    const result = await this.db
+      .select({ employee_number: profiles.employeeNumber })
+      .from(profiles)
+      .where(like(profiles.employeeNumber, "A-%"))
+      .orderBy(desc(profiles.employeeNumber))
       .limit(1)
 
-    if (error) {
-      throw new DatabaseError(error.message)
-    }
-
-    return data.length > 0 ? data[0].employee_number : null
+    return result[0]?.employee_number ?? null
   }
 }
