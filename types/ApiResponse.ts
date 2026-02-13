@@ -34,28 +34,10 @@ export type ErrorCode = (typeof ErrorCodes)[keyof typeof ErrorCodes]
 /**
  * ApiResultのヘルパー関数
  */
-export function success<T>(data: T): ApiResult<T> {
-  return { success: true, data }
-}
-
 export function failure<T>(
   code: ErrorCode,
   message: string,
   details?: Record<string, unknown>,
 ): ApiResult<T> {
   return { success: false, error: { code, message, details } }
-}
-
-/**
- * ApiResultがsuccessかどうかをチェック（型ガード）
- */
-export function isSuccess<T>(result: ApiResult<T>): result is { success: true; data: T } {
-  return result.success
-}
-
-/**
- * ApiResultがfailureかどうかをチェック（型ガード）
- */
-export function isFailure<T>(result: ApiResult<T>): result is { success: false; error: ApiError } {
-  return !result.success
 }

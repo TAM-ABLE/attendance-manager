@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { getDateSessions, updateDateSessions } from "@/lib/api-services/attendance"
 import { withRetry } from "@/lib/auth/with-retry"
+import type { ApiResult } from "@/types/ApiResponse"
 import type { WorkSession } from "@/types/Attendance"
 
 export function useEditDialog(reloadMonthData: () => void) {
@@ -24,17 +25,17 @@ export function useEditDialog(reloadMonthData: () => void) {
 
   const closeDialog = () => setShowEditDialog(false)
 
-  const saveSessions = async () => {
-    if (!selectedDate) return
+  const saveSessions = async (): Promise<ApiResult<unknown>> => {
+    if (!selectedDate) {
+      return {
+        success: false,
+        error: { code: "VALIDATION_ERROR", message: "日付が選択されていません" },
+      }
+    }
 
     const res = await withRetry(() => updateDateSessions(selectedDate, sessions))
-
     reloadMonthData()
-
-    if (!res.success) {
-      console.error("Update-work-sessions failed:", res.error)
-      throw new Error(res.error.message)
-    }
+    return res
   }
 
   return {

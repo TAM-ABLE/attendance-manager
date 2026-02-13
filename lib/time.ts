@@ -48,16 +48,6 @@ export function toJSTDateString(date: Date | undefined): string {
 }
 
 /**
- * JSTとして扱うDateをYYYY-MM-DD形式に変換
- */
-export function formatJSTDate(date: Date): string {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, "0")
-  const d = String(date.getDate()).padStart(2, "0")
-  return `${y}-${m}-${d}`
-}
-
-/**
  * ミリ秒を「X時間Y分」形式に変換
  */
 export function formatDurationMs(ms: number): string {
@@ -137,14 +127,6 @@ export function parseYearMonth(yearMonth: string): { year: number; month: number
   if (month < 1 || month > 12) return null
 
   return { year, month }
-}
-
-/**
- * 指定した年月が現在の年月かどうかを判定
- */
-export function isCurrentMonth(year: number, month: number): boolean {
-  const now = new Date()
-  return now.getFullYear() === year && now.getMonth() + 1 === month
 }
 
 /**

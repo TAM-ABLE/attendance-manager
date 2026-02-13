@@ -1,8 +1,6 @@
 "use client"
 
-import { useState } from "react"
-import { Loader } from "@/components/Loader"
-import { SuccessDialog } from "@/components/SuccessDialog"
+import { DialogWrapper } from "@/components/DialogWrapper"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -14,14 +12,16 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { useDialogState } from "@/hooks/useDialogState"
 import { formatClockTime, mergeDateAndTime } from "@/lib/time"
+import type { ApiResult } from "@/types/ApiResponse"
 import type { Break, WorkSession } from "@/types/Attendance"
 
 interface Props {
   open: boolean
   date: string | null //yyy-mm-dd形式
   onClose: () => void
-  onSave: () => Promise<void>
+  onSave: () => Promise<ApiResult<unknown>>
   sessions: WorkSession[]
   setSessions: (s: WorkSession[]) => void
 }
@@ -34,22 +34,15 @@ export function EditAttendanceDialog({
   sessions,
   setSessions,
 }: Props) {
-  const [mode, setMode] = useState<"form" | "loading" | "success">("form")
+  const { mode, error, handleSubmit, reset } = useDialogState()
 
-  const handleSubmit = async () => {
-    try {
-      setMode("loading")
-      await onSave()
-      setMode("success")
-    } catch (e) {
-      console.error(e)
-      setMode("form")
-    }
+  const onFormSubmit = async () => {
+    await handleSubmit(() => onSave())
   }
 
-  const handleCloseSuccess = () => {
+  const handleClose = () => {
+    reset()
     onClose()
-    setMode("form")
   }
 
   const updateSession = (sessionId: string, field: "clockIn" | "clockOut", value: string) => {
@@ -118,137 +111,124 @@ export function EditAttendanceDialog({
     )
   }
 
-  // --- Loading UI ---
-  if (mode === "loading") {
-    return (
-      <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="flex justify-center py-12">
-          <Loader size={50} border={4} />
+  return (
+    <DialogWrapper
+      open={open}
+      onClose={handleClose}
+      mode={mode}
+      onReset={reset}
+      successTitle="保存完了"
+      successDescription="勤怠データを保存しました。"
+    >
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>勤怠データを編集</DialogTitle>
+            <DialogDescription>出勤・退勤・休憩時間を編集できます。</DialogDescription>
+          </DialogHeader>
+
+          {error && <div className="text-red-500 text-sm p-2 bg-red-50 rounded">{error}</div>}
+
+          <div className="space-y-4 py-4">
+            {sessions.map((session, idx) => (
+              <div key={session.id} className="border p-4 rounded-md space-y-4">
+                <h3 className="font-semibold flex justify-between items-center">
+                  セッション {idx + 1}
+                  <Button size="sm" variant="ghost" onClick={() => removeSession(session.id)}>
+                    ✕
+                  </Button>
+                </h3>
+
+                {/* 出勤 */}
+                <div className="flex gap-4 items-center">
+                  <Label className="w-24">出勤</Label>
+                  <Input
+                    type="time"
+                    value={formatClockTime(session.clockIn)}
+                    onChange={(e) => updateSession(session.id, "clockIn", e.target.value)}
+                  />
+                </div>
+
+                {/* 退勤 */}
+                <div className="flex gap-4 items-center">
+                  <Label className="w-24">退勤</Label>
+                  <Input
+                    type="time"
+                    value={formatClockTime(session.clockOut)}
+                    onChange={(e) => updateSession(session.id, "clockOut", e.target.value)}
+                  />
+                </div>
+
+                {/* 休憩 */}
+                <div className="mt-4 space-y-2">
+                  <h4 className="font-medium">休憩</h4>
+
+                  {session.breaks.map((br) => (
+                    <div key={br.id} className="space-y-2">
+                      {/* 削除ボタン */}
+                      <div className="flex justify-end">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => removeBreak(session.id, br.id)}
+                        >
+                          ✕
+                        </Button>
+                      </div>
+
+                      {/* 開始 */}
+                      <div className="flex gap-4 items-center">
+                        <Label className="w-24">開始</Label>
+                        <Input
+                          type="time"
+                          value={formatClockTime(br.start)}
+                          onChange={(e) => updateBreak(session.id, br.id, "start", e.target.value)}
+                        />
+                      </div>
+
+                      {/* 終了 */}
+                      <div className="flex gap-4 items-center">
+                        <Label className="w-24">終了</Label>
+                        <Input
+                          type="time"
+                          value={formatClockTime(br.end)}
+                          onChange={(e) => updateBreak(session.id, br.id, "end", e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  ))}
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full"
+                    onClick={() => addBreak(session.id)}
+                  >
+                    + 休憩追加
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* セッション追加ボタン - セッションの外 */}
+          <Button
+            variant="outline"
+            className="w-full mb-4"
+            disabled={sessions.length >= 3}
+            onClick={addSession}
+          >
+            + セッション追加
+          </Button>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={handleClose}>
+              キャンセル
+            </Button>
+            <Button onClick={onFormSubmit}>保存</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
-    )
-  }
-
-  // --- Success UI ---
-  if (mode === "success") {
-    return (
-      <SuccessDialog
-        open={open}
-        title="保存完了"
-        description="勤怠データを保存しました。"
-        onClose={handleCloseSuccess}
-      />
-    )
-  }
-
-  // --- Form UI ---
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>勤怠データを編集</DialogTitle>
-          <DialogDescription>出勤・退勤・休憩時間を編集できます。</DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 py-4">
-          {sessions.map((session, idx) => (
-            <div key={session.id} className="border p-4 rounded-md space-y-4">
-              <h3 className="font-semibold flex justify-between items-center">
-                セッション {idx + 1}
-                <Button size="sm" variant="ghost" onClick={() => removeSession(session.id)}>
-                  ✕
-                </Button>
-              </h3>
-
-              {/* 出勤 */}
-              <div className="flex gap-4 items-center">
-                <Label className="w-24">出勤</Label>
-                <Input
-                  type="time"
-                  value={formatClockTime(session.clockIn)}
-                  onChange={(e) => updateSession(session.id, "clockIn", e.target.value)}
-                />
-              </div>
-
-              {/* 退勤 */}
-              <div className="flex gap-4 items-center">
-                <Label className="w-24">退勤</Label>
-                <Input
-                  type="time"
-                  value={formatClockTime(session.clockOut)}
-                  onChange={(e) => updateSession(session.id, "clockOut", e.target.value)}
-                />
-              </div>
-
-              {/* 休憩 */}
-              <div className="mt-4 space-y-2">
-                <h4 className="font-medium">休憩</h4>
-
-                {session.breaks.map((br) => (
-                  <div key={br.id} className="space-y-2">
-                    {/* 削除ボタン */}
-                    <div className="flex justify-end">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => removeBreak(session.id, br.id)}
-                      >
-                        ✕
-                      </Button>
-                    </div>
-
-                    {/* 開始 */}
-                    <div className="flex gap-4 items-center">
-                      <Label className="w-24">開始</Label>
-                      <Input
-                        type="time"
-                        value={formatClockTime(br.start)}
-                        onChange={(e) => updateBreak(session.id, br.id, "start", e.target.value)}
-                      />
-                    </div>
-
-                    {/* 終了 */}
-                    <div className="flex gap-4 items-center">
-                      <Label className="w-24">終了</Label>
-                      <Input
-                        type="time"
-                        value={formatClockTime(br.end)}
-                        onChange={(e) => updateBreak(session.id, br.id, "end", e.target.value)}
-                      />
-                    </div>
-                  </div>
-                ))}
-
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={() => addBreak(session.id)}
-                >
-                  + 休憩追加
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* セッション追加ボタン - セッションの外 */}
-        <Button
-          variant="outline"
-          className="w-full mb-4"
-          disabled={sessions.length >= 3}
-          onClick={addSession}
-        >
-          + セッション追加
-        </Button>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            キャンセル
-          </Button>
-          <Button onClick={handleSubmit}>保存</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    </DialogWrapper>
   )
 }
