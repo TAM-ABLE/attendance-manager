@@ -7,10 +7,6 @@ export function successResponse<T>(c: Context, data: T) {
   return c.json({ success: true as const, data }, 200)
 }
 
-export function successResponseWithWarnings<T>(c: Context, data: T, warnings: string[]) {
-  return c.json({ success: true as const, data, warnings }, 200)
-}
-
 // ===== エラーレスポンス =====
 
 export function unauthorizedError(c: Context, message = "Unauthorized") {
@@ -62,8 +58,4 @@ export function internalError(c: Context, internalMessage?: string) {
     },
     500,
   )
-}
-
-export function conflictError(c: Context, message: string) {
-  return c.json({ success: false as const, error: { code: ErrorCodes.CONFLICT, message } }, 409)
 }
