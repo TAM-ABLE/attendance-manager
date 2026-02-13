@@ -6,6 +6,7 @@ import { useState } from "react"
 import { getUserDateSessions, updateUserDateSessions } from "@/lib/api-services/admin"
 import { withRetry } from "@/lib/auth/with-retry"
 import { isValidUUID } from "@/lib/constants"
+import type { ApiResult } from "@/types/ApiResponse"
 import type { User, WorkSession } from "@/types/Attendance"
 
 export function useEditDialog(selectedUser: User | null, reloadMonthData: () => void) {
@@ -29,19 +30,19 @@ export function useEditDialog(selectedUser: User | null, reloadMonthData: () => 
 
   const closeDialog = () => setShowEditDialog(false)
 
-  const saveSessions = async () => {
-    if (!selectedUser || !selectedUser.id || !isValidUUID(selectedUser.id) || !selectedDate) return
+  const saveSessions = async (): Promise<ApiResult<unknown>> => {
+    if (!selectedUser || !selectedUser.id || !isValidUUID(selectedUser.id) || !selectedDate) {
+      return {
+        success: false,
+        error: { code: "VALIDATION_ERROR", message: "ユーザーまたは日付が無効です" },
+      }
+    }
 
     const res = await withRetry(() =>
       updateUserDateSessions(selectedUser.id, selectedDate, sessions),
     )
-
     reloadMonthData()
-
-    if (!res.success) {
-      console.error("Update-work-sessions failed:", res.error)
-      throw new Error(res.error.message)
-    }
+    return res
   }
 
   return {
