@@ -146,7 +146,6 @@ attendance-manager/
 | [development-guide.md](docs/development-guide.md) | 開発環境ガイド（Supabase CLI、起動方法） |
 | [data-fetching-architecture.md](docs/data-fetching-architecture.md) | データ取得設計（SSC + SWR） |
 | [authentication.md](docs/authentication.md) | 認証設計（JWT + HttpOnly Cookie） |
-| [openapi-zod.md](docs/openapi-zod.md) | OpenAPI + Zod スキーマ設計 |
 
 ---
 
@@ -263,6 +262,7 @@ GitHub Actions による自動チェック（main/develop ブランチへの pus
 - **Migration Check**: Drizzle スキーマと SQL マイグレーションの整合性を検証（関連ファイル変更時のみ）
 - **Bundle Size**: PR 時にバンドルサイズの変化をレポート
 - **Dependabot Lockfile Sync**: Dependabot PR のロックファイルを自動更新
+- **Auto Add to Project**: 新規 Issue を GitHub Project に自動追加
 
 ---
 
