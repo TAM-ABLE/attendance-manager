@@ -6,5 +6,13 @@ pre-commit:
 
 pre-push:
   commands:
+    protect-main:
+      run: |
+        branch=$(git rev-parse --abbrev-ref HEAD)
+        if [ "$branch" = "main" ]; then
+          echo "mainブランチへの直接pushは禁止されています。"
+          echo "featureブランチを作成してPRを出してください。"
+          exit 1
+        fi
     typecheck:
       run: pnpm tsc --noEmit
