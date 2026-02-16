@@ -66,8 +66,6 @@ server/
 ```
 
 #### OpenAPI + Zod Architecture
-See `docs/openapi-zod.md` for details.
-
 - `server/lib/openapi-schemas.ts` - Zod schema definitions with OpenAPI metadata
 - `server/lib/openapi-hono.ts` - OpenAPIHono factory with unified error handling
 - Routes use `createRoute()` + `router.openapi()` pattern for type-safe handlers
@@ -135,4 +133,9 @@ GitHub Actions workflows (push/PR to main/develop):
 - **Migration Check** (`migration-check.yml`): Detects drift between Drizzle schema (`server/db/schema.ts`) and SQL migrations (`supabase/migrations/`). Triggered only when schema/migration files change
 - **Bundle Size** (`bundle-size.yml`): Reports bundle size changes on PRs
 - **Dependabot Lockfile Sync** (`dependabot-lockfile-sync.yml`): Auto-updates lockfile for Dependabot PRs
+- **Auto Add to Project** (`auto-add-to-project.yml`): Automatically adds new issues to GitHub Project
 - Uses pnpm as package manager
+
+### Git Hooks (Lefthook)
+- **pre-commit**: Biome lint on staged files
+- **pre-push**: Block direct push to main + typecheck
