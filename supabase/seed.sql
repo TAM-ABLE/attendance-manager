@@ -2,7 +2,9 @@
 -- Seed Dummy Data
 -- ============================
 -- This file is executed after migrations during `supabase db reset`
--- With Supabase Auth, users are created in auth.users and profiles are created via trigger
+-- With Supabase Auth, users are created in auth.users and profiles are created via trigger.
+-- Profiles are also explicitly inserted with ON CONFLICT DO NOTHING to support
+-- hosted Supabase where the auth trigger may not fire.
 
 DO $$
 DECLARE
@@ -259,6 +261,18 @@ BEGIN
         now(),
         now()
     );
+
+    -- ============================
+    -- Profiles (明示的にINSERT - トリガーが動かない環境でも動作するように)
+    -- ローカル: トリガーが先に作成 → ON CONFLICT DO NOTHING でスキップ
+    -- 本番: トリガー不発 → この INSERT で作成
+    -- ============================
+    INSERT INTO public.profiles (id, name, email, employee_number, role, created_at, updated_at)
+    VALUES
+        (v_admin_id, '管理者', 'admin@example.com', 'EMP001', 'admin', now(), now()),
+        (v_user_id, '一般ユーザー', 'user@example.com', 'A-0001', 'user', now(), now()),
+        (v_sato_id, '佐藤 次郎', 'sato@example.com', 'A-0002', 'user', now(), now())
+    ON CONFLICT (id) DO NOTHING;
 
     -- ============================
     -- Attendance Records (last week Mon-Fri)
