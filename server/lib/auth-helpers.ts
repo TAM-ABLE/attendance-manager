@@ -61,6 +61,28 @@ export async function signInWithPassword(
   return res.json() as Promise<GoTrueTokenResponse>
 }
 
+export async function adminUpdateUser(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  userId: string,
+  params: { password?: string; user_metadata?: Record<string, unknown> },
+): Promise<void> {
+  const res = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+    },
+    body: JSON.stringify(params),
+  })
+
+  if (!res.ok) {
+    const error = (await res.json()) as { msg?: string }
+    throw new Error(error.msg || "User update failed")
+  }
+}
+
 export async function adminCreateUser(
   supabaseUrl: string,
   serviceRoleKey: string,

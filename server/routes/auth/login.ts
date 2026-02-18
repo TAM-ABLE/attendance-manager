@@ -1,7 +1,7 @@
 import { createRoute } from "@hono/zod-openapi"
 import { setCookie } from "hono/cookie"
 import { signInWithPassword } from "../../lib/auth-helpers"
-import { successResponse, unauthorizedError } from "../../lib/errors"
+import { forbiddenError, successResponse, unauthorizedError } from "../../lib/errors"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
 import {
   errorResponseSchema,
@@ -11,7 +11,7 @@ import {
 } from "../../lib/openapi-schemas"
 import type { Env } from "../../types/env"
 
-const ACCESS_TOKEN_MAX_AGE = 60 * 60 * 24 * 7
+import { ACCESS_TOKEN_MAX_AGE } from "./constants"
 
 const loginRouter = createOpenAPIHono<{ Bindings: Env }>()
 
@@ -57,6 +57,14 @@ const loginRoute = createRoute({
       },
       description: "認証エラー",
     },
+    403: {
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+      description: "初回パスワード変更が未完了",
+    },
   },
 })
 
@@ -70,6 +78,14 @@ loginRouter.openapi(loginRoute, async (c) => {
       email,
       password,
     )
+
+    // 初回パスワード変更が未完了の場合はログインを拒否
+    if (data.user.user_metadata?.password_changed === false) {
+      return forbiddenError(
+        c,
+        "初回パスワード変更が必要です。「初めてお使いの方へ」からパスワードを変更してください。",
+      )
+    }
 
     setCookie(c, "accessToken", data.access_token, {
       httpOnly: true,

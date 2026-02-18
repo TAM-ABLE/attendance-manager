@@ -24,13 +24,14 @@ export function updateUserDateSessions(userId: string, date: string, sessions: W
   })
 }
 
-export function createUser(data: { name: string; email: string; password: string }) {
+export function createUser(data: { lastName: string; firstName: string; email: string }) {
   return apiClient<{
     id: string
     name: string
     email: string
     employeeNumber: string
     role: "user"
+    initialPassword: string
   }>("/admin/users", {
     method: "POST",
     body: data,

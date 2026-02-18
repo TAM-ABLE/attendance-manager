@@ -108,6 +108,38 @@ export async function login(email: string, password: string): Promise<LoginResul
 }
 
 /**
+ * 初回ログイン（パスワード変更 + ログイン）
+ * 初期パスワードで認証後、新パスワードに変更してログイン
+ */
+export async function firstLogin(
+  email: string,
+  currentPassword: string,
+  newPassword: string,
+): Promise<LoginResult> {
+  try {
+    const res = await fetch("/api/auth/first-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, currentPassword, newPassword }),
+    })
+
+    const json = await res.json()
+
+    if (!res.ok || !json.success) {
+      return {
+        success: false,
+        error: json.error?.message ?? "パスワード変更に失敗しました",
+      }
+    }
+
+    return { success: true }
+  } catch (err) {
+    console.error("First login error:", err)
+    return { success: false, error: "パスワード変更に失敗しました" }
+  }
+}
+
+/**
  * ログアウト
  * Hono API が Cookie を削除
  */
