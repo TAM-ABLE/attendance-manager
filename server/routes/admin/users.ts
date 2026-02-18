@@ -88,19 +88,27 @@ const DIGITS = "0123456789"
 const PASSWORD_CHARS = LETTERS + DIGITS
 const PASSWORD_LENGTH = 12
 
-function randomChar(chars: string, byte: number): string {
-  return chars[byte % chars.length]
+function getRandomChar(chars: string): string {
+  const maxUnbiased = Math.floor(256 / chars.length) * chars.length
+  while (true) {
+    const byte = crypto.randomBytes(1)[0]
+    if (byte < maxUnbiased) {
+      return chars[byte % chars.length]
+    }
+  }
 }
 
 function generateRandomPassword(): string {
-  const bytes = crypto.randomBytes(PASSWORD_LENGTH)
-  const chars = Array.from(bytes, (b) => randomChar(PASSWORD_CHARS, b))
+  const chars: string[] = []
+  for (let i = 0; i < PASSWORD_LENGTH; i++) {
+    chars.push(getRandomChar(PASSWORD_CHARS))
+  }
   // 英字・数字を最低1文字ずつ保証
   if (!chars.some((c) => LETTERS.includes(c))) {
-    chars[0] = randomChar(LETTERS, bytes[0])
+    chars[0] = getRandomChar(LETTERS)
   }
   if (!chars.some((c) => DIGITS.includes(c))) {
-    chars[1] = randomChar(DIGITS, bytes[1])
+    chars[1] = getRandomChar(DIGITS)
   }
   return chars.join("")
 }
