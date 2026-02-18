@@ -1,3 +1,4 @@
+import crypto from "node:crypto"
 import { createRoute, z } from "@hono/zod-openapi"
 import { parseYearMonth } from "@/lib/time"
 import { adminCreateUser } from "../../lib/auth-helpers"
@@ -82,6 +83,28 @@ function generateNextEmployeeNumber(maxNumber: string | null): string {
   return `A-${String(num + 1).padStart(4, "0")}`
 }
 
+const LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+const DIGITS = "0123456789"
+const PASSWORD_CHARS = LETTERS + DIGITS
+const PASSWORD_LENGTH = 12
+
+function randomChar(chars: string, byte: number): string {
+  return chars[byte % chars.length]
+}
+
+function generateRandomPassword(): string {
+  const bytes = crypto.randomBytes(PASSWORD_LENGTH)
+  const chars = Array.from(bytes, (b) => randomChar(PASSWORD_CHARS, b))
+  // 英字・数字を最低1文字ずつ保証
+  if (!chars.some((c) => LETTERS.includes(c))) {
+    chars[0] = randomChar(LETTERS, bytes[0])
+  }
+  if (!chars.some((c) => DIGITS.includes(c))) {
+    chars[1] = randomChar(DIGITS, bytes[1])
+  }
+  return chars.join("")
+}
+
 const createUserRoute = createRoute({
   method: "post",
   path: "/",
@@ -128,8 +151,10 @@ const createUserRoute = createRoute({
 })
 
 usersRouter.openapi(createUserRoute, async (c) => {
-  const { name, email, password } = c.req.valid("json")
+  const { lastName, firstName, email } = c.req.valid("json")
+  const name = `${lastName} ${firstName}`
   const { profile } = createRepos(c.env)
+  const initialPassword = generateRandomPassword()
 
   try {
     const maxNumber = await profile.findMaxEmployeeNumber()
@@ -137,12 +162,13 @@ usersRouter.openapi(createUserRoute, async (c) => {
 
     const user = await adminCreateUser(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY, {
       email,
-      password,
+      password: initialPassword,
       email_confirm: true,
       user_metadata: {
         name,
         role: "user",
         employee_number: employeeNumber,
+        password_changed: false,
       },
     })
 
@@ -152,6 +178,7 @@ usersRouter.openapi(createUserRoute, async (c) => {
       email: user.email ?? email,
       employeeNumber,
       role: "user" as const,
+      initialPassword,
     })
   } catch (e) {
     if (e instanceof DatabaseError) return databaseError(c, e.message)
