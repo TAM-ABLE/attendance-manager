@@ -16,7 +16,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useDialogState } from "@/hooks/useDialogState"
-import { createInitialTasks, type TaskFormItem, toTasks } from "@/lib/task-form"
+import { type TaskFormItem, toTasks } from "@/lib/task-form"
 import type { ApiResult } from "@/types/ApiResponse"
 import type { Task } from "@/types/Attendance"
 
@@ -41,7 +41,7 @@ function timeToISOString(time: string): string {
 }
 
 export const ClockInDialog = ({ open, onClose, onSubmit }: ClockInDialogProps) => {
-  const [plannedTasks, setPlannedTasks] = useState<TaskFormItem[]>(createInitialTasks())
+  const [plannedTasks, setPlannedTasks] = useState<TaskFormItem[]>([])
   const [clockInTime, setClockInTime] = useState(getCurrentTimeString())
   const { mode, error, handleSubmit, reset } = useDialogState()
 
@@ -51,7 +51,7 @@ export const ClockInDialog = ({ open, onClose, onSubmit }: ClockInDialogProps) =
 
   const handleClose = () => {
     reset()
-    setPlannedTasks(createInitialTasks())
+    setPlannedTasks([])
     setClockInTime(getCurrentTimeString())
     onClose()
   }
