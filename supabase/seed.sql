@@ -101,7 +101,7 @@ BEGIN
         '$2a$10$qDP0ALTQaH4QrEAXqHmBvuj/ZiCULRFTTrGIDtrDQqFe71DuXj2V2',
         now(),
         '{"provider": "email", "providers": ["email"]}',
-        '{"name": "管理者", "role": "admin", "employee_number": "EMP001"}',
+        '{"name": "山田 太郎", "role": "admin", "employee_number": "EMP001"}',
         'authenticated',
         'authenticated',
         now(),
@@ -143,7 +143,7 @@ BEGIN
         '$2a$10$qDP0ALTQaH4QrEAXqHmBvuj/ZiCULRFTTrGIDtrDQqFe71DuXj2V2',
         now(),
         '{"provider": "email", "providers": ["email"]}',
-        '{"name": "一般ユーザー", "role": "user", "employee_number": "A-0001"}',
+        '{"name": "鈴木 花子", "role": "user", "employee_number": "A-0001"}',
         'authenticated',
         'authenticated',
         now(),
@@ -269,8 +269,8 @@ BEGIN
     -- ============================
     INSERT INTO public.profiles (id, name, email, employee_number, role, created_at, updated_at)
     VALUES
-        (v_admin_id, '管理者', 'admin@example.com', 'EMP001', 'admin', now(), now()),
-        (v_user_id, '一般ユーザー', 'user@example.com', 'A-0001', 'user', now(), now()),
+        (v_admin_id, '山田 太郎', 'admin@example.com', 'EMP001', 'admin', now(), now()),
+        (v_user_id, '鈴木 花子', 'user@example.com', 'A-0001', 'user', now(), now()),
         (v_sato_id, '佐藤 次郎', 'sato@example.com', 'A-0002', 'user', now(), now())
     ON CONFLICT (id) DO NOTHING;
 

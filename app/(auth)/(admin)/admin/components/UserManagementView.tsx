@@ -1,8 +1,7 @@
 "use client"
 
-import { Check, Lock, Mail, Plus, User, X } from "lucide-react"
-import { useState } from "react"
-import { SuccessDialog } from "@/components/SuccessDialog"
+import { AlertTriangle, Check, Copy, Mail, MessageSquare, Plus, User } from "lucide-react"
+import { useCallback, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -25,11 +24,42 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import type { User as UserType } from "@/types/Attendance"
-import { useCreateUser, usePasswordStrength } from "../hooks/useCreateUser"
+import { useCreateUser } from "../hooks/useCreateUser"
 import { useUsers } from "../hooks/useUsers"
 
 type UserManagementViewProps = {
   initialUsers?: UserType[]
+}
+
+function CopyButton({ value }: { value: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // フォールバック: clipboard API が使えない環境向け
+      const textarea = document.createElement("textarea")
+      textarea.value = value
+      textarea.style.position = "fixed"
+      textarea.style.opacity = "0"
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand("copy")
+      document.body.removeChild(textarea)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }, [value])
+
+  return (
+    <Button variant="outline" size="sm" onClick={handleCopy} className="shrink-0">
+      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+      <span className="ml-1">{copied ? "コピー済み" : "コピー"}</span>
+    </Button>
+  )
 }
 
 export function UserManagementView({ initialUsers }: UserManagementViewProps) {
@@ -41,15 +71,14 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
     refetch()
   })
 
-  const [name, setName] = useState("")
+  const [lastName, setLastName] = useState("")
+  const [firstName, setFirstName] = useState("")
   const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const passwordStrength = usePasswordStrength(password)
 
   const resetForm = () => {
-    setName("")
+    setLastName("")
+    setFirstName("")
     setEmail("")
-    setPassword("")
     clearError()
   }
 
@@ -60,10 +89,27 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!passwordStrength.isValid) return
-    const ok = await submit({ name, email, password })
+    const ok = await submit({ lastName, firstName, email })
     if (ok) resetForm()
   }
+
+  const firstLoginUrl =
+    typeof window !== "undefined" ? `${window.location.origin}/first-login` : "/first-login"
+
+  const slackMessage = useMemo(() => {
+    if (!successData) return ""
+    return [
+      `${successData.name}さん`,
+      "",
+      "勤怠管理システムのアカウントを作成しました。",
+      "以下の情報で初回ログインをお願いします。",
+      "",
+      `ログインURL: ${firstLoginUrl}`,
+      `初期パスワード: ${successData.initialPassword}`,
+      "",
+      "初回ログイン時にパスワードの変更が求められます。",
+    ].join("\n")
+  }, [successData, firstLoginUrl])
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -84,21 +130,32 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
               <DialogHeader>
                 <DialogTitle>新規ユーザー登録</DialogTitle>
                 <DialogDescription>
-                  社員番号は自動採番されます。ユーザーは一般ユーザーとして登録されます。
+                  社員番号は自動採番されます。ユーザーは一般ユーザーとして登録されます。初期パスワードは自動生成されます。
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="create-name">名前</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Label>名前</Label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="create-last-name"
+                        type="text"
+                        placeholder="姓"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        className="pl-10"
+                        required
+                      />
+                    </div>
                     <Input
-                      id="create-name"
+                      id="create-first-name"
                       type="text"
-                      placeholder="山田 太郎"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="pl-10"
+                      placeholder="名"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      className="flex-1"
                       required
                     />
                   </div>
@@ -120,78 +177,10 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="create-password">パスワード</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="create-password"
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                  {password && (
-                    <div className="text-xs space-y-1 mt-2">
-                      <div className="flex items-center gap-1">
-                        {passwordStrength.checks.minLength ? (
-                          <Check className="h-3 w-3 text-green-500" />
-                        ) : (
-                          <X className="h-3 w-3 text-red-500" />
-                        )}
-                        <span
-                          className={
-                            passwordStrength.checks.minLength
-                              ? "text-green-600"
-                              : "text-muted-foreground"
-                          }
-                        >
-                          8文字以上
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {passwordStrength.checks.hasLetter ? (
-                          <Check className="h-3 w-3 text-green-500" />
-                        ) : (
-                          <X className="h-3 w-3 text-red-500" />
-                        )}
-                        <span
-                          className={
-                            passwordStrength.checks.hasLetter
-                              ? "text-green-600"
-                              : "text-muted-foreground"
-                          }
-                        >
-                          英字を含む
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {passwordStrength.checks.hasNumber ? (
-                          <Check className="h-3 w-3 text-green-500" />
-                        ) : (
-                          <X className="h-3 w-3 text-red-500" />
-                        )}
-                        <span
-                          className={
-                            passwordStrength.checks.hasNumber
-                              ? "text-green-600"
-                              : "text-muted-foreground"
-                          }
-                        >
-                          数字を含む
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
                 {error && <p className="text-red-500 text-sm">{error}</p>}
 
                 <DialogFooter>
-                  <Button type="submit" disabled={loading || !passwordStrength.isValid}>
+                  <Button type="submit" disabled={loading}>
                     {loading ? "登録中..." : "登録"}
                   </Button>
                 </DialogFooter>
@@ -229,14 +218,44 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
         </CardContent>
       </Card>
 
-      <SuccessDialog
-        open={!!successData}
-        title="ユーザー登録完了"
-        description={
-          successData ? `${successData.name}（${successData.employeeNumber}）を登録しました。` : ""
-        }
-        onClose={clearSuccess}
-      />
+      <Dialog open={!!successData}>
+        <DialogContent
+          onInteractOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+        >
+          <DialogHeader>
+            <DialogTitle>ユーザー登録完了</DialogTitle>
+            <DialogDescription>
+              {successData &&
+                `${successData.name}（${successData.employeeNumber}）を登録しました。`}
+            </DialogDescription>
+          </DialogHeader>
+          {successData && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-1.5">
+                  <MessageSquare className="h-4 w-4" />
+                  Slack通知用メッセージ
+                </Label>
+                <div className="rounded border bg-muted p-3 text-sm whitespace-pre-wrap break-words">
+                  {slackMessage}
+                </div>
+                <CopyButton value={slackMessage} />
+              </div>
+
+              <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950">
+                <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
+                <p className="text-sm text-amber-800 dark:text-amber-200">
+                  このパスワードはこの画面を閉じると再表示できません。必ずコピーして対象ユーザーに伝えてください。
+                </p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={clearSuccess}>閉じる</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
