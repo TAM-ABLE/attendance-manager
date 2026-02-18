@@ -132,27 +132,59 @@ export const loginResponseSchema = z
   })
   .openapi("LoginResponse")
 
-// ===== 管理者ユーザー登録 =====
+// ===== 初回ログイン =====
 
-export const adminCreateUserRequestSchema = z
+export const firstLoginRequestSchema = z
   .object({
-    name: z.string().min(1).openapi({
-      description: "ユーザー名",
-      example: "山田太郎",
-    }),
     email: z.email().openapi({
       description: "メールアドレス",
       example: "user@example.com",
     }),
-    password: z
+    currentPassword: z.string().min(1).openapi({
+      description: "現在のパスワード（管理者から受け取った初期パスワード）",
+      example: "initialPass123",
+    }),
+    newPassword: z
       .string()
       .min(8)
       .regex(/[a-zA-Z]/, "英字を含めてください")
       .regex(/[0-9]/, "数字を含めてください")
       .openapi({
-        description: "パスワード（8文字以上、英字・数字を含む）",
-        example: "password123",
+        description: "新しいパスワード（8文字以上、英字・数字を含む）",
+        example: "newPassword456",
       }),
+  })
+  .openapi("FirstLoginRequest")
+
+export type FirstLoginRequest = z.infer<typeof firstLoginRequestSchema>
+
+export const firstLoginResponseSchema = z
+  .object({
+    user: z.object({
+      id: uuidSchema,
+      name: z.string(),
+      email: z.email(),
+      role: z.enum(["admin", "user"]),
+    }),
+  })
+  .openapi("FirstLoginResponse")
+
+// ===== 管理者ユーザー登録 =====
+
+export const adminCreateUserRequestSchema = z
+  .object({
+    lastName: z.string().trim().min(1).openapi({
+      description: "姓",
+      example: "山田",
+    }),
+    firstName: z.string().trim().min(1).openapi({
+      description: "名",
+      example: "太郎",
+    }),
+    email: z.email().openapi({
+      description: "メールアドレス",
+      example: "user@example.com",
+    }),
   })
   .openapi("AdminCreateUserRequest")
 
@@ -165,6 +197,9 @@ export const adminCreateUserResponseSchema = z
     email: z.email(),
     employeeNumber: z.string(),
     role: z.literal("user"),
+    initialPassword: z.string().openapi({
+      description: "自動生成された初期パスワード",
+    }),
   })
   .openapi("AdminCreateUserResponse")
 

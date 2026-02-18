@@ -1,24 +1,12 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { createUser } from "@/lib/api-services/admin"
 
 type CreateUserForm = {
-  name: string
+  lastName: string
+  firstName: string
   email: string
-  password: string
-}
-
-export function usePasswordStrength(password: string) {
-  return useMemo(() => {
-    const checks = {
-      minLength: password.length >= 8,
-      hasLetter: /[a-zA-Z]/.test(password),
-      hasNumber: /[0-9]/.test(password),
-    }
-    const isValid = checks.minLength && checks.hasLetter && checks.hasNumber
-    return { checks, isValid }
-  }, [password])
 }
 
 export function useCreateUser(onSuccess: () => void) {
@@ -28,6 +16,7 @@ export function useCreateUser(onSuccess: () => void) {
     name: string
     email: string
     employeeNumber: string
+    initialPassword: string
   } | null>(null)
 
   const submit = async (form: CreateUserForm) => {
@@ -41,6 +30,7 @@ export function useCreateUser(onSuccess: () => void) {
         name: result.data.name,
         email: result.data.email,
         employeeNumber: result.data.employeeNumber,
+        initialPassword: result.data.initialPassword,
       })
       onSuccess()
     } else {
