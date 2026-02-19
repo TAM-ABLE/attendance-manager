@@ -23,7 +23,7 @@ pnpm tsc --noEmit     # Type check
 ### Project Structure
 - `app/` - Next.js App Router pages
 - `components/` - React components (shared + ui)
-- `hooks/` - Custom React hooks
+- `hooks/` - Custom React hooks (usePasswordStrength, etc.)
 - `lib/` - Utilities (client-side + domain logic: schemas, time, calculation, constants)
 - `types/` - TypeScript type definitions (Attendance, DailyReport, ApiResponse)
 - `server/` - Hono API (routes, middleware, repositories)
@@ -33,16 +33,16 @@ pnpm tsc --noEmit     # Type check
 - Entry: `server/app.ts` - Hono app with `.basePath("/api")`
 - Catch-all: `app/api/[...route]/route.ts` - mounts Hono via `hono/vercel`
 - Routes (all under `/api`):
-  - `/api/auth` - Authentication (login, logout, me)
-  - `/api/attendance` - Attendance CRUD (clock-in/out, breaks, queries)
+  - `/api/auth` - Authentication (login, logout, me, first-login)
+  - `/api/attendance` - Attendance CRUD (clock-in/out, breaks, queries, close-month)
   - `/api/admin` - Admin operations (user management, attendance editing)
   - `/api/daily-reports` - Daily report management
 - Database: Drizzle ORM + postgres.js (direct TCP connection to PostgreSQL)
-- Auth: JWT verification via jose (local, no HTTP roundtrip) + GoTrue REST API via fetch (login, user creation)
+- Auth: JWT verification via jose (local, no HTTP roundtrip) + GoTrue REST API via fetch (login, user creation, password update)
 - Auth middleware reads token from Authorization header or Cookie fallback
 - OpenAPI: `@hono/zod-openapi` for schema validation + API docs
 - Swagger UI: `/api/ui` (dev), OpenAPI spec: `/api/doc`
-- Environment variables: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `SLACK_BOT_TOKEN`, `SLACK_CHANNEL_ID`
+- Environment variables: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `SLACK_BOT_TOKEN`, `SLACK_CHANNEL_ID`, `SLACK_CSV_CHANNEL_ID`
 
 #### Server Code Structure
 ```
@@ -50,17 +50,20 @@ server/
 ├── app.ts                    ← Hono app with basePath("/api")
 ├── middleware/auth.ts         ← JWT auth + cookie fallback
 ├── routes/
-│   ├── auth/{index,login,logout,me}.ts
-│   ├── attendance/{index,clock,queries,breaks,sessions}.ts
+│   ├── auth/{index,login,logout,me,first-login}.ts
+│   ├── attendance/{index,clock,queries,breaks,sessions,close-month}.ts
 │   ├── admin/{index,users}.ts
 │   └── daily-reports.ts
 ├── db/
 │   ├── schema.ts                 ← Drizzle table + relation definitions
 │   └── index.ts                  ← DB client singleton (postgres.js + drizzle)
 ├── lib/
-│   ├── auth-helpers.ts           ← jose JWT verification + GoTrue REST API helpers
+│   ├── auth-helpers.ts           ← jose JWT verification + GoTrue REST API helpers (login, create, update)
 │   ├── errors.ts, formatters.ts, openapi-hono.ts
-│   ├── openapi-schemas.ts, sessions.ts, slack.ts
+│   ├── openapi-schemas.ts, sessions.ts
+│   ├── slack.ts                     ← Clock-in/out Slack notifications
+│   ├── slack-csv.ts                 ← Slack v2 file upload (monthly CSV)
+│   ├── csv.ts                       ← Monthly attendance CSV generation
 │   └── repositories/{index,attendance,profile,daily-report}.ts
 └── types/env.ts
 ```
@@ -77,6 +80,13 @@ server/
 - UI: Tailwind CSS 4 + shadcn/ui components (Radix UI based)
 - Path alias: `@/*` maps to root
 
+#### Slack Integration
+See `docs/slack-setup-guide.md` for setup details.
+
+- Clock-in/out notifications to Slack (threaded messages)
+- Monthly attendance CSV upload to Slack via v2 file upload API
+- Server libs: `server/lib/slack.ts`, `server/lib/slack-csv.ts`, `server/lib/csv.ts`
+
 #### Data Fetching Architecture
 See `docs/data-fetching-architecture.md` for details.
 
@@ -88,20 +98,23 @@ See `docs/data-fetching-architecture.md` for details.
 See `docs/authentication.md` for details.
 
 - `lib/auth/server.ts` - Server Component auth utilities (`getUser`, `requireAuth`, `requireUser`, `requireAdmin`, `fetchWithAuth`) using `app.fetch()` for direct Hono invocation
+- `lib/auth/with-retry.ts` - Client-side 401 error handling (redirect to login)
 - `lib/api-client.ts` - Client-side API client via `/api/*` (Cookie sent automatically by browser)
 - `lib/api-services/` - Domain-specific API service modules (admin, attendance, daily-reports)
+- First-login flow: new users must change their initial password before accessing the app
 - Route Groups for access control:
-  - `(public)/` - Public pages (login)
+  - `(public)/` - Public pages (login, first-login)
   - `(auth)/` - Authenticated pages (dashboard, attendance-history, edit-attendance, report-list)
   - `(auth)/(admin)/` - Admin-only pages (admin)
 
 #### Key Pages
 - `/dashboard` - Main employee view (clock-in/out, break management, session list)
-- `/admin` - Admin view (user management, user registration, attendance editing, CSV export)
+- `/admin` - Admin view (user management, user registration, attendance editing, CSV export, monthly close)
 - `/attendance-history` - Historical attendance records (calendar view)
-- `/edit-attendance` - Edit attendance sessions for a specific date
+- `/edit-attendance` - Edit attendance sessions for a specific date (with close-month button)
 - `/report-list` - Daily reports list (all authenticated users)
 - `/login` - Authentication page
+- `/first-login` - First-time password change (required for new users)
 
 #### Component Organization
 - `components/` - Shared components (Header, Footer, Loader, SuccessDialog)
