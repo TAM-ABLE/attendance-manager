@@ -12,6 +12,7 @@ import { SWR_KEYS } from "@/lib/swr-keys"
 import { formatYearMonthFromDate } from "@/lib/time"
 import type { AttendanceRecord } from "@/types/Attendance"
 import { useEditDialog } from "../hooks/useEditDialog"
+import { CloseMonthButton } from "./CloseMonthButton"
 
 const EditAttendanceDialog = dynamic(
   () => import("@/components/EditAttendanceDialog").then((mod) => mod.EditAttendanceDialog),
@@ -82,13 +83,14 @@ export function EditAttendanceClient({ user, initialData }: EditAttendanceClient
 
       {/* 月移動 */}
       <Card>
-        <CardContent className="flex items-center">
+        <CardContent className="flex items-center justify-between">
           <MonthNavigator
             currentMonth={currentMonth}
             onPrevMonth={handlePrevMonth}
             onNextMonth={handleNextMonth}
             onToday={handleToday}
           />
+          <CloseMonthButton yearMonth={yearMonth} year={year} month={month} />
         </CardContent>
       </Card>
 

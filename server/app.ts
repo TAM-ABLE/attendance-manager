@@ -21,6 +21,7 @@ app.use("*", async (c, next) => {
     SLACK_ICON_CLOCK_IN: process.env.SLACK_ICON_CLOCK_IN,
     SLACK_ICON_CLOCK_OUT: process.env.SLACK_ICON_CLOCK_OUT,
     NODE_ENV: process.env.NODE_ENV,
+    SLACK_CSV_CHANNEL_ID: process.env.SLACK_CSV_CHANNEL_ID,
   } as Env
   await next()
 })

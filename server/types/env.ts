@@ -8,4 +8,5 @@ export type Env = {
   SUPABASE_SERVICE_ROLE_KEY: string
   JWT_SECRET: string
   NODE_ENV?: string
+  SLACK_CSV_CHANNEL_ID?: string
 }
