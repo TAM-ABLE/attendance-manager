@@ -79,12 +79,43 @@
         │                     │
 ```
 
+## 初回パスワード変更フロー
+
+管理者がユーザーを登録すると、初期パスワードが自動生成されます（`crypto.randomBytes` によるrejection sampling）。
+新規ユーザーは初回ログイン時にパスワード変更が必須です。
+
+### フロー
+
+```
+1. 管理者がユーザー作成 → 初期パスワード自動生成（password_changed: false）
+2. ユーザーが /login でログイン → password_changed: false を検出 → /first-login へリダイレクト
+3. /first-login で現在のパスワード + 新パスワードを入力
+4. POST /api/auth/first-login → パスワード更新 + password_changed: true に設定 + Cookie発行
+5. /dashboard へリダイレクト
+```
+
+### パスワード強度バリデーション（`hooks/usePasswordStrength.ts`）
+
+- 8文字以上
+- 英字を含む
+- 数字を含む
+
+### 主要ファイル
+
+| ファイル | 役割 |
+|----------|------|
+| `server/routes/auth/first-login.ts` | 初回パスワード変更API |
+| `app/(public)/first-login/page.tsx` | 初回パスワード変更ページ |
+| `hooks/usePasswordStrength.ts` | パスワード強度バリデーション |
+| `server/lib/auth-helpers.ts` | `adminUpdateUser()` - パスワード更新・メタデータ更新 |
+
 ## Route Groups によるアクセス制御
 
 ```
 app/
 ├── (public)/              # 公開ページ（認証不要）
-│   └── login/
+│   ├── login/
+│   └── first-login/       # 初回パスワード変更
 │
 ├── (auth)/                # 認証必須ページ
 │   ├── layout.tsx         # requireAuth() でチェック
@@ -126,8 +157,9 @@ export default async function AdminLayout({ children }) {
 |----------|------|
 | `server/routes/auth/login.ts` | ログイン処理、Cookie にトークン保存 |
 | `server/routes/auth/logout.ts` | ログアウト処理、Cookie 削除 |
+| `server/routes/auth/first-login.ts` | 初回パスワード変更処理 |
 | `server/middleware/auth.ts` | JWT 認証ミドルウェア（jose でローカル検証、Cookie or Authorization ヘッダー） |
-| `server/lib/auth-helpers.ts` | jose JWT 検証 + GoTrue REST API ヘルパー（login, user creation） |
+| `server/lib/auth-helpers.ts` | jose JWT 検証 + GoTrue REST API ヘルパー（login, user creation, password update） |
 | `app/api/[...route]/route.ts` | Hono アプリを Next.js API Routes にマウント |
 | `lib/auth/server.ts` | SSC 用認証ユーティリティ（`app.fetch()` で直接呼び出し） |
 | `lib/auth/with-retry.ts` | 401 エラー時のリダイレクト処理 |

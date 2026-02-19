@@ -23,13 +23,19 @@
 - 日報一覧の確認
 
 ### 管理者機能
-- ユーザー登録（管理者のみ）
+- ユーザー登録（管理者のみ、初期パスワード自動生成）
 - ユーザー一覧表示
 - 勤怠データの確認・編集
 - ユーザーの月次勤怠データをCSV形式でエクスポート
+- 月次勤怠締め（CSVをSlackに送信）
 
-### 通知
-- Slack通知（出勤・退勤時）
+### 認証
+- 初回ログイン時のパスワード変更フロー（パスワード強度バリデーション付き）
+
+### 通知・Slack連携
+- 出勤通知（ユーザー名・予定タスクをSlack投稿）
+- 退勤通知（業務内容・まとめをスレッドで投稿）
+- 月次勤怠CSV送信（管理者が月次締め時にSlackにアップロード）
 
 ---
 
@@ -80,7 +86,8 @@ attendance-manager/
 │   ├── page.tsx               # トップページ（リダイレクト）
 │   ├── api/[...route]/        # Hono API catch-all route
 │   ├── (public)/              # 公開ページ
-│   │   └── login/             # /login
+│   │   ├── login/             # /login
+│   │   └── first-login/       # /first-login（初回パスワード変更）
 │   └── (auth)/                # 認証必須ページ
 │       ├── layout.tsx         # requireAuth()
 │       ├── dashboard/         # /dashboard
@@ -94,7 +101,7 @@ attendance-manager/
 │   ├── ui/                    # shadcn/ui コンポーネント
 │   ├── Header/                # ヘッダー
 │   └── ...
-├── hooks/                     # カスタムフック
+├── hooks/                     # カスタムフック（usePasswordStrength 等）
 ├── lib/                       # ユーティリティ
 │   ├── api-client.ts          # API クライアント
 │   ├── api-services/          # API サービス層（admin, attendance, daily-reports）
@@ -114,7 +121,7 @@ attendance-manager/
 │   ├── db/                    # Drizzle ORM スキーマ・クライアント
 │   ├── middleware/auth.ts     # JWT 認証ミドルウェア (jose)
 │   ├── routes/                # API ルート
-│   ├── lib/                   # サーバーユーティリティ
+│   ├── lib/                   # サーバーユーティリティ（slack, csv, auth-helpers）
 │   └── types/                 # サーバー型定義
 ├── supabase/                  # Supabase 設定
 │   ├── config.toml            # Supabase 設定
@@ -145,7 +152,8 @@ attendance-manager/
 |-------------|------|
 | [development-guide.md](docs/development-guide.md) | 開発環境ガイド（Supabase CLI、起動方法） |
 | [data-fetching-architecture.md](docs/data-fetching-architecture.md) | データ取得設計（SSC + SWR） |
-| [authentication.md](docs/authentication.md) | 認証設計（JWT + HttpOnly Cookie） |
+| [authentication.md](docs/authentication.md) | 認証設計（JWT + HttpOnly Cookie + 初回パスワード変更） |
+| [slack-setup-guide.md](docs/slack-setup-guide.md) | Slack連携セットアップガイド（管理者向け） |
 
 ---
 
@@ -160,7 +168,7 @@ attendance-manager/
 
 | Route Group | 認証 | 含まれるページ |
 |-------------|------|---------------|
-| `(public)` | 不要 | /login |
+| `(public)` | 不要 | /login, /first-login |
 | `(auth)` | 必須 | /dashboard, /attendance-history, /edit-attendance, /report-list |
 | `(auth)/(admin)` | 管理者のみ | /admin |
 
@@ -197,6 +205,7 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 JWT_SECRET=your_jwt_secret
 SLACK_BOT_TOKEN=your_slack_bot_token (optional)
 SLACK_CHANNEL_ID=your_slack_channel_id (optional)
+SLACK_CSV_CHANNEL_ID=your_slack_csv_channel_id (optional)
 ```
 
 ---
@@ -222,6 +231,7 @@ pnpm tsc --noEmit     # 型チェック
 | POST | `/api/auth/login` | ログイン |
 | POST | `/api/auth/logout` | ログアウト |
 | GET | `/api/auth/me` | 現在のユーザー情報取得 |
+| POST | `/api/auth/first-login` | 初回パスワード変更 |
 
 ### 勤怠
 | Method | Endpoint | 説明 |
@@ -235,6 +245,7 @@ pnpm tsc --noEmit     # 型チェック
 | GET | `/api/attendance/week/total` | 週間勤務時間取得 |
 | GET | `/api/attendance/{date}/sessions` | 特定日のセッション取得 |
 | PUT | `/api/attendance/{date}/sessions` | 特定日のセッション更新 |
+| POST | `/api/attendance/month/{yearMonth}/close` | 月次勤怠締め（CSV Slack送信） |
 
 ### 管理者
 | Method | Endpoint | 説明 |
