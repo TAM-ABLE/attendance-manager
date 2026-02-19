@@ -60,3 +60,9 @@ export function updateDateSessions(date: string, sessions: WorkSession[]) {
     body: { sessions },
   })
 }
+
+export function closeMonth(yearMonth: string) {
+  return apiClient<{ message: string }>(`/attendance/month/${yearMonth}/close`, {
+    method: "POST",
+  })
+}

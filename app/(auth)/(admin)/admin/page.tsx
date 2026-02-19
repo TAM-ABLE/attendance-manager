@@ -68,14 +68,12 @@ export default async function AdminPage() {
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 border rounded-lg">
                 <div>
-                  <p className="text-sm sm:text-base font-medium">月次レポート自動送信</p>
+                  <p className="text-sm sm:text-base font-medium">月次締めSlack通知</p>
                   <p className="text-xs sm:text-sm text-muted-foreground">
-                    毎月1日に前月の集計レポートを自動送信
+                    勤怠締め時に月次CSVレポートをSlackへ送信
                   </p>
                 </div>
-                <Badge variant="secondary" className="w-fit">
-                  無効
-                </Badge>
+                <Badge className="w-fit">有効</Badge>
               </div>
             </CardContent>
           </Card>
