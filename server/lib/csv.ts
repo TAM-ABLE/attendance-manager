@@ -20,6 +20,7 @@ export function generateMonthlyAttendanceCsv(
     "退勤時刻2",
     "出勤時刻3",
     "退勤時刻3",
+    "出勤日",
     "休憩合計",
     "合計勤務時間",
   ]
@@ -35,10 +36,18 @@ export function generateMonthlyAttendanceCsv(
     return time ? formatClockTime(time) : "-"
   }
 
+  let totalWorkMs = 0
+  let attendanceDays = 0
+
   const rows = monthDates.map((date) => {
     const record = recordsByDate.get(date)
     const sessions = record?.sessions ?? []
     const hasData = sessions.length > 0
+
+    if (hasData) {
+      totalWorkMs += record!.workTotalMs
+      attendanceDays += 1
+    }
 
     return [
       getDateLabel(date),
@@ -49,15 +58,31 @@ export function generateMonthlyAttendanceCsv(
       getSessionTime(sessions, 1, "clockOut"),
       getSessionTime(sessions, 2, "clockIn"),
       getSessionTime(sessions, 2, "clockOut"),
+      hasData ? "o" : "x",
       hasData ? formatDurationMsToHM(record!.breakTotalMs) : "-",
       hasData ? formatDurationMsToHM(record!.workTotalMs) : "-",
     ]
   })
 
+  const summaryRow = [
+    "合計",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    `${attendanceDays}日`,
+    "",
+    formatDurationMsToHM(totalWorkMs),
+  ]
+
   const csvContent = [
     `"氏名: ${userName}"`,
     headers.map((h) => `"${h}"`).join(","),
     ...rows.map((r) => r.map((f) => `"${f}"`).join(",")),
+    summaryRow.map((f) => `"${f}"`).join(","),
   ].join("\n")
 
   const BOM = "\uFEFF"
