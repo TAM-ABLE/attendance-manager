@@ -125,7 +125,8 @@ SUPABASE_URL=http://127.0.0.1:54321
 SUPABASE_SERVICE_ROLE_KEY=<supabase status で表示される service_role key>
 JWT_SECRET=<supabase status で表示される jwt_secret>
 SLACK_BOT_TOKEN=<Slack Bot Token（任意）>
-SLACK_CHANNEL_ID=<Slack Channel ID（任意）>
+SLACK_CHANNEL_ID=<Slack Channel ID（任意、出退勤通知用）>
+SLACK_CSV_CHANNEL_ID=<Slack Channel ID（任意、月次CSV送信用）>
 ```
 
 > **Note**: ローカル Supabase のキー情報は `supabase status` で確認できます。`DATABASE_URL` はローカル Supabase の PostgreSQL に直接接続するための URL です。
