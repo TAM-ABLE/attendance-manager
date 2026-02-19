@@ -44,8 +44,13 @@ export function DialogWrapper({
   // Loading UI
   if (mode === "loading") {
     return (
-      <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="flex justify-center py-12">
+      <Dialog open={open} onOpenChange={() => {}}>
+        <DialogContent
+          showCloseButton={false}
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onEscapeKeyDown={(e) => e.preventDefault()}
+          className="flex justify-center py-12"
+        >
           <Loader size={50} border={4} />
         </DialogContent>
       </Dialog>
