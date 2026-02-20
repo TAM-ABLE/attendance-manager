@@ -1,4 +1,4 @@
-import { asc, desc, eq, like, ne } from "drizzle-orm"
+import { and, asc, desc, eq, like, ne } from "drizzle-orm"
 import type { Db } from "../../db"
 import { profiles } from "../../db/schema"
 import { DatabaseError } from "./attendance"
@@ -41,6 +41,41 @@ export class ProfileRepository {
       .from(profiles)
       .where(eq(profiles.id, userId))
       .limit(1)
+
+    if (!result[0]) {
+      throw new DatabaseError("Profile not found")
+    }
+
+    return result[0]
+  }
+
+  async findByEmail(email: string, excludeUserId: string) {
+    const result = await this.db
+      .select({ id: profiles.id })
+      .from(profiles)
+      .where(and(eq(profiles.email, email), ne(profiles.id, excludeUserId)))
+      .limit(1)
+    return result[0] ?? null
+  }
+
+  async updateUser(userId: string, data: { name?: string; email?: string }) {
+    const updateData: Record<string, unknown> = {
+      updatedAt: new Date().toISOString(),
+    }
+    if (data.name !== undefined) updateData.name = data.name
+    if (data.email !== undefined) updateData.email = data.email
+
+    const result = await this.db
+      .update(profiles)
+      .set(updateData)
+      .where(eq(profiles.id, userId))
+      .returning({
+        id: profiles.id,
+        name: profiles.name,
+        email: profiles.email,
+        employee_number: profiles.employeeNumber,
+        role: profiles.role,
+      })
 
     if (!result[0]) {
       throw new DatabaseError("Profile not found")
