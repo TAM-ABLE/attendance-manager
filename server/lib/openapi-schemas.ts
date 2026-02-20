@@ -203,6 +203,37 @@ export const adminCreateUserResponseSchema = z
   })
   .openapi("AdminCreateUserResponse")
 
+// ===== 管理者ユーザー編集 =====
+
+export const adminUpdateUserRequestSchema = z
+  .object({
+    lastName: z.string().trim().min(1).optional().openapi({
+      description: "姓",
+      example: "山田",
+    }),
+    firstName: z.string().trim().min(1).optional().openapi({
+      description: "名",
+      example: "太郎",
+    }),
+    email: z.email().optional().openapi({
+      description: "メールアドレス",
+      example: "user@example.com",
+    }),
+  })
+  .openapi("AdminUpdateUserRequest")
+
+export type AdminUpdateUserRequest = z.infer<typeof adminUpdateUserRequestSchema>
+
+export const adminUpdateUserResponseSchema = z
+  .object({
+    id: uuidSchema,
+    name: z.string(),
+    email: z.email(),
+    employeeNumber: z.string(),
+    role: z.enum(["admin", "user"]),
+  })
+  .openapi("AdminUpdateUserResponse")
+
 // ===== 打刻関連 =====
 
 export const clockInRequestSchema = z

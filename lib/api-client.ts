@@ -8,7 +8,7 @@ import { type ApiError, type ApiResult, ErrorCodes, failure } from "@/types/ApiR
 const DEFAULT_TIMEOUT = 30000
 
 interface FetchOptions {
-  method?: "GET" | "POST" | "PUT" | "DELETE"
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
   body?: unknown
   /** リクエストタイムアウト（ミリ秒） */
   timeout?: number
