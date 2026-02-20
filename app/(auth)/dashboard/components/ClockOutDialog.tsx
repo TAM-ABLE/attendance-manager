@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useDialogState } from "@/hooks/useDialogState"
-import { createInitialTasks, type TaskFormItem, toTasks } from "@/lib/task-form"
+import { type TaskFormItem, toTasks } from "@/lib/task-form"
 import type { ApiResult } from "@/types/ApiResponse"
 import type { Task } from "@/types/Attendance"
 
@@ -48,7 +48,7 @@ function timeToISOString(time: string): string {
 }
 
 export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps) => {
-  const [actualTasks, setActualTasks] = useState<TaskFormItem[]>(createInitialTasks())
+  const [actualTasks, setActualTasks] = useState<TaskFormItem[]>([])
   const [summary, setSummary] = useState<string>("")
   const [issues, setIssues] = useState<string>("")
   const [notes, setNotes] = useState<string>("")
@@ -63,7 +63,7 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
 
   const handleClose = () => {
     reset()
-    setActualTasks(createInitialTasks())
+    setActualTasks([])
     setSummary("")
     setIssues("")
     setNotes("")
