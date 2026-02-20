@@ -7,7 +7,8 @@ import { Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { createEmptyTask, type TaskFormItem } from "@/lib/task-form"
+import { createEmptyTask, generateTaskId, type TaskFormItem } from "@/lib/task-form"
+import { TaskChipSelector } from "./TaskChipSelector"
 
 interface TaskListEditorProps {
   /** タスクリスト */
@@ -50,37 +51,49 @@ export function TaskListEditor({
     onChange([...tasks, createEmptyTask()])
   }
 
+  const handleChipToggle = (taskName: string) => {
+    const existingIndex = tasks.findIndex((t) => t.taskName === taskName)
+    if (existingIndex >= 0) {
+      onChange(tasks.filter((_, i) => i !== existingIndex))
+    } else {
+      onChange([...tasks, { id: generateTaskId(), taskName, hours: "01:00" }])
+    }
+  }
+
+  const selectedTaskNames = new Set(tasks.map((t) => t.taskName))
+
   return (
     <div>
       <Label className="text-base">{label}</Label>
       <div className="space-y-3 mt-3">
-        {tasks.map((task, index) => (
-          <div key={task.id} className="flex gap-2 items-start">
-            <div className="flex-1">
-              <Input
-                placeholder={taskNamePlaceholder}
-                value={task.taskName}
-                onChange={(e) => updateTaskName(index, e.target.value)}
-              />
-            </div>
-            <div className="w-28">
-              <Input
-                type="time"
-                value={task.hours}
-                onChange={(e) => updateTaskHours(index, e.target.value)}
-              />
-            </div>
-            {tasks.length > 1 && (
+        <TaskChipSelector selectedTaskNames={selectedTaskNames} onToggle={handleChipToggle} />
+        <div className="border-t pt-3 space-y-3">
+          {tasks.map((task, index) => (
+            <div key={task.id} className="flex gap-2 items-start">
+              <div className="flex-1">
+                <Input
+                  placeholder={taskNamePlaceholder}
+                  value={task.taskName}
+                  onChange={(e) => updateTaskName(index, e.target.value)}
+                />
+              </div>
+              <div className="w-28">
+                <Input
+                  type="time"
+                  value={task.hours}
+                  onChange={(e) => updateTaskHours(index, e.target.value)}
+                />
+              </div>
               <Button variant="ghost" size="icon" onClick={() => removeTask(index)}>
                 <X className="h-4 w-4" />
               </Button>
-            )}
-          </div>
-        ))}
-        <Button variant="outline" size="sm" onClick={addTask} className="w-full">
-          <Plus className="h-4 w-4 mr-2" />
-          タスクを追加
-        </Button>
+            </div>
+          ))}
+          <Button variant="outline" size="sm" onClick={addTask} className="w-full">
+            <Plus className="h-4 w-4 mr-2" />
+            タスクを追加
+          </Button>
+        </div>
       </div>
     </div>
   )
