@@ -6,9 +6,10 @@
 const TASK_CATEGORIES = [
   {
     name: "開発",
+    // --chart-4: oklch(0.75 0.08 60) — warm amber
     unselected:
-      "bg-cyan-50 text-cyan-700 border border-cyan-200 hover:border-cyan-400 hover:bg-cyan-100",
-    selected: "bg-cyan-600 text-white border border-cyan-700",
+      "bg-chart-4/15 text-chart-4 border border-chart-4/30 hover:bg-chart-4/25 hover:border-chart-4/50",
+    selected: "bg-chart-4 text-white border border-chart-4",
     tasks: [
       "環境構築",
       "DB設計",
@@ -22,16 +23,18 @@ const TASK_CATEGORIES = [
   },
   {
     name: "保守・運用",
+    // --primary: oklch(0.58 0.14 220) — blue
     unselected:
-      "bg-blue-50 text-blue-700 border border-blue-200 hover:border-blue-400 hover:bg-blue-100",
-    selected: "bg-blue-600 text-white border border-blue-700",
+      "bg-primary/8 text-primary border border-primary/25 hover:bg-primary/15 hover:border-primary/40",
+    selected: "bg-primary text-primary-foreground border border-primary",
     tasks: ["デバッグ", "デプロイ"],
   },
   {
     name: "その他",
+    // --muted: oklch(0.94 0.015 85) — light beige
     unselected:
-      "bg-slate-50 text-slate-700 border border-slate-200 hover:border-slate-400 hover:bg-slate-100",
-    selected: "bg-slate-600 text-white border border-slate-700",
+      "bg-muted text-muted-foreground border border-border hover:bg-accent hover:border-accent-foreground/20",
+    selected: "bg-muted-foreground/70 text-white border border-transparent",
     tasks: ["ミーティング", "資料・ドキュメント作成", "学習"],
   },
 ] as const
