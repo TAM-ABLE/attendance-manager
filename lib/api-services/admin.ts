@@ -24,6 +24,22 @@ export function updateUserDateSessions(userId: string, date: string, sessions: W
   })
 }
 
+export function updateUser(
+  userId: string,
+  data: { lastName?: string; firstName?: string; email?: string },
+) {
+  return apiClient<{
+    id: string
+    name: string
+    email: string
+    employeeNumber: string
+    role: "admin" | "user"
+  }>(`/admin/users/${userId}`, {
+    method: "PATCH",
+    body: data,
+  })
+}
+
 export function createUser(data: { lastName: string; firstName: string; email: string }) {
   return apiClient<{
     id: string

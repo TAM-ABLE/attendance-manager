@@ -1,6 +1,6 @@
 "use client"
 
-import { AlertTriangle, Check, Copy, Mail, MessageSquare, Plus, User } from "lucide-react"
+import { AlertTriangle, Check, Copy, Edit, Mail, MessageSquare, Plus, User } from "lucide-react"
 import { useCallback, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/table"
 import type { User as UserType } from "@/types/Attendance"
 import { useCreateUser } from "../hooks/useCreateUser"
+import { useEditUser } from "../hooks/useEditUser"
 import { useUsers } from "../hooks/useUsers"
 
 type UserManagementViewProps = {
@@ -71,6 +72,52 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
     refetch()
   })
 
+  // ===== 編集ダイアログ =====
+  const {
+    submit: editSubmit,
+    loading: editLoading,
+    error: editError,
+    clearError: clearEditError,
+  } = useEditUser(() => {
+    setEditDialogOpen(false)
+    refetch()
+  })
+
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editTarget, setEditTarget] = useState<UserType | null>(null)
+  const [editLastName, setEditLastName] = useState("")
+  const [editFirstName, setEditFirstName] = useState("")
+  const [editEmail, setEditEmail] = useState("")
+
+  const openEditDialog = (user: UserType) => {
+    const [last, ...rest] = user.name.split(" ")
+    setEditLastName(last)
+    setEditFirstName(rest.join(" "))
+    setEditEmail(user.email)
+    setEditTarget(user)
+    clearEditError()
+    setEditDialogOpen(true)
+  }
+
+  const handleEditOpenChange = (open: boolean) => {
+    setEditDialogOpen(open)
+    if (!open) {
+      setEditTarget(null)
+      clearEditError()
+    }
+  }
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editTarget) return
+    await editSubmit(editTarget.id, {
+      lastName: editLastName,
+      firstName: editFirstName,
+      email: editEmail,
+    })
+  }
+
+  // ===== 新規登録ダイアログ =====
   const [lastName, setLastName] = useState("")
   const [firstName, setFirstName] = useState("")
   const [email, setEmail] = useState("")
@@ -195,12 +242,13 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
                 <TableHead className="w-[120px]">社員番号</TableHead>
                 <TableHead>名前</TableHead>
                 <TableHead>メールアドレス</TableHead>
+                <TableHead className="w-[80px]">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center text-muted-foreground">
+                  <TableCell colSpan={4} className="text-center text-muted-foreground">
                     ユーザーが登録されていません
                   </TableCell>
                 </TableRow>
@@ -210,6 +258,16 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
                     <TableCell className="font-mono text-sm">{user.employeeNumber}</TableCell>
                     <TableCell>{user.name}</TableCell>
                     <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        className="h-7 px-2 sm:px-3 bg-primary text-primary-foreground hover:bg-primary/90"
+                        onClick={() => openEditDialog(user)}
+                      >
+                        <Edit className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                        <span className="hidden sm:inline">編集</span>
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
@@ -217,6 +275,71 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={editDialogOpen} onOpenChange={handleEditOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>ユーザー情報編集</DialogTitle>
+            <DialogDescription>社員番号は変更できません。</DialogDescription>
+          </DialogHeader>
+          {editTarget && (
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>社員番号</Label>
+                <Input value={editTarget.employeeNumber} disabled className="font-mono" />
+              </div>
+
+              <div className="space-y-2">
+                <Label>名前</Label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="姓"
+                      value={editLastName}
+                      onChange={(e) => setEditLastName(e.target.value)}
+                      className="pl-10"
+                      required
+                    />
+                  </div>
+                  <Input
+                    type="text"
+                    placeholder="名"
+                    value={editFirstName}
+                    onChange={(e) => setEditFirstName(e.target.value)}
+                    className="flex-1"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>メールアドレス</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    type="email"
+                    placeholder="user@example.com"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+
+              {editError && <p className="text-red-500 text-sm">{editError}</p>}
+
+              <DialogFooter>
+                <Button type="submit" disabled={editLoading}>
+                  {editLoading ? "更新中..." : "更新"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!successData}>
         <DialogContent
