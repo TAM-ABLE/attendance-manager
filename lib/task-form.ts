@@ -3,6 +3,51 @@
 
 import type { Task } from "@/types/Attendance"
 
+// ===== 退勤タスク編集用 =====
+
+/**
+ * 小数時間（例: 1.5）を HH:mm 文字列に変換
+ * 例: 1.5 → "01:30", 3 → "03:00", null → "01:00"（デフォルト）
+ */
+export function hoursToTimeString(hours: number | null): string {
+  if (hours == null) return "01:00"
+  const h = Math.floor(hours)
+  const m = Math.round((hours - h) * 60)
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`
+}
+
+/**
+ * 退勤ダイアログのタスクフォーム状態
+ */
+export interface ActualTaskItem {
+  id: string
+  taskName: string
+  actualHours: string // 実工数（HH:mm 形式）
+}
+
+/**
+ * Task（予定タスク）から ActualTaskItem を生成
+ */
+export function fromPlannedTask(task: Task): ActualTaskItem {
+  return {
+    id: generateTaskId(),
+    taskName: task.taskName,
+    actualHours: hoursToTimeString(task.hours),
+  }
+}
+
+/**
+ * ActualTaskItem[] を Task[] に変換（API送信用）
+ */
+export function toActualTasks(items: ActualTaskItem[]): Task[] {
+  return items
+    .filter((item) => item.taskName.trim() !== "")
+    .map((item) => ({
+      taskName: item.taskName.trim(),
+      hours: parseTimeToHours(item.actualHours),
+    }))
+}
+
 /**
  * UI用のフォーム状態
  */
@@ -30,7 +75,7 @@ export function createEmptyTask(): TaskFormItem {
  * HH:mm形式の文字列を時間（小数）に変換
  * 例: "01:30" → 1.5, "02:00" → 2.0, "00:30" → 0.5
  */
-function parseTimeToHours(timeStr: string): number | null {
+export function parseTimeToHours(timeStr: string): number | null {
   if (!timeStr) return null
   const [hours, minutes] = timeStr.split(":").map(Number)
   if (Number.isNaN(hours) || Number.isNaN(minutes)) return null

@@ -1,9 +1,9 @@
 // ClockOutDialog.tsx
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { ClockOutTaskEditor } from "@/components/ClockOutTaskEditor"
 import { DialogWrapper } from "@/components/DialogWrapper"
-import { TaskListEditor } from "@/components/TaskListEditor"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -17,7 +17,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useDialogState } from "@/hooks/useDialogState"
-import { type TaskFormItem, toTasks } from "@/lib/task-form"
+import { getTodayPlannedTasks } from "@/lib/api-services/attendance"
+import {
+  type ActualTaskItem,
+  fromPlannedTask,
+  type TaskFormItem,
+  toActualTasks,
+  toTasks,
+} from "@/lib/task-form"
 import type { ApiResult } from "@/types/ApiResponse"
 import type { Task } from "@/types/Attendance"
 
@@ -48,22 +55,36 @@ function timeToISOString(time: string): string {
 }
 
 export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps) => {
-  const [actualTasks, setActualTasks] = useState<TaskFormItem[]>([])
+  const [plannedTasks, setPlannedTasks] = useState<ActualTaskItem[]>([])
+  const [extraTasks, setExtraTasks] = useState<TaskFormItem[]>([])
   const [summary, setSummary] = useState<string>("")
   const [issues, setIssues] = useState<string>("")
   const [notes, setNotes] = useState<string>("")
   const [clockOutTime, setClockOutTime] = useState(getCurrentTimeString())
   const { mode, error, handleSubmit, reset } = useDialogState()
 
+  // ダイアログが開いたとき、出勤時の予定タスクを取得
+  useEffect(() => {
+    if (!open) return
+
+    getTodayPlannedTasks().then((result) => {
+      if (result.success && result.data.length > 0) {
+        setPlannedTasks(result.data.map(fromPlannedTask))
+      }
+    })
+  }, [open])
+
   const onFormSubmit = async () => {
+    const allTasks: Task[] = [...toActualTasks(plannedTasks), ...toTasks(extraTasks)]
     await handleSubmit(() =>
-      onSubmit(toTasks(actualTasks), summary, issues, notes, timeToISOString(clockOutTime)),
+      onSubmit(allTasks, summary, issues, notes, timeToISOString(clockOutTime)),
     )
   }
 
   const handleClose = () => {
     reset()
-    setActualTasks([])
+    setPlannedTasks([])
+    setExtraTasks([])
     setSummary("")
     setIssues("")
     setNotes("")
@@ -94,10 +115,12 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
               />
             </div>
 
-            <TaskListEditor
-              tasks={actualTasks}
-              onChange={setActualTasks}
-              label="実施タスクと実工数（時間）"
+            <ClockOutTaskEditor
+              label="タスク実績の確認・調整"
+              plannedTasks={plannedTasks}
+              onChangePlanned={setPlannedTasks}
+              extraTasks={extraTasks}
+              onChangeExtra={setExtraTasks}
             />
 
             <div>
