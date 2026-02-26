@@ -41,6 +41,10 @@ export function getToday() {
   return apiClient<AttendanceRecord | null>("/attendance/today")
 }
 
+export function getTodayPlannedTasks() {
+  return apiClient<Task[]>("/attendance/today/planned-tasks")
+}
+
 export function getWeekTotal() {
   return apiClient<{ netWorkMs: number } | null>("/attendance/week/total")
 }
