@@ -144,6 +144,7 @@ export const dailyReportListItemSchema = z.object({
   submittedAt: z.number().nullable(),
   plannedTaskCount: z.number(),
   actualTaskCount: z.number(),
+  hasIssues: z.boolean(),
 })
 
 export type DailyReportListItem = z.infer<typeof dailyReportListItemSchema>
