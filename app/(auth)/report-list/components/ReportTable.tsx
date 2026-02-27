@@ -92,7 +92,14 @@ export function ReportTable({ reports, isLoading, onViewDetail }: ReportTablePro
               {reports.map((report) => {
                 const status = getStatusDisplay(report.submittedAt)
                 return (
-                  <TableRow key={report.id}>
+                  <TableRow
+                    key={report.id}
+                    className={
+                      report.hasIssues
+                        ? "bg-[oklch(0.704_0.191_22.216/0.15)] hover:bg-[oklch(0.704_0.191_22.216/0.25)]"
+                        : ""
+                    }
+                  >
                     <TableCell className="font-medium text-xs sm:text-sm">
                       {formatDate(report.date)}
                     </TableCell>

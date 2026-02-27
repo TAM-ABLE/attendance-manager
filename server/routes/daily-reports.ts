@@ -157,6 +157,7 @@ dailyReportsRouter.openapi(getUserMonthlyReportsRoute, async (c) => {
         submittedAt: report.submittedAt ? new Date(report.submittedAt).getTime() : null,
         plannedTaskCount: plannedCount,
         actualTaskCount: actualCount,
+        hasIssues: report.issues != null && report.issues.trim() !== "",
       }
     })
 
