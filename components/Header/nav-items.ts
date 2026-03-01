@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react"
-import { FileText, History, LayoutDashboard, Pencil, Users } from "lucide-react"
+import { FileText, LayoutDashboard, Pencil, Users } from "lucide-react"
 
 export type NavItem = {
   href: string
@@ -9,7 +9,6 @@ export type NavItem = {
 
 export const userNavItems: NavItem[] = [
   { href: "/dashboard", label: "ダッシュボード", icon: LayoutDashboard },
-  { href: "/attendance-history", label: "勤怠履歴", icon: History },
   { href: "/edit-attendance", label: "勤怠編集", icon: Pencil },
   { href: "/report-list", label: "日報一覧", icon: FileText },
 ]
