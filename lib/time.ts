@@ -155,6 +155,19 @@ export function timeToISOString(time: string): string {
 }
 
 /**
+ * YYYY-MM形式の文字列をパースして年月と日付範囲を一括取得
+ */
+export function parseYearMonthWithRange(
+  yearMonth: string,
+): { year: number; month: number; start: string; end: string } | null {
+  const parsed = parseYearMonth(yearMonth)
+  if (!parsed) return null
+  const { year, month } = parsed
+  const { start, end } = getMonthDateRange(year, month)
+  return { year, month, start, end }
+}
+
+/**
  * 指定月の全日をYYYY-MM-DD形式の配列で返す
  * @param year 年（4桁）
  * @param month 月（1-12）

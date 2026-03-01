@@ -1,12 +1,12 @@
 import { createRoute } from "@hono/zod-openapi"
 import { todayJSTString } from "@/lib/time"
-import { databaseError, successResponse, validationError } from "../../lib/errors"
+import { databaseError, handleRouteError, successResponse, validationError } from "../../lib/errors"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
+import { serverErrorResponse, validationErrorResponse } from "../../lib/openapi-responses"
 import {
   clockInRequestSchema,
   clockOutRequestSchema,
   clockResponseSchema,
-  errorResponseSchema,
   successResponseSchema,
   type Task,
 } from "../../lib/openapi-schemas"
@@ -36,29 +36,11 @@ const clockInRoute = createRoute({
   },
   responses: {
     200: {
-      content: {
-        "application/json": {
-          schema: successResponseSchema(clockResponseSchema),
-        },
-      },
+      content: { "application/json": { schema: successResponseSchema(clockResponseSchema) } },
       description: "出勤成功",
     },
-    400: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "バリデーションエラー",
-    },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    400: validationErrorResponse,
+    500: serverErrorResponse,
   },
 })
 
@@ -116,8 +98,7 @@ clockRouter.openapi(clockInRoute, async (c) => {
 
     return successResponse(c, {})
   } catch (e) {
-    if (e instanceof DatabaseError) return databaseError(c, e.message)
-    throw e
+    return handleRouteError(c, e)
   }
 })
 
@@ -140,29 +121,11 @@ const clockOutRoute = createRoute({
   },
   responses: {
     200: {
-      content: {
-        "application/json": {
-          schema: successResponseSchema(clockResponseSchema),
-        },
-      },
+      content: { "application/json": { schema: successResponseSchema(clockResponseSchema) } },
       description: "退勤成功",
     },
-    400: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "バリデーションエラー",
-    },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    400: validationErrorResponse,
+    500: serverErrorResponse,
   },
 })
 
@@ -235,8 +198,7 @@ clockRouter.openapi(clockOutRoute, async (c) => {
 
     return successResponse(c, {})
   } catch (e) {
-    if (e instanceof DatabaseError) return databaseError(c, e.message)
-    throw e
+    return handleRouteError(c, e)
   }
 })
 

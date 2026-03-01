@@ -18,7 +18,8 @@ export function SessionList({
   onBreak: boolean
 }) {
   // 現在時刻を state 管理（進行中セッションのみに使用）
-  const [now, setNow] = useState(() => Date.now())
+  // 初期値0でハイドレーション不一致を防ぎ、マウント後にDate.now()をセット
+  const [now, setNow] = useState(0)
 
   // 進行中セッションがある場合のみタイマーを動かす
   const hasActiveSession = currentSession != null && currentSession.clockOut == null
@@ -26,6 +27,7 @@ export function SessionList({
   useEffect(() => {
     if (!hasActiveSession) return
 
+    setNow(Date.now())
     const id = setInterval(() => {
       setNow(Date.now())
     }, 1000)

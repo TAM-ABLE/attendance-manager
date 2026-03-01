@@ -4,7 +4,11 @@ import { adminUpdateUser, signInWithPassword } from "../../lib/auth-helpers"
 import { internalError, successResponse, unauthorizedError } from "../../lib/errors"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
 import {
-  errorResponseSchema,
+  serverErrorResponse,
+  unauthorizedResponse,
+  validationErrorResponse,
+} from "../../lib/openapi-responses"
+import {
   firstLoginRequestSchema,
   firstLoginResponseSchema,
   successResponseSchema,
@@ -34,37 +38,12 @@ const firstLoginRoute = createRoute({
   },
   responses: {
     200: {
-      content: {
-        "application/json": {
-          schema: successResponseSchema(firstLoginResponseSchema),
-        },
-      },
+      content: { "application/json": { schema: successResponseSchema(firstLoginResponseSchema) } },
       description: "パスワード変更・ログイン成功",
     },
-    400: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "バリデーションエラー",
-    },
-    401: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "認証エラー（初期パスワードが正しくない）",
-    },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    400: validationErrorResponse,
+    401: unauthorizedResponse,
+    500: serverErrorResponse,
   },
 })
 

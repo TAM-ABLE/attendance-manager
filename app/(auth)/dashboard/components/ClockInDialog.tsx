@@ -3,7 +3,7 @@
 
 import { useState } from "react"
 import { DialogWrapper } from "@/components/DialogWrapper"
-import { TaskListEditor } from "@/components/TaskListEditor"
+import { TimeInput } from "@/components/TimeInput"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -13,13 +13,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useDialogState } from "@/hooks/useDialogState"
-import { type TaskFormItem, toTasks } from "@/lib/task-form"
+import { toTasks } from "@/lib/task-form"
 import { getCurrentTimeString, timeToISOString } from "@/lib/time"
 import type { ApiResult } from "@/types/ApiResponse"
 import type { Task } from "@/types/Attendance"
+import { useTaskList } from "../hooks/useTaskList"
+import { TaskChipSelector } from "./TaskChipSelector"
+import { TaskListInput } from "./TaskListInput"
 
 interface ClockInDialogProps {
   open: boolean
@@ -28,23 +30,24 @@ interface ClockInDialogProps {
 }
 
 export const ClockInDialog = ({ open, onClose, onSubmit }: ClockInDialogProps) => {
-  const [plannedTasks, setPlannedTasks] = useState<TaskFormItem[]>([])
   const [clockInTime, setClockInTime] = useState(getCurrentTimeString())
-  const { mode, error, handleSubmit, reset } = useDialogState()
+  const { mode, error, handleSubmit, reset: resetDialog } = useDialogState()
+  const taskList = useTaskList()
 
   const onFormSubmit = async () => {
-    await handleSubmit(() => onSubmit(toTasks(plannedTasks), timeToISOString(clockInTime)))
+    if (!taskList.validate()) return
+    await handleSubmit(() => onSubmit(toTasks(taskList.tasks), timeToISOString(clockInTime)))
   }
 
   const handleClose = () => {
-    reset()
-    setPlannedTasks([])
+    resetDialog()
+    taskList.reset()
     setClockInTime(getCurrentTimeString())
     onClose()
   }
 
   return (
-    <DialogWrapper open={open} onClose={handleClose} mode={mode} onReset={reset}>
+    <DialogWrapper open={open} onClose={handleClose} mode={mode} onReset={resetDialog}>
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="w-[calc(100%-2rem)] max-w-2xl max-h-[90vh] overflow-y-auto p-6">
           <DialogHeader>
@@ -53,28 +56,40 @@ export const ClockInDialog = ({ open, onClose, onSubmit }: ClockInDialogProps) =
           </DialogHeader>
 
           {error && <div className="text-red-500 text-sm p-2 bg-red-50 rounded">{error}</div>}
+          {taskList.hasValidated && taskList.hasTaskError && (
+            <div className="text-red-500 text-sm p-2 bg-red-50 rounded">
+              {taskList.tasks.length === 0
+                ? "タスクを1つ以上追加してください"
+                : "タスク名を入力するか、不要な行を削除してください"}
+            </div>
+          )}
 
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="clockInTime">出勤時間</Label>
-              <Input
-                id="clockInTime"
-                type="time"
-                value={clockInTime}
-                onChange={(e) => setClockInTime(e.target.value)}
-                className="w-32"
-              />
-            </div>
-
-            <TaskListEditor
-              tasks={plannedTasks}
-              onChange={setPlannedTasks}
-              label="実施予定タスクと予定工数（時間）"
+            <TimeInput
+              id="clockInTime"
+              label="出勤時間"
+              value={clockInTime}
+              onChange={setClockInTime}
             />
+
+            <div>
+              <Label className="text-base">実施予定タスクと予定工数（時間）</Label>
+              <div className="space-y-3 mt-3">
+                <TaskChipSelector
+                  selectedTaskNames={taskList.selectedTaskNames}
+                  onToggle={taskList.toggleChip}
+                />
+                <div className="border-t pt-3">
+                  <TaskListInput taskList={taskList} />
+                </div>
+              </div>
+            </div>
           </div>
 
           <DialogFooter>
-            <Button onClick={onFormSubmit}>送信</Button>
+            <Button onClick={onFormSubmit} disabled={mode === "loading"}>
+              送信
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

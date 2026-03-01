@@ -3,7 +3,8 @@ import { getCookie } from "hono/cookie"
 import { extractBearerToken, verifyJwt } from "../../lib/auth-helpers"
 import { successResponse, unauthorizedError } from "../../lib/errors"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
-import { errorResponseSchema, successResponseSchema, uuidSchema } from "../../lib/openapi-schemas"
+import { unauthorizedResponse } from "../../lib/openapi-responses"
+import { successResponseSchema, uuidSchema } from "../../lib/openapi-schemas"
 import type { Env } from "../../types/env"
 
 const meRouter = createOpenAPIHono<{ Bindings: Env }>()
@@ -27,21 +28,10 @@ const meRoute = createRoute({
     "Authorization ヘッダーの Bearer トークンまたは Cookie を検証し、ユーザー情報を返します。",
   responses: {
     200: {
-      content: {
-        "application/json": {
-          schema: successResponseSchema(meResponseSchema),
-        },
-      },
+      content: { "application/json": { schema: successResponseSchema(meResponseSchema) } },
       description: "認証済み",
     },
-    401: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "未認証",
-    },
+    401: unauthorizedResponse,
   },
 })
 
