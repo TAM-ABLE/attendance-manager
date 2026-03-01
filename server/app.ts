@@ -8,13 +8,12 @@ import type { Env } from "./types/env"
 
 const app = createOpenAPIHono<{ Bindings: Env; Variables: AuthVariables }>().basePath("/api")
 
-// 必須環境変数のバリデーション（起動時に1回だけチェック）
-if (!process.env.JWT_SECRET) {
-  throw new Error("JWT_SECRET environment variable is required")
-}
-
 // Next.js環境では c.env が自動設定されないため、process.env から注入する
+// 必須環境変数のバリデーションもリクエスト時に行う（ビルド時のモジュール評価でthrowしないように）
 app.use("*", async (c, next) => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET environment variable is required")
+  }
   c.env = {
     DATABASE_URL: process.env.DATABASE_URL ?? "",
     SUPABASE_URL: process.env.SUPABASE_URL ?? "",
