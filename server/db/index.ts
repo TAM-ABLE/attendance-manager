@@ -7,7 +7,12 @@ let cachedUrl: string | null = null
 
 export function getDb(databaseUrl: string) {
   if (cachedDb && cachedUrl === databaseUrl) return cachedDb
-  const client = postgres(databaseUrl, { prepare: false })
+  const client = postgres(databaseUrl, {
+    prepare: false,
+    max: 10,
+    idle_timeout: 20,
+    connect_timeout: 10,
+  })
   cachedDb = drizzle(client, { schema })
   cachedUrl = databaseUrl
   return cachedDb

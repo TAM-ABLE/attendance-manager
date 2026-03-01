@@ -30,8 +30,8 @@
 - 初回ログイン時のパスワード変更フロー（パスワード強度バリデーション付き）
 
 ### 通知・Slack連携
-- 出勤通知（ユーザー名・予定タスクをSlack投稿）
-- 退勤通知（業務内容・まとめをスレッドで投稿）
+- 出勤通知（ユーザー名・予定タスクをSlack投稿、非同期 fire-and-forget）
+- 退勤通知（業務内容・まとめをスレッドで投稿、非同期 fire-and-forget）
 - 月次勤怠CSV送信（管理者が月次締め時にSlackにアップロード）
 
 ---
@@ -48,14 +48,13 @@
 | Radix UI | - |
 | shadcn/ui | - |
 | SWR | 2 |
-| Framer Motion | 12 |
 | lucide-react | - |
 
 ### バックエンド (Next.js 統合)
 | 技術 | 用途 |
 |------|------|
 | Hono | Web フレームワーク (Next.js API Routes 上で動作) |
-| Hono Zod OpenAPI | API スキーマ定義 |
+| Hono Zod OpenAPI | API スキーマ定義・Swagger UI（開発環境のみ） |
 | Drizzle ORM | データベースアクセス (PostgreSQL) |
 | jose | JWT 検証 (ローカル検証) |
 | Supabase | PostgreSQL ホスティング + GoTrue 認証 |
@@ -94,6 +93,7 @@ attendance-manager/
 ├── components/                # React コンポーネント
 │   ├── ui/                    # shadcn/ui コンポーネント
 │   ├── Header/                # ヘッダー
+│   ├── SWRProvider.tsx        # SWR グローバル設定プロバイダー
 │   └── ...
 ├── hooks/                     # カスタムフック（usePasswordStrength 等）
 ├── lib/                       # ユーティリティ
@@ -115,7 +115,7 @@ attendance-manager/
 │   ├── db/                    # Drizzle ORM スキーマ・クライアント
 │   ├── middleware/auth.ts     # JWT 認証ミドルウェア (jose)
 │   ├── routes/                # API ルート
-│   ├── lib/                   # サーバーユーティリティ（slack, csv, auth-helpers）
+│   ├── lib/                   # サーバーユーティリティ（slack, csv, auth-helpers, swagger）
 │   └── types/                 # サーバー型定義
 ├── supabase/                  # Supabase 設定
 │   ├── config.toml            # Supabase 設定
@@ -148,6 +148,7 @@ attendance-manager/
 | [data-fetching-architecture.md](docs/data-fetching-architecture.md) | データ取得設計（SSC + SWR） |
 | [authentication.md](docs/authentication.md) | 認証設計（JWT + HttpOnly Cookie + 初回パスワード変更） |
 | [slack-setup-guide.md](docs/slack-setup-guide.md) | Slack連携セットアップガイド（管理者向け） |
+| [performance.md](docs/performance.md) | パフォーマンス最適化（バンドル・DB・キャッシュ・レンダリング） |
 
 ---
 
@@ -174,6 +175,8 @@ SSC（Server Component）での初期データ取得 + SWR でのクライアン
 
 - **初回表示**: SSC で `fetchWithAuth()` → `initialData` として Client Component に渡す → ローディングなし
 - **操作後**: SWR `mutate()` で `/api/*` 経由で再取得 → 画面更新
+- **SWR グローバル設定**: `SWRProvider` で `revalidateOnFocus: false`、`dedupingInterval: 5000` を一括設定
+- **HTTPキャッシュ**: 月次勤怠・日報エンドポイントに `Cache-Control: private, max-age=60` を設定
 
 ---
 

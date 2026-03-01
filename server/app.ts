@@ -1,4 +1,3 @@
-import { swaggerUI } from "@hono/swagger-ui"
 import { createOpenAPIHono } from "./lib/openapi-hono"
 import { type AuthVariables, adminMiddleware, authMiddleware } from "./middleware/auth"
 import adminRoute from "./routes/admin"
@@ -42,37 +41,10 @@ app.route("/admin", adminRoute)
 app.use("/daily-reports/*", authMiddleware)
 app.route("/daily-reports", dailyReportsRoute)
 
-// OpenAPI 仕様書エンドポイント
-app.doc("/doc", {
-  openapi: "3.0.0",
-  info: {
-    title: "勤怠管理システム API",
-    version: "1.0.0",
-    description: "勤怠管理・日報システムのAPI仕様書",
-  },
-  servers: [],
-  tags: [
-    { name: "認証", description: "ログイン・ログアウト" },
-    { name: "勤怠", description: "出勤・退勤・休憩管理" },
-    { name: "管理者", description: "管理者用のユーザー・勤怠管理" },
-    { name: "日報", description: "日報の閲覧" },
-  ],
-  security: [
-    {
-      Bearer: [],
-    },
-  ],
-})
-
-// OpenAPI セキュリティスキーム定義
-app.openAPIRegistry.registerComponent("securitySchemes", "Bearer", {
-  type: "http",
-  scheme: "bearer",
-  bearerFormat: "JWT",
-  description: "JWT認証トークン",
-})
-
-// Swagger UI
-app.get("/ui", swaggerUI({ url: "/api/doc" }))
+// OpenAPI 仕様書 + Swagger UI（開発環境のみ）
+// 動的importにより本番バンドルから @hono/swagger-ui を除外
+if (process.env.NODE_ENV !== "production") {
+  import("./lib/swagger").then(({ registerSwagger }) => registerSwagger(app))
+}
 
 export default app

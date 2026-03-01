@@ -117,6 +117,7 @@ queriesRouter.openapi(monthRoute, async (c) => {
 
   try {
     const data = await attendance.findRecordsByDateRange(userId, start, end)
+    c.header("Cache-Control", "private, max-age=60")
     return successResponse(c, data.map(formatAttendanceRecord))
   } catch (e) {
     if (e instanceof DatabaseError) return databaseError(c, e.message)
@@ -170,12 +171,7 @@ queriesRouter.openapi(weekTotalRoute, async (c) => {
   const { attendance } = createRepos(c.env)
 
   try {
-    const data = await attendance.findRecordsByDateRange(userId, startDate, endDate)
-
-    const netWorkMs = data.reduce((sum, rec) => {
-      const formatted = formatAttendanceRecord(rec)
-      return sum + formatted.workTotalMs
-    }, 0)
+    const netWorkMs = await attendance.calculateNetWorkMsByDateRange(userId, startDate, endDate)
 
     return successResponse(c, { netWorkMs })
   } catch (e) {

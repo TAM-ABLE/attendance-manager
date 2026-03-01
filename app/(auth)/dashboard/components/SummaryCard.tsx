@@ -1,8 +1,13 @@
+import { memo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatDurationMs } from "@/lib/time"
 import type { AttendanceRecord } from "@/types/Attendance"
 
-export function SummaryCard({ attendance }: { attendance: AttendanceRecord | null }) {
+export const SummaryCard = memo(function SummaryCard({
+  attendance,
+}: {
+  attendance: AttendanceRecord | null
+}) {
   if (!attendance || !attendance.sessions) return null
 
   const sessionCount = attendance.sessions.length
@@ -34,4 +39,4 @@ export function SummaryCard({ attendance }: { attendance: AttendanceRecord | nul
       </CardContent>
     </Card>
   )
-}
+})
