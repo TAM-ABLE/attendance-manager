@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useDialogState } from "@/hooks/useDialogState"
 import { type TaskFormItem, toTasks } from "@/lib/task-form"
+import { getCurrentTimeString, timeToISOString } from "@/lib/time"
 import type { ApiResult } from "@/types/ApiResponse"
 import type { Task } from "@/types/Attendance"
 
@@ -24,20 +25,6 @@ interface ClockInDialogProps {
   open: boolean
   onClose: () => void
   onSubmit: (tasks: Task[], clockInTime?: string) => Promise<ApiResult<unknown>>
-}
-
-// 現在時刻をHH:mm形式で取得
-function getCurrentTimeString(): string {
-  const now = new Date()
-  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`
-}
-
-// HH:mm形式の時間をISO文字列に変換（今日の日付で）
-function timeToISOString(time: string): string {
-  const [hours, minutes] = time.split(":").map(Number)
-  const date = new Date()
-  date.setHours(hours, minutes, 0, 0)
-  return date.toISOString()
 }
 
 export const ClockInDialog = ({ open, onClose, onSubmit }: ClockInDialogProps) => {
