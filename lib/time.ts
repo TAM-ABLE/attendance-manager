@@ -137,6 +137,24 @@ export function getMonthDateRange(year: number, month: number): { start: string;
 }
 
 /**
+ * 現在時刻をHH:mm形式で取得
+ */
+export function getCurrentTimeString(): string {
+  const now = new Date()
+  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`
+}
+
+/**
+ * HH:mm形式の時間をISO文字列に変換（今日の日付で）
+ */
+export function timeToISOString(time: string): string {
+  const [hours, minutes] = time.split(":").map(Number)
+  const date = new Date()
+  date.setHours(hours, minutes, 0, 0)
+  return date.toISOString()
+}
+
+/**
  * 指定月の全日をYYYY-MM-DD形式の配列で返す
  * @param year 年（4桁）
  * @param month 月（1-12）
