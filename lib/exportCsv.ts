@@ -67,4 +67,5 @@ export const exportMonthlyAttendanceCSV = (monthData: AttendanceRecord[], userNa
   document.body.appendChild(link)
   link.click()
   document.body.removeChild(link)
+  setTimeout(() => URL.revokeObjectURL(url), 100)
 }

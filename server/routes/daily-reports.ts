@@ -158,6 +158,7 @@ dailyReportsRouter.openapi(getUserMonthlyReportsRoute, async (c) => {
       }
     })
 
+    c.header("Cache-Control", "private, max-age=60")
     return successResponse(c, {
       user: {
         id: userData.id,

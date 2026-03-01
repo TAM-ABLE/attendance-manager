@@ -50,8 +50,6 @@ export function EditAttendanceClient({ user, initialData }: EditAttendanceClient
     {
       fallbackData: isInitialMonth ? initialData?.attendanceData : undefined,
       revalidateOnMount: !isInitialMonth || !initialData,
-      revalidateOnFocus: false,
-      dedupingInterval: 60000,
     },
   )
 
