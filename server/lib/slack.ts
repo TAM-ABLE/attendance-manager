@@ -157,12 +157,15 @@ export async function sendAttendanceCloseNotification(
 }
 
 export function getSlackConfig(env: {
-  SLACK_BOT_TOKEN: string
-  SLACK_CHANNEL_ID: string
+  SLACK_BOT_TOKEN?: string
+  SLACK_CHANNEL_ID?: string
   SLACK_ICON_CLOCK_IN?: string
   SLACK_ICON_CLOCK_OUT?: string
   SLACK_ICON_ATTENDANCE_CLOSE?: string
-}): SlackConfig {
+}): SlackConfig | null {
+  if (!env.SLACK_BOT_TOKEN || !env.SLACK_CHANNEL_ID) {
+    return null
+  }
   return {
     botToken: env.SLACK_BOT_TOKEN,
     channelId: env.SLACK_CHANNEL_ID,

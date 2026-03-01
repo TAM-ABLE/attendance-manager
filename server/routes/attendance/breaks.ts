@@ -1,4 +1,4 @@
-import { createRoute, z } from "@hono/zod-openapi"
+import { createRoute } from "@hono/zod-openapi"
 import { todayJSTString } from "@/lib/time"
 import { databaseError, successResponse, validationError } from "../../lib/errors"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
@@ -6,6 +6,7 @@ import {
   breakEndRequestSchema,
   breakStartRequestSchema,
   errorResponseSchema,
+  nullResponseSchema,
   successResponseSchema,
 } from "../../lib/openapi-schemas"
 import { createRepos, DatabaseError } from "../../lib/repositories"
@@ -13,8 +14,6 @@ import type { AuthVariables } from "../../middleware/auth"
 import type { Env } from "../../types/env"
 
 const breaksRouter = createOpenAPIHono<{ Bindings: Env; Variables: AuthVariables }>()
-
-const nullResponseSchema = z.null().openapi({ description: "null" })
 
 const breakStartRoute = createRoute({
   method: "post",

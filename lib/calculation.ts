@@ -8,7 +8,7 @@ import type { Break, WorkSession } from "../types/Attendance"
  * @param breaks 休憩一覧
  * @param options.now 進行中の休憩終了時刻として使う現在時刻（省略時は終了していない休憩は0として扱う）
  */
-export function calculateBreakMs(breaks: Break[], options?: { now?: number }): number {
+function calculateBreakMs(breaks: Break[], options?: { now?: number }): number {
   return breaks.reduce((sum, b) => {
     if (!b.start) return sum
     // 終了していない休憩

@@ -100,17 +100,20 @@ clockRouter.openapi(clockInRoute, async (c) => {
     }
 
     const slackConfig = getSlackConfig(c.env)
-    const slackResult = await sendClockInNotification(slackConfig, userName, plannedTasks)
-
-    if (slackResult.ts) {
-      try {
-        await repos.workSession.updateSlackTs(session.id, slackResult.ts)
-      } catch (e) {
-        console.error("Failed to save slack_clock_in_ts:", e)
+    let slackTs: string | undefined
+    if (slackConfig) {
+      const slackResult = await sendClockInNotification(slackConfig, userName, plannedTasks)
+      slackTs = slackResult.ts
+      if (slackTs) {
+        try {
+          await repos.workSession.updateSlackTs(session.id, slackTs)
+        } catch (e) {
+          console.error("Failed to save slack_clock_in_ts:", e)
+        }
       }
     }
 
-    return successResponse(c, { slack_ts: slackResult.ts })
+    return successResponse(c, { slackTs })
   } catch (e) {
     if (e instanceof DatabaseError) return databaseError(c, e.message)
     throw e
@@ -218,14 +221,18 @@ clockRouter.openapi(clockOutRoute, async (c) => {
     }
 
     const slackConfig = getSlackConfig(c.env)
-    const slackResult = await sendClockOutNotification(slackConfig, userName, actualTasks, {
-      summary,
-      issues,
-      notes,
-      threadTs: session.slack_clock_in_ts ?? undefined,
-    })
+    let slackTs: string | undefined
+    if (slackConfig) {
+      const slackResult = await sendClockOutNotification(slackConfig, userName, actualTasks, {
+        summary,
+        issues,
+        notes,
+        threadTs: session.slackClockInTs ?? undefined,
+      })
+      slackTs = slackResult.ts
+    }
 
-    return successResponse(c, { slack_ts: slackResult.ts })
+    return successResponse(c, { slackTs })
   } catch (e) {
     if (e instanceof DatabaseError) return databaseError(c, e.message)
     throw e

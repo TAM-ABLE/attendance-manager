@@ -1,19 +1,12 @@
 import { createRoute, z } from "@hono/zod-openapi"
 import { getCookie } from "hono/cookie"
-import { verifyJwt } from "../../lib/auth-helpers"
+import { extractBearerToken, verifyJwt } from "../../lib/auth-helpers"
 import { successResponse, unauthorizedError } from "../../lib/errors"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
 import { errorResponseSchema, successResponseSchema, uuidSchema } from "../../lib/openapi-schemas"
 import type { Env } from "../../types/env"
 
 const meRouter = createOpenAPIHono<{ Bindings: Env }>()
-
-function extractBearerToken(authHeader: string | undefined): string | null {
-  if (!authHeader?.startsWith("Bearer ")) {
-    return null
-  }
-  return authHeader.slice(7)
-}
 
 const meResponseSchema = z
   .object({

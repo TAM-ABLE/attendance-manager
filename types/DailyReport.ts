@@ -5,6 +5,5 @@ export type {
   DailyReport,
   DailyReportListItem,
   DailyReportTask,
-  TaskType,
   UserForSelect,
 } from "../lib/schemas"

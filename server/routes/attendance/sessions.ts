@@ -1,10 +1,11 @@
 import { createRoute, z } from "@hono/zod-openapi"
 import { databaseError, successResponse, validationError } from "../../lib/errors"
-import { formatWorkSessions } from "../../lib/formatters"
+import { getFormattedSessions } from "../../lib/formatters"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
 import {
   dateSchema,
   errorResponseSchema,
+  nullResponseSchema,
   successResponseSchema,
   updateSessionsRequestSchema,
   workSessionSchema,
@@ -15,8 +16,6 @@ import type { AuthVariables } from "../../middleware/auth"
 import type { Env } from "../../types/env"
 
 const sessionsRouter = createOpenAPIHono<{ Bindings: Env; Variables: AuthVariables }>()
-
-const nullResponseSchema = z.null().openapi({ description: "null" })
 
 const getDateSessionsRoute = createRoute({
   method: "get",
@@ -57,12 +56,7 @@ sessionsRouter.openapi(getDateSessionsRoute, async (c) => {
 
   try {
     const data = await attendance.findRecordWithSessions(userId, date)
-
-    if (!data?.workSessions || !Array.isArray(data.workSessions)) {
-      return successResponse(c, [])
-    }
-
-    return successResponse(c, formatWorkSessions(data.workSessions))
+    return successResponse(c, getFormattedSessions(data))
   } catch (e) {
     if (e instanceof DatabaseError) return databaseError(c, e.message)
     throw e
