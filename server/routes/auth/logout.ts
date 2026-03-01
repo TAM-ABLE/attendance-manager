@@ -3,9 +3,10 @@ import { deleteCookie } from "hono/cookie"
 import { z } from "zod"
 import { successResponse } from "../../lib/errors"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
+import type { AuthVariables } from "../../middleware/auth"
 import type { Env } from "../../types/env"
 
-const logoutRouter = createOpenAPIHono<{ Bindings: Env }>()
+const logoutRouter = createOpenAPIHono<{ Bindings: Env; Variables: AuthVariables }>()
 
 const logoutResponseSchema = z.object({
   message: z.string(),
@@ -36,7 +37,12 @@ const logoutRoute = createRoute({
 })
 
 logoutRouter.openapi(logoutRoute, async (c) => {
-  deleteCookie(c, "accessToken", { path: "/" })
+  deleteCookie(c, "accessToken", {
+    path: "/",
+    httpOnly: true,
+    secure: c.env.NODE_ENV === "production",
+    sameSite: "Lax",
+  })
   return successResponse(c, {
     message: "Logged out successfully",
   })
