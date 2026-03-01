@@ -14,9 +14,6 @@
 - 休憩開始 / 休憩終了
 - 複数セッション（1日最大3セッション）対応
 - 勤務時間の自動集計
-- カレンダー形式での勤怠履歴表示
-- 月次サマリー表示
-
 ### 日報
 - 日報の作成・提出
 - タスクリスト形式での作業内容記録
@@ -53,7 +50,6 @@
 | SWR | 2 |
 | Framer Motion | 12 |
 | lucide-react | - |
-| react-day-picker | 9 |
 
 ### バックエンド (Next.js 統合)
 | 技術 | 用途 |
@@ -90,7 +86,6 @@ attendance-manager/
 │   └── (auth)/                # 認証必須ページ
 │       ├── layout.tsx         # requireAuth()
 │       ├── dashboard/         # /dashboard
-│       ├── attendance-history/ # /attendance-history
 │       ├── edit-attendance/   # /edit-attendance
 │       ├── report-list/       # /report-list
 │       └── (admin)/           # 管理者専用
@@ -168,7 +163,7 @@ attendance-manager/
 | Route Group | 認証 | 含まれるページ |
 |-------------|------|---------------|
 | `(public)` | 不要 | /login, /first-login |
-| `(auth)` | 必須 | /dashboard, /attendance-history, /edit-attendance, /report-list |
+| `(auth)` | 必須 | /dashboard, /edit-attendance, /report-list |
 | `(auth)/(admin)` | 管理者のみ | /admin |
 
 ---
