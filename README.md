@@ -93,9 +93,10 @@ attendance-manager/
 ├── components/                # React コンポーネント
 │   ├── ui/                    # shadcn/ui コンポーネント
 │   ├── Header/                # ヘッダー
+│   ├── TimeInput.tsx          # 時間入力共通コンポーネント
 │   ├── SWRProvider.tsx        # SWR グローバル設定プロバイダー
 │   └── ...
-├── hooks/                     # カスタムフック（usePasswordStrength 等）
+├── hooks/                     # カスタムフック（usePasswordStrength, useAsyncAction, useEditDialogBase 等）
 ├── lib/                       # ユーティリティ
 │   ├── api-client.ts          # API クライアント
 │   ├── api-services/          # API サービス層（admin, attendance, daily-reports）
@@ -115,7 +116,7 @@ attendance-manager/
 │   ├── db/                    # Drizzle ORM スキーマ・クライアント
 │   ├── middleware/auth.ts     # JWT 認証ミドルウェア (jose)
 │   ├── routes/                # API ルート
-│   ├── lib/                   # サーバーユーティリティ（slack, csv, auth-helpers, swagger）
+│   ├── lib/                   # サーバーユーティリティ（slack, csv, auth-helpers, openapi-responses, swagger）
 │   └── types/                 # サーバー型定義
 ├── supabase/                  # Supabase 設定
 │   ├── config.toml            # Supabase 設定

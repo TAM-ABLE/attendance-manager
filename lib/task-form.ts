@@ -7,7 +7,7 @@ import type { Task } from "@/types/Attendance"
  * 小数時間（例: 1.5）を HH:mm 文字列に変換
  * 例: 1.5 → "01:30", 3 → "03:00", null → "01:00"（デフォルト）
  */
-export function hoursToTimeString(hours: number | null): string {
+function hoursToTimeString(hours: number | null): string {
   if (hours == null) return "01:00"
   const h = Math.floor(hours)
   const m = Math.round((hours - h) * 60)

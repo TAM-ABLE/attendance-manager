@@ -1,17 +1,17 @@
 import { createRoute, z } from "@hono/zod-openapi"
-import { getMonthDateRange, parseYearMonth, todayJSTString } from "@/lib/time"
-import { databaseError, successResponse, validationError } from "../../lib/errors"
+import { parseYearMonthWithRange, todayJSTString } from "@/lib/time"
+import { handleRouteError, successResponse, validationError } from "../../lib/errors"
 import { formatAttendanceRecord } from "../../lib/formatters"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
+import { serverErrorResponse, validationErrorResponse } from "../../lib/openapi-responses"
 import {
   attendanceRecordSchema,
-  errorResponseSchema,
   successResponseSchema,
   taskSchema,
   weekTotalResponseSchema,
   yearMonthSchema,
 } from "../../lib/openapi-schemas"
-import { createRepos, DatabaseError } from "../../lib/repositories"
+import { createRepos } from "../../lib/repositories"
 import type { AuthVariables } from "../../middleware/auth"
 import type { Env } from "../../types/env"
 
@@ -27,20 +27,11 @@ const todayRoute = createRoute({
   responses: {
     200: {
       content: {
-        "application/json": {
-          schema: successResponseSchema(attendanceRecordSchema.nullable()),
-        },
+        "application/json": { schema: successResponseSchema(attendanceRecordSchema.nullable()) },
       },
       description: "取得成功",
     },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    500: serverErrorResponse,
   },
 })
 
@@ -58,8 +49,7 @@ queriesRouter.openapi(todayRoute, async (c) => {
 
     return successResponse(c, formatAttendanceRecord(data))
   } catch (e) {
-    if (e instanceof DatabaseError) return databaseError(c, e.message)
-    throw e
+    return handleRouteError(c, e)
   }
 })
 
@@ -78,28 +68,12 @@ const monthRoute = createRoute({
   responses: {
     200: {
       content: {
-        "application/json": {
-          schema: successResponseSchema(z.array(attendanceRecordSchema)),
-        },
+        "application/json": { schema: successResponseSchema(z.array(attendanceRecordSchema)) },
       },
       description: "取得成功",
     },
-    400: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "バリデーションエラー",
-    },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    400: validationErrorResponse,
+    500: serverErrorResponse,
   },
 })
 
@@ -107,12 +81,9 @@ queriesRouter.openapi(monthRoute, async (c) => {
   const { sub: userId } = c.get("jwtPayload")
   const { yearMonth } = c.req.valid("param")
 
-  const parsed = parseYearMonth(yearMonth)
-  if (!parsed) {
-    return validationError(c, "Invalid year-month format")
-  }
-  const { year, month } = parsed
-  const { start, end } = getMonthDateRange(year, month)
+  const parsed = parseYearMonthWithRange(yearMonth)
+  if (!parsed) return validationError(c, "Invalid year-month format")
+  const { start, end } = parsed
 
   const { attendance } = createRepos(c.env)
 
@@ -121,8 +92,7 @@ queriesRouter.openapi(monthRoute, async (c) => {
     c.header("Cache-Control", "private, max-age=60")
     return successResponse(c, data.map(formatAttendanceRecord))
   } catch (e) {
-    if (e instanceof DatabaseError) return databaseError(c, e.message)
-    throw e
+    return handleRouteError(c, e)
   }
 })
 
@@ -135,21 +105,10 @@ const weekTotalRoute = createRoute({
   security: [{ Bearer: [] }],
   responses: {
     200: {
-      content: {
-        "application/json": {
-          schema: successResponseSchema(weekTotalResponseSchema),
-        },
-      },
+      content: { "application/json": { schema: successResponseSchema(weekTotalResponseSchema) } },
       description: "取得成功",
     },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    500: serverErrorResponse,
   },
 })
 
@@ -176,8 +135,7 @@ queriesRouter.openapi(weekTotalRoute, async (c) => {
 
     return successResponse(c, { netWorkMs })
   } catch (e) {
-    if (e instanceof DatabaseError) return databaseError(c, e.message)
-    throw e
+    return handleRouteError(c, e)
   }
 })
 
@@ -190,21 +148,10 @@ const todayPlannedTasksRoute = createRoute({
   security: [{ Bearer: [] }],
   responses: {
     200: {
-      content: {
-        "application/json": {
-          schema: successResponseSchema(z.array(taskSchema)),
-        },
-      },
+      content: { "application/json": { schema: successResponseSchema(z.array(taskSchema)) } },
       description: "取得成功",
     },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    500: serverErrorResponse,
   },
 })
 
@@ -226,8 +173,7 @@ queriesRouter.openapi(todayPlannedTasksRoute, async (c) => {
 
     return successResponse(c, plannedTasks)
   } catch (e) {
-    if (e instanceof DatabaseError) return databaseError(c, e.message)
-    throw e
+    return handleRouteError(c, e)
   }
 })
 

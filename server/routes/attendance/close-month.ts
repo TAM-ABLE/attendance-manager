@@ -1,15 +1,12 @@
 import { createRoute, z } from "@hono/zod-openapi"
-import { generateMonthDates, getMonthDateRange, parseYearMonth } from "@/lib/time"
+import { generateMonthDates, parseYearMonthWithRange } from "@/lib/time"
 import { generateMonthlyAttendanceCsv } from "../../lib/csv"
-import { databaseError, internalError, successResponse, validationError } from "../../lib/errors"
+import { handleRouteError, internalError, successResponse, validationError } from "../../lib/errors"
 import { formatAttendanceRecord } from "../../lib/formatters"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
-import {
-  errorResponseSchema,
-  successResponseSchema,
-  yearMonthSchema,
-} from "../../lib/openapi-schemas"
-import { createRepos, DatabaseError } from "../../lib/repositories"
+import { serverErrorResponse, validationErrorResponse } from "../../lib/openapi-responses"
+import { successResponseSchema, yearMonthSchema } from "../../lib/openapi-schemas"
+import { createRepos } from "../../lib/repositories"
 import { sendAttendanceCloseNotification } from "../../lib/slack"
 import { uploadCsvToSlack } from "../../lib/slack-csv"
 import type { AuthVariables } from "../../middleware/auth"
@@ -33,31 +30,13 @@ const closeMonthRoute = createRoute({
     200: {
       content: {
         "application/json": {
-          schema: successResponseSchema(
-            z.object({
-              message: z.string(),
-            }),
-          ),
+          schema: successResponseSchema(z.object({ message: z.string() })),
         },
       },
       description: "送信成功",
     },
-    400: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "バリデーションエラー",
-    },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    400: validationErrorResponse,
+    500: serverErrorResponse,
   },
 })
 
@@ -65,11 +44,9 @@ closeMonthRouter.openapi(closeMonthRoute, async (c) => {
   const { sub: userId } = c.get("jwtPayload")
   const { yearMonth } = c.req.valid("param")
 
-  const parsed = parseYearMonth(yearMonth)
-  if (!parsed) {
-    return validationError(c, "Invalid year-month format")
-  }
-  const { year, month } = parsed
+  const parsed = parseYearMonthWithRange(yearMonth)
+  if (!parsed) return validationError(c, "Invalid year-month format")
+  const { year, month, start: startDate, end: endDate } = parsed
 
   const botToken = c.env.SLACK_BOT_TOKEN
   const channelId = c.env.SLACK_CSV_CHANNEL_ID
@@ -83,7 +60,6 @@ closeMonthRouter.openapi(closeMonthRoute, async (c) => {
     const user = await profile.findById(userId)
 
     const monthDates = generateMonthDates(year, month)
-    const { start: startDate, end: endDate } = getMonthDateRange(year, month)
 
     const dbRecords = await attendance.findRecordsByDateRange(userId, startDate, endDate)
     const records = dbRecords.map(formatAttendanceRecord)
@@ -117,8 +93,7 @@ closeMonthRouter.openapi(closeMonthRoute, async (c) => {
       message: `${year}年${month}月の勤怠CSVをSlackに送信しました。`,
     })
   } catch (e) {
-    if (e instanceof DatabaseError) return databaseError(c, e.message)
-    throw e
+    return handleRouteError(c, e)
   }
 })
 

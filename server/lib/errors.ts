@@ -1,5 +1,6 @@
 import type { Context } from "hono"
 import { ErrorCodes } from "@/types/ApiResponse"
+import { DatabaseError } from "./repositories/errors"
 
 // ===== 成功レスポンス =====
 
@@ -58,4 +59,11 @@ export function internalError(c: Context, internalMessage?: string) {
     },
     500,
   )
+}
+
+// ===== ルートハンドラ用エラーハンドリング =====
+
+export function handleRouteError(c: Context, e: unknown) {
+  if (e instanceof DatabaseError) return databaseError(c, e.message)
+  throw e
 }
