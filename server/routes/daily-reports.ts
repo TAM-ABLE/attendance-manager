@@ -1,23 +1,27 @@
 import { createRoute, z } from "@hono/zod-openapi"
-import { getMonthDateRange, parseYearMonth } from "@/lib/time"
+import { parseYearMonthWithRange } from "@/lib/time"
 import type {
   DailyReport,
   DailyReportListItem,
   DailyReportTask,
   UserForSelect,
 } from "@/types/DailyReport"
-import { databaseError, notFoundError, successResponse, validationError } from "../lib/errors"
+import { handleRouteError, notFoundError, successResponse, validationError } from "../lib/errors"
 import { createOpenAPIHono } from "../lib/openapi-hono"
+import {
+  notFoundResponse,
+  serverErrorResponse,
+  validationErrorResponse,
+} from "../lib/openapi-responses"
 import {
   dailyReportDetailResponseSchema,
   dailyReportListResponseSchema,
-  errorResponseSchema,
   successResponseSchema,
   usersForSelectResponseSchema,
   uuidSchema,
   yearMonthSchema,
 } from "../lib/openapi-schemas"
-import { createRepos, DatabaseError } from "../lib/repositories"
+import { createRepos } from "../lib/repositories"
 import type { AuthVariables } from "../middleware/auth"
 import type { Env } from "../types/env"
 
@@ -33,20 +37,11 @@ const getUsersRoute = createRoute({
   responses: {
     200: {
       content: {
-        "application/json": {
-          schema: successResponseSchema(usersForSelectResponseSchema),
-        },
+        "application/json": { schema: successResponseSchema(usersForSelectResponseSchema) },
       },
       description: "取得成功",
     },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    500: serverErrorResponse,
   },
 })
 
@@ -64,8 +59,7 @@ dailyReportsRouter.openapi(getUsersRoute, async (c) => {
 
     return successResponse(c, users)
   } catch (e) {
-    if (e instanceof DatabaseError) return databaseError(c, e.message)
-    throw e
+    return handleRouteError(c, e)
   }
 })
 
@@ -85,48 +79,22 @@ const getUserMonthlyReportsRoute = createRoute({
   responses: {
     200: {
       content: {
-        "application/json": {
-          schema: successResponseSchema(dailyReportListResponseSchema),
-        },
+        "application/json": { schema: successResponseSchema(dailyReportListResponseSchema) },
       },
       description: "取得成功",
     },
-    400: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "バリデーションエラー",
-    },
-    404: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "ユーザーが見つかりません",
-    },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    400: validationErrorResponse,
+    404: notFoundResponse("ユーザーが見つかりません"),
+    500: serverErrorResponse,
   },
 })
 
 dailyReportsRouter.openapi(getUserMonthlyReportsRoute, async (c) => {
   const { userId, yearMonth } = c.req.valid("param")
 
-  const parsed = parseYearMonth(yearMonth)
-  if (!parsed) {
-    return validationError(c, "Invalid year-month format")
-  }
-  const { year, month } = parsed
-  const { start: monthStart, end: monthEnd } = getMonthDateRange(year, month)
+  const parsed = parseYearMonthWithRange(yearMonth)
+  if (!parsed) return validationError(c, "Invalid year-month format")
+  const { start: monthStart, end: monthEnd } = parsed
 
   const repos = createRepos(c.env)
 
@@ -169,8 +137,7 @@ dailyReportsRouter.openapi(getUserMonthlyReportsRoute, async (c) => {
       reports: reportList,
     })
   } catch (e) {
-    if (e instanceof DatabaseError) return databaseError(c, e.message)
-    throw e
+    return handleRouteError(c, e)
   }
 })
 
@@ -189,28 +156,12 @@ const getReportDetailRoute = createRoute({
   responses: {
     200: {
       content: {
-        "application/json": {
-          schema: successResponseSchema(dailyReportDetailResponseSchema),
-        },
+        "application/json": { schema: successResponseSchema(dailyReportDetailResponseSchema) },
       },
       description: "取得成功",
     },
-    404: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "日報が見つかりません",
-    },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    404: notFoundResponse("日報が見つかりません"),
+    500: serverErrorResponse,
   },
 })
 
@@ -265,8 +216,7 @@ dailyReportsRouter.openapi(getReportDetailRoute, async (c) => {
 
     return successResponse(c, dailyReport)
   } catch (e) {
-    if (e instanceof DatabaseError) return databaseError(c, e.message)
-    throw e
+    return handleRouteError(c, e)
   }
 })
 

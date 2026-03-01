@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useAsyncAction } from "@/hooks/useAsyncAction"
 import { createUser } from "@/lib/api-services/admin"
 
 type CreateUserForm = {
@@ -10,8 +11,7 @@ type CreateUserForm = {
 }
 
 export function useCreateUser(onSuccess: () => void) {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const { loading, error, clearError, run } = useAsyncAction()
   const [successData, setSuccessData] = useState<{
     name: string
     email: string
@@ -20,10 +20,7 @@ export function useCreateUser(onSuccess: () => void) {
   } | null>(null)
 
   const submit = async (form: CreateUserForm) => {
-    setLoading(true)
-    setError(null)
-
-    const result = await createUser(form)
+    const result = await run(() => createUser(form))
 
     if (result.success) {
       setSuccessData({
@@ -33,16 +30,12 @@ export function useCreateUser(onSuccess: () => void) {
         initialPassword: result.data.initialPassword,
       })
       onSuccess()
-    } else {
-      setError(result.error.message)
     }
 
-    setLoading(false)
     return result.success
   }
 
   const clearSuccess = () => setSuccessData(null)
-  const clearError = () => setError(null)
 
   return { submit, loading, error, successData, clearSuccess, clearError }
 }

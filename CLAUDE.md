@@ -23,7 +23,7 @@ pnpm tsc --noEmit     # Type check
 ### Project Structure
 - `app/` - Next.js App Router pages
 - `components/` - React components (shared + ui)
-- `hooks/` - Shared custom React hooks (usePasswordStrength, useUserSelect, useDialogState, useMonthNavigation)
+- `hooks/` - Shared custom React hooks (usePasswordStrength, useUserSelect, useDialogState, useMonthNavigation, useAsyncAction, useEditDialogBase)
 - `lib/` - Utilities (client-side + domain logic: schemas, time, calculation, constants, swr-keys, task-form, exportCsv, utils)
 - `types/` - TypeScript type definitions (Attendance, DailyReport, ApiResponse)
 - `server/` - Hono API (routes, middleware, repositories)
@@ -60,7 +60,7 @@ server/
 ├── lib/
 │   ├── auth-helpers.ts           ← jose JWT verification + GoTrue REST API helpers (login, create, update) + extractBearerToken
 │   ├── errors.ts, formatters.ts (getFormattedSessions, formatAttendanceRecord), openapi-hono.ts
-│   ├── openapi-schemas.ts, sessions.ts
+│   ├── openapi-schemas.ts, openapi-responses.ts, sessions.ts
 │   ├── slack.ts                     ← Clock-in/out Slack notifications
 │   ├── swagger.ts                     ← OpenAPI doc + Swagger UI registration (dev only)
 │   ├── slack-csv.ts                 ← Slack v2 file upload (monthly CSV)
@@ -71,6 +71,7 @@ server/
 
 #### OpenAPI + Zod Architecture
 - `server/lib/openapi-schemas.ts` - Zod schema definitions with OpenAPI metadata
+- `server/lib/openapi-responses.ts` - Shared OpenAPI response objects (validationErrorResponse, serverErrorResponse, etc.)
 - `server/lib/openapi-hono.ts` - OpenAPIHono factory with unified error handling
 - Routes use `createRoute()` + `router.openapi()` pattern for type-safe handlers
 
@@ -127,10 +128,10 @@ See `docs/authentication.md` for details.
 - `/first-login` - First-time password change (required for new users)
 
 #### Component Organization
-- `components/` - Shared components (Header, Footer, Loader, SuccessDialog, SWRProvider)
+- `components/` - Shared components (Header, Footer, Loader, SuccessDialog, SWRProvider, TimeInput, DialogWrapper, EditAttendanceDialog, MonthNavigator)
 - `components/ui/` - shadcn/ui base components (button, dialog, card, etc.)
-- `app/(auth)/[page]/components/` - Page-specific components
-- `app/(auth)/[page]/hooks/` - Page-specific custom hooks
+- `app/(auth)/[page]/components/` - Page-specific components (e.g. TaskListInput, TaskChipSelector in dashboard)
+- `app/(auth)/[page]/hooks/` - Page-specific custom hooks (e.g. useTaskList, useUserFormDialog)
 
 ### Types & Domain Logic
 - `types/Attendance.ts` - Core data models (WorkSession, AttendanceRecord, DayAttendance, Break, User)

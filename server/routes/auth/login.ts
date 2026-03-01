@@ -4,7 +4,11 @@ import { signInWithPassword } from "../../lib/auth-helpers"
 import { forbiddenError, successResponse, unauthorizedError } from "../../lib/errors"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
 import {
-  errorResponseSchema,
+  forbiddenResponse,
+  unauthorizedResponse,
+  validationErrorResponse,
+} from "../../lib/openapi-responses"
+import {
   loginRequestSchema,
   loginResponseSchema,
   successResponseSchema,
@@ -34,37 +38,12 @@ const loginRoute = createRoute({
   },
   responses: {
     200: {
-      content: {
-        "application/json": {
-          schema: successResponseSchema(loginResponseSchema),
-        },
-      },
+      content: { "application/json": { schema: successResponseSchema(loginResponseSchema) } },
       description: "ログイン成功",
     },
-    400: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "バリデーションエラー",
-    },
-    401: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "認証エラー",
-    },
-    403: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "初回パスワード変更が未完了",
-    },
+    400: validationErrorResponse,
+    401: unauthorizedResponse,
+    403: forbiddenResponse("初回パスワード変更が未完了"),
   },
 })
 
