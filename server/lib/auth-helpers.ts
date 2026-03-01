@@ -1,5 +1,12 @@
 import * as jose from "jose"
 
+export function extractBearerToken(authHeader: string | undefined): string | null {
+  if (!authHeader?.startsWith("Bearer ")) {
+    return null
+  }
+  return authHeader.slice(7)
+}
+
 export interface JwtPayloadResult {
   sub: string
   role: "admin" | "user"

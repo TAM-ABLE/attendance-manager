@@ -1,5 +1,5 @@
 import { createRoute, z } from "@hono/zod-openapi"
-import { parseYearMonth, todayJSTString } from "@/lib/time"
+import { getMonthDateRange, parseYearMonth, todayJSTString } from "@/lib/time"
 import { databaseError, successResponse, validationError } from "../../lib/errors"
 import { formatAttendanceRecord } from "../../lib/formatters"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
@@ -111,10 +111,7 @@ queriesRouter.openapi(monthRoute, async (c) => {
     return validationError(c, "Invalid year-month format")
   }
   const { year, month } = parsed
-
-  const start = `${year}-${String(month).padStart(2, "0")}-01`
-  const lastDay = new Date(year, month, 0).getDate()
-  const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
+  const { start, end } = getMonthDateRange(year, month)
 
   const { attendance } = createRepos(c.env)
 

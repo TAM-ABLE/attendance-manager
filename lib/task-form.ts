@@ -48,10 +48,3 @@ export function toTasks(items: TaskFormItem[]): Task[] {
       hours: parseTimeToHours(item.hours),
     }))
 }
-
-/**
- * 初期タスクリストを作成
- */
-export function createInitialTasks(): TaskFormItem[] {
-  return [createEmptyTask()]
-}

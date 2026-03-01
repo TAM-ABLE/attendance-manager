@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useDialogState } from "@/hooks/useDialogState"
+import { MAX_SESSIONS_PER_DAY } from "@/lib/constants"
 import { formatClockTime, mergeDateAndTime } from "@/lib/time"
 import type { ApiResult } from "@/types/ApiResponse"
 import type { Break, WorkSession } from "@/types/Attendance"
@@ -75,7 +76,7 @@ export function EditAttendanceDialog({
 
   // セッション追加
   const addSession = () => {
-    if (sessions.length >= 3) return
+    if (sessions.length >= MAX_SESSIONS_PER_DAY) return
     const newSession: WorkSession = {
       id: crypto.randomUUID(),
       clockIn: mergeDateAndTime(date, "00:00"), // ← 初期値
@@ -215,7 +216,7 @@ export function EditAttendanceDialog({
           <Button
             variant="outline"
             className="w-full mb-4"
-            disabled={sessions.length >= 3}
+            disabled={sessions.length >= MAX_SESSIONS_PER_DAY}
             onClick={addSession}
           >
             + セッション追加

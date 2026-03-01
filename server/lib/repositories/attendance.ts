@@ -102,11 +102,11 @@ export class WorkSessionRepository {
 
   async findActiveSessionWithSlackTs(
     attendanceId: string,
-  ): Promise<{ id: string; slack_clock_in_ts: string | null } | null> {
+  ): Promise<{ id: string; slackClockInTs: string | null } | null> {
     const result = await this.db
       .select({
         id: workSessions.id,
-        slack_clock_in_ts: workSessions.slackClockInTs,
+        slackClockInTs: workSessions.slackClockInTs,
       })
       .from(workSessions)
       .where(and(eq(workSessions.attendanceId, attendanceId), isNull(workSessions.clockOut)))
@@ -184,12 +184,5 @@ export class BreakRepository {
   ): Promise<void> {
     if (breaksData.length === 0) return
     await this.db.insert(breaks).values(breaksData)
-  }
-}
-
-export class DatabaseError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = "DatabaseError"
   }
 }

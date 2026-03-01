@@ -1,5 +1,5 @@
 import { createRoute, z } from "@hono/zod-openapi"
-import { parseYearMonth } from "@/lib/time"
+import { getMonthDateRange, parseYearMonth } from "@/lib/time"
 import type {
   DailyReport,
   DailyReportListItem,
@@ -59,7 +59,7 @@ dailyReportsRouter.openapi(getUsersRoute, async (c) => {
     const users: UserForSelect[] = data.map((user) => ({
       id: user.id,
       name: user.name,
-      employeeNumber: user.employee_number,
+      employeeNumber: user.employeeNumber,
     }))
 
     return successResponse(c, users)
@@ -126,15 +126,12 @@ dailyReportsRouter.openapi(getUserMonthlyReportsRoute, async (c) => {
     return validationError(c, "Invalid year-month format")
   }
   const { year, month } = parsed
-
-  const monthStart = `${year}-${String(month).padStart(2, "0")}-01`
-  const lastDay = new Date(year, month, 0).getDate()
-  const monthEnd = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
+  const { start: monthStart, end: monthEnd } = getMonthDateRange(year, month)
 
   const repos = createRepos(c.env)
 
   try {
-    let userData: { id: string; name: string; employee_number: string }
+    let userData: { id: string; name: string; employeeNumber: string }
     try {
       userData = await repos.profile.findById(userId)
     } catch {
@@ -152,7 +149,7 @@ dailyReportsRouter.openapi(getUserMonthlyReportsRoute, async (c) => {
         id: report.id,
         userId: report.userId,
         userName: userData.name,
-        employeeNumber: userData.employee_number,
+        employeeNumber: userData.employeeNumber,
         date: report.date,
         submittedAt: report.submittedAt ? new Date(report.submittedAt).getTime() : null,
         plannedTaskCount: plannedCount,
@@ -165,7 +162,7 @@ dailyReportsRouter.openapi(getUserMonthlyReportsRoute, async (c) => {
       user: {
         id: userData.id,
         name: userData.name,
-        employeeNumber: userData.employee_number,
+        employeeNumber: userData.employeeNumber,
       },
       yearMonth,
       reports: reportList,
