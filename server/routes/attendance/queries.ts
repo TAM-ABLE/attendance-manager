@@ -7,6 +7,7 @@ import {
   attendanceRecordSchema,
   errorResponseSchema,
   successResponseSchema,
+  taskSchema,
   weekTotalResponseSchema,
   yearMonthSchema,
 } from "../../lib/openapi-schemas"
@@ -174,6 +175,56 @@ queriesRouter.openapi(weekTotalRoute, async (c) => {
     const netWorkMs = await attendance.calculateNetWorkMsByDateRange(userId, startDate, endDate)
 
     return successResponse(c, { netWorkMs })
+  } catch (e) {
+    if (e instanceof DatabaseError) return databaseError(c, e.message)
+    throw e
+  }
+})
+
+const todayPlannedTasksRoute = createRoute({
+  method: "get",
+  path: "/today/planned-tasks",
+  tags: ["勤怠"],
+  summary: "本日の予定タスク取得",
+  description: "本日の出勤時に入力した予定タスクを取得します。",
+  security: [{ Bearer: [] }],
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: successResponseSchema(z.array(taskSchema)),
+        },
+      },
+      description: "取得成功",
+    },
+    500: {
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+      description: "サーバーエラー",
+    },
+  },
+})
+
+queriesRouter.openapi(todayPlannedTasksRoute, async (c) => {
+  const { sub: userId } = c.get("jwtPayload")
+  const date = todayJSTString()
+  const repos = createRepos(c.env)
+
+  try {
+    const report = await repos.dailyReport.findUnsubmittedReportWithTasks(userId, date)
+    if (!report) {
+      return successResponse(c, [])
+    }
+
+    const plannedTasks = report.tasks
+      .filter((t) => t.taskType === "planned")
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .map((t) => ({ taskName: t.taskName, hours: t.hours }))
+
+    return successResponse(c, plannedTasks)
   } catch (e) {
     if (e instanceof DatabaseError) return databaseError(c, e.message)
     throw e

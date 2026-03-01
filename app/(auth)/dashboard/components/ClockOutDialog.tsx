@@ -1,7 +1,9 @@
 // ClockOutDialog.tsx
 "use client"
 
+import { X } from "lucide-react"
 import { useState } from "react"
+import useSWR from "swr"
 import { DialogWrapper } from "@/components/DialogWrapper"
 import { TaskListEditor } from "@/components/TaskListEditor"
 import { Button } from "@/components/ui/button"
@@ -17,7 +19,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useDialogState } from "@/hooks/useDialogState"
-import { type TaskFormItem, toTasks } from "@/lib/task-form"
+import { getTodayPlannedTasks } from "@/lib/api-services/attendance"
+import { withRetryFetcher } from "@/lib/auth/with-retry"
+import { SWR_KEYS } from "@/lib/swr-keys"
+import { fromPlannedTask, type TaskFormItem, toTasks } from "@/lib/task-form"
+import { getCurrentTimeString, timeToISOString } from "@/lib/time"
 import type { ApiResult } from "@/types/ApiResponse"
 import type { Task } from "@/types/Attendance"
 
@@ -33,37 +39,50 @@ interface ClockOutDialogProps {
   ) => Promise<ApiResult<unknown>>
 }
 
-// 現在時刻をHH:mm形式で取得
-function getCurrentTimeString(): string {
-  const now = new Date()
-  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`
-}
-
-// HH:mm形式の時間をISO文字列に変換（今日の日付で）
-function timeToISOString(time: string): string {
-  const [hours, minutes] = time.split(":").map(Number)
-  const date = new Date()
-  date.setHours(hours, minutes, 0, 0)
-  return date.toISOString()
-}
-
 export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps) => {
-  const [actualTasks, setActualTasks] = useState<TaskFormItem[]>([])
+  const [plannedTasks, setPlannedTasks] = useState<TaskFormItem[]>([])
+  const [extraTasks, setExtraTasks] = useState<TaskFormItem[]>([])
   const [summary, setSummary] = useState<string>("")
   const [issues, setIssues] = useState<string>("")
   const [notes, setNotes] = useState<string>("")
   const [clockOutTime, setClockOutTime] = useState(getCurrentTimeString())
   const { mode, error, handleSubmit, reset } = useDialogState()
 
+  // ダイアログが開いたとき、出勤時の予定タスクをSWRで取得
+  const { error: fetchError } = useSWR(
+    open ? SWR_KEYS.PLANNED_TASKS_TODAY : null,
+    () => withRetryFetcher(getTodayPlannedTasks),
+    {
+      onSuccess: (data) => {
+        if (data.length > 0) {
+          setPlannedTasks(data.map(fromPlannedTask))
+        }
+      },
+      revalidateOnFocus: false,
+    },
+  )
+
+  const updatePlannedHours = (index: number, value: string) => {
+    const updated = [...plannedTasks]
+    updated[index] = { ...updated[index], hours: value }
+    setPlannedTasks(updated)
+  }
+
+  const removePlannedTask = (index: number) => {
+    setPlannedTasks(plannedTasks.filter((_, i) => i !== index))
+  }
+
   const onFormSubmit = async () => {
+    const allTasks: Task[] = [...toTasks(plannedTasks), ...toTasks(extraTasks)]
     await handleSubmit(() =>
-      onSubmit(toTasks(actualTasks), summary, issues, notes, timeToISOString(clockOutTime)),
+      onSubmit(allTasks, summary, issues, notes, timeToISOString(clockOutTime)),
     )
   }
 
   const handleClose = () => {
     reset()
-    setActualTasks([])
+    setPlannedTasks([])
+    setExtraTasks([])
     setSummary("")
     setIssues("")
     setNotes("")
@@ -81,6 +100,11 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
           </DialogHeader>
 
           {error && <div className="text-red-500 text-sm p-2 bg-red-50 rounded">{error}</div>}
+          {fetchError && (
+            <div className="text-red-500 text-sm p-2 bg-red-50 rounded">
+              予定タスクの取得に失敗しました
+            </div>
+          )}
 
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -94,11 +118,32 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
               />
             </div>
 
-            <TaskListEditor
-              tasks={actualTasks}
-              onChange={setActualTasks}
-              label="実施タスクと実工数（時間）"
-            />
+            {plannedTasks.length > 0 && (
+              <div>
+                <Label className="text-base">予定タスクの実績入力</Label>
+                <div className="space-y-3 mt-3">
+                  {plannedTasks.map((task, index) => (
+                    <div key={task.id} className="flex gap-2 items-start">
+                      <div className="flex-1 flex items-center min-h-9 px-3 rounded-md border bg-muted/50 text-sm">
+                        {task.taskName}
+                      </div>
+                      <div className="w-28">
+                        <Input
+                          type="time"
+                          value={task.hours}
+                          onChange={(e) => updatePlannedHours(index, e.target.value)}
+                        />
+                      </div>
+                      <Button variant="ghost" size="icon" onClick={() => removePlannedTask(index)}>
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <TaskListEditor tasks={extraTasks} onChange={setExtraTasks} label="追加タスク" />
 
             <div>
               <Label htmlFor="summary">本日のまとめ（感想・気づき）</Label>
@@ -135,7 +180,9 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
           </div>
 
           <DialogFooter>
-            <Button onClick={onFormSubmit}>送信</Button>
+            <Button onClick={onFormSubmit} disabled={mode === "loading"}>
+              送信
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
