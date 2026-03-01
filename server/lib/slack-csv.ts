@@ -27,6 +27,7 @@ export async function uploadCsvToSlack(
   fileName: string,
   csvBuffer: Buffer,
   initialComment?: string,
+  threadTs?: string,
 ): Promise<SlackUploadResult> {
   try {
     // Step 1: アップロードURL取得
@@ -68,6 +69,9 @@ export async function uploadCsvToSlack(
     }
     if (initialComment) {
       completePayload.initial_comment = initialComment
+    }
+    if (threadTs) {
+      completePayload.thread_ts = threadTs
     }
 
     const completeResponse = await fetch("https://slack.com/api/files.completeUploadExternal", {

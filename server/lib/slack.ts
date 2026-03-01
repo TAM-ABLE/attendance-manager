@@ -5,6 +5,7 @@ interface SlackConfig {
   channelId: string
   clockInIconUrl?: string
   clockOutIconUrl?: string
+  attendanceCloseIconUrl?: string
 }
 
 interface SlackPostMessageResponse {
@@ -141,16 +142,32 @@ export async function sendClockOutNotification(
   })
 }
 
+export async function sendAttendanceCloseNotification(
+  config: SlackConfig,
+  userName: string,
+  year: number,
+  month: number,
+): Promise<SlackMessageResult> {
+  const messageText = `*${userName} さんの${year}年${month}月の勤怠を締めました*`
+
+  return postMessage(config, messageText, userName, {
+    iconUrl: config.attendanceCloseIconUrl,
+    iconEmoji: ":clipboard:",
+  })
+}
+
 export function getSlackConfig(env: {
   SLACK_BOT_TOKEN: string
   SLACK_CHANNEL_ID: string
   SLACK_ICON_CLOCK_IN?: string
   SLACK_ICON_CLOCK_OUT?: string
+  SLACK_ICON_ATTENDANCE_CLOSE?: string
 }): SlackConfig {
   return {
     botToken: env.SLACK_BOT_TOKEN,
     channelId: env.SLACK_CHANNEL_ID,
     clockInIconUrl: env.SLACK_ICON_CLOCK_IN,
     clockOutIconUrl: env.SLACK_ICON_CLOCK_OUT,
+    attendanceCloseIconUrl: env.SLACK_ICON_ATTENDANCE_CLOSE,
   }
 }
