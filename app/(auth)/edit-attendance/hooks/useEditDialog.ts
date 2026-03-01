@@ -34,7 +34,9 @@ export function useEditDialog(reloadMonthData: () => void) {
     }
 
     const res = await withRetry(() => updateDateSessions(selectedDate, sessions))
-    reloadMonthData()
+    if (res.success) {
+      reloadMonthData()
+    }
     return res
   }
 

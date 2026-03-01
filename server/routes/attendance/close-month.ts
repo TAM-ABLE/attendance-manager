@@ -1,5 +1,5 @@
 import { createRoute, z } from "@hono/zod-openapi"
-import { generateMonthDates, parseYearMonth } from "@/lib/time"
+import { generateMonthDates, getMonthDateRange, parseYearMonth } from "@/lib/time"
 import { generateMonthlyAttendanceCsv } from "../../lib/csv"
 import { databaseError, internalError, successResponse, validationError } from "../../lib/errors"
 import { formatAttendanceRecord } from "../../lib/formatters"
@@ -10,7 +10,7 @@ import {
   yearMonthSchema,
 } from "../../lib/openapi-schemas"
 import { createRepos, DatabaseError } from "../../lib/repositories"
-import { getSlackConfig, sendAttendanceCloseNotification } from "../../lib/slack"
+import { sendAttendanceCloseNotification } from "../../lib/slack"
 import { uploadCsvToSlack } from "../../lib/slack-csv"
 import type { AuthVariables } from "../../middleware/auth"
 import type { Env } from "../../types/env"
@@ -83,8 +83,7 @@ closeMonthRouter.openapi(closeMonthRoute, async (c) => {
     const user = await profile.findById(userId)
 
     const monthDates = generateMonthDates(year, month)
-    const startDate = monthDates[0]
-    const endDate = monthDates[monthDates.length - 1]
+    const { start: startDate, end: endDate } = getMonthDateRange(year, month)
 
     const dbRecords = await attendance.findRecordsByDateRange(userId, startDate, endDate)
     const records = dbRecords.map(formatAttendanceRecord)
@@ -94,7 +93,11 @@ closeMonthRouter.openapi(closeMonthRoute, async (c) => {
     const csvBuffer = generateMonthlyAttendanceCsv(monthDates, records, user.name)
 
     // アイコン付き通知メッセージを送信
-    const slackConfig = { ...getSlackConfig(c.env), channelId }
+    const slackConfig = {
+      botToken,
+      channelId,
+      attendanceCloseIconUrl: c.env.SLACK_ICON_ATTENDANCE_CLOSE,
+    }
     const notification = await sendAttendanceCloseNotification(slackConfig, user.name, year, month)
 
     // CSVをスレッドに添付（通知が成功した場合はスレッド返信）

@@ -1,9 +1,6 @@
 // shared/lib/constants.ts
 // フロントエンド・バックエンド共通の定数
 
-// JWT有効期限（秒）
-export const JWT_EXPIRATION_SECONDS = 60 * 60 * 24 // 24時間
-
 // バリデーション制限
 export const MAX_TASK_HOURS = 24
 export const MIN_TASK_HOURS = 0

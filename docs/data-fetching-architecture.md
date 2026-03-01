@@ -180,13 +180,20 @@ app/(auth)/
     │   ├── page.tsx
     │   ├── components/
     │   │   └── ReportListView.tsx
-    │   └── hooks/
-    │       └── useReportUsers.ts
+    │   ├── hooks/
+    │   │   ├── useReportUsers.ts
+    │   │   └── useMonthlyReports.ts
+    │   └── lib/
+    │       └── format.ts
     └── (admin)/
         └── admin/
             ├── page.tsx
             ├── components/
             │   └── MonthlyAttendanceView.tsx
             └── hooks/
-                └── useUsers.ts
+                ├── useUsers.ts
+                ├── useMonthlyAttendance.ts
+                ├── useCreateUser.ts
+                ├── useEditUser.ts
+                └── useEditDialog.ts
 ```

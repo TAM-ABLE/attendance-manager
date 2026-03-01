@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gte, isNull, lte } from "drizzle-orm"
 import type { Db } from "../../db"
 import { dailyReports, dailyReportTasks } from "../../db/schema"
-import { DatabaseError } from "./attendance"
+import { DatabaseError } from "./errors"
 
 export class DailyReportRepository {
   constructor(private db: Db) {}

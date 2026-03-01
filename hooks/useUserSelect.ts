@@ -1,12 +1,13 @@
 // hooks/useUserSelect.ts
-// 汎用ユーザー選択hook
+// 汎用ユーザー選択hook（SWR対応）
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import type { ApiResult } from "@/types/ApiResponse"
+import useSWR from "swr"
 
 interface UseUserSelectOptions<T> {
-  fetchFn: () => Promise<ApiResult<T[]>>
+  key: string | readonly unknown[] | null
+  fetcher: () => Promise<T[]>
   initialData?: T[]
 }
 
@@ -21,94 +22,44 @@ interface UseUserSelectReturn<T> {
 
 /**
  * ユーザー一覧を取得し、選択状態を管理する汎用hook
- * @param fetchFn - ユーザー一覧を取得する関数（ApiResult<T[]>を返す）
+ * @param key - SWRキャッシュキー
+ * @param fetcher - ユーザー一覧を取得する関数（T[]を返す）
  * @param initialData - SSCで取得した初期データ（省略可）
  */
 export function useUserSelect<T extends { id: string }>({
-  fetchFn,
+  key,
+  fetcher,
   initialData,
 }: UseUserSelectOptions<T>): UseUserSelectReturn<T> {
-  const [users, setUsers] = useState<T[]>(initialData ?? [])
   const [selectedUser, setSelectedUser] = useState<T | null>(initialData?.[0] ?? null)
-  const [isLoading, setIsLoading] = useState(!initialData)
-  const [error, setError] = useState<string | null>(null)
 
-  const fetchUsers = useCallback(async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      const result = await fetchFn()
+  const {
+    data: users = [],
+    isLoading,
+    error,
+    mutate,
+  } = useSWR(key, fetcher, {
+    fallbackData: initialData,
+    revalidateOnMount: !initialData,
+  })
 
-      if (result.success) {
-        setUsers(result.data)
-        // 初回のみ自動選択
-        if (result.data.length > 0 && !selectedUser) {
-          setSelectedUser(result.data[0])
-        }
-      } else {
-        setError(result.error.message)
-        setUsers([])
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      setError(message)
-      setUsers([])
-    } finally {
-      setIsLoading(false)
-    }
-  }, [fetchFn, selectedUser])
-
+  // データロード完了時に未選択なら先頭を自動選択
   useEffect(() => {
-    // 初期データがある場合はfetchをスキップ
-    if (initialData) {
-      return
+    if (users.length > 0 && !selectedUser) {
+      setSelectedUser(users[0])
     }
+  }, [users, selectedUser])
 
-    let mounted = true
-
-    const load = async () => {
-      try {
-        setIsLoading(true)
-        setError(null)
-        const result = await fetchFn()
-
-        if (mounted) {
-          if (result.success) {
-            setUsers(result.data)
-            if (result.data.length > 0) {
-              setSelectedUser(result.data[0])
-            }
-          } else {
-            setError(result.error.message)
-            setUsers([])
-          }
-        }
-      } catch (err) {
-        if (mounted) {
-          const message = err instanceof Error ? err.message : String(err)
-          setError(message)
-          setUsers([])
-        }
-      } finally {
-        if (mounted) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    load()
-
-    return () => {
-      mounted = false
-    }
-  }, [fetchFn, initialData])
+  const refetch = useCallback(async () => {
+    await mutate()
+  }, [mutate])
 
   return {
     users,
     selectedUser,
     setSelectedUser,
     isLoading,
-    error,
-    refetch: fetchUsers,
+    error: error?.message ?? null,
+    refetch,
   }
 }

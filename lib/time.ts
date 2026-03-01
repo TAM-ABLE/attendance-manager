@@ -2,10 +2,9 @@
 // フロントエンド・バックエンド共通の時間ユーティリティ
 
 // 定数
-export const JST_OFFSET_MS = 9 * 60 * 60 * 1000
-export const MS_PER_SECOND = 1000
-export const MS_PER_MINUTE = 60 * MS_PER_SECOND
-export const MS_PER_HOUR = 60 * MS_PER_MINUTE
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000
+const MS_PER_MINUTE = 60 * 1000
+const MS_PER_HOUR = 60 * MS_PER_MINUTE
 
 // 曜日ラベル
 const JP_WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const
@@ -13,14 +12,14 @@ const JP_WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const
 /**
  * 現在時刻をJSTとして取得
  */
-export function nowJST(): Date {
+function nowJST(): Date {
   return new Date(Date.now() + JST_OFFSET_MS)
 }
 
 /**
  * UTCのDateをJSTに変換
  */
-export function toJST(date: Date): Date {
+function toJST(date: Date): Date {
   return new Date(date.getTime() + JST_OFFSET_MS)
 }
 
@@ -143,6 +142,20 @@ export function formatYearMonth(year: number, month: number): string {
  */
 export function formatYearMonthFromDate(date: Date): string {
   return formatYearMonth(date.getFullYear(), date.getMonth() + 1)
+}
+
+/**
+ * 指定月の開始日と終了日をYYYY-MM-DD形式で返す
+ * @param year 年（4桁）
+ * @param month 月（1-12）
+ */
+export function getMonthDateRange(year: number, month: number): { start: string; end: string } {
+  const mm = String(month).padStart(2, "0")
+  const lastDay = new Date(year, month, 0).getDate()
+  return {
+    start: `${year}-${mm}-01`,
+    end: `${year}-${mm}-${String(lastDay).padStart(2, "0")}`,
+  }
 }
 
 /**

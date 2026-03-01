@@ -247,7 +247,9 @@ export async function withRetry<T>(action: () => Promise<ApiResult<T>>) {
   const result = await action()
 
   if (!result.success && result.error.code === ErrorCodes.UNAUTHORIZED) {
-    window.location.href = "/login"
+    if (typeof window !== "undefined") {
+      window.location.href = "/login"
+    }
   }
 
   return result

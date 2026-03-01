@@ -52,7 +52,6 @@
 | shadcn/ui | - |
 | SWR | 2 |
 | Framer Motion | 12 |
-| date-fns | 4 |
 | lucide-react | - |
 | react-day-picker | 9 |
 
@@ -206,6 +205,9 @@ JWT_SECRET=your_jwt_secret
 SLACK_BOT_TOKEN=your_slack_bot_token (optional)
 SLACK_CHANNEL_ID=your_slack_channel_id (optional)
 SLACK_CSV_CHANNEL_ID=your_slack_csv_channel_id (optional)
+SLACK_ICON_CLOCK_IN=https://example.com/icon.png (optional)
+SLACK_ICON_CLOCK_OUT=https://example.com/icon.png (optional)
+SLACK_ICON_ATTENDANCE_CLOSE=https://example.com/icon.png (optional)
 ```
 
 ---
@@ -252,6 +254,7 @@ pnpm tsc --noEmit     # 型チェック
 |--------|----------|------|
 | GET | `/api/admin/users` | ユーザー一覧取得 |
 | POST | `/api/admin/users` | ユーザー作成 |
+| PATCH | `/api/admin/users/{userId}` | ユーザー情報更新 |
 | GET | `/api/admin/users/{userId}/attendance/month/{yearMonth}` | ユーザーの月別勤怠取得 |
 | GET | `/api/admin/users/{userId}/attendance/{date}/sessions` | ユーザーの特定日セッション取得 |
 | PUT | `/api/admin/users/{userId}/attendance/{date}/sessions` | ユーザーの特定日セッション更新 |

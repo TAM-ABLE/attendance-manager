@@ -1,19 +1,19 @@
 // app/admin/hooks/useUsers.ts
 "use client"
 
-import { useCallback } from "react"
 import { useUserSelect } from "@/hooks/useUserSelect"
 import { getUsers } from "@/lib/api-services/admin"
-import { withRetry } from "@/lib/auth/with-retry"
+import { withRetryFetcher } from "@/lib/auth/with-retry"
+import { SWR_KEYS } from "@/lib/swr-keys"
 import type { User } from "@/types/Attendance"
 
 export function useUsers(initialData?: User[], excludeAdmin = false) {
-  const fetchFn = useCallback(async () => {
-    const result = await withRetry(getUsers)
-    if (result.success && excludeAdmin) {
-      return { ...result, data: result.data.filter((u) => u.role !== "admin") }
-    }
-    return result
-  }, [excludeAdmin])
-  return useUserSelect<User>({ fetchFn, initialData })
+  return useUserSelect<User>({
+    key: SWR_KEYS.adminUsers(excludeAdmin),
+    fetcher: async () => {
+      const users = await withRetryFetcher(getUsers)
+      return excludeAdmin ? users.filter((u) => u.role !== "admin") : users
+    },
+    initialData,
+  })
 }
