@@ -1,4 +1,5 @@
 import { AlertCircle } from "lucide-react"
+import { memo } from "react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatDurationMs } from "@/lib/time"
@@ -8,7 +9,7 @@ const HOUR_IN_MS = 60 * 60 * 1000
 const HOURS_18_MS = 18 * HOUR_IN_MS
 const HOURS_20_MS = 20 * HOUR_IN_MS
 
-export function WeeklyAlert({ weeklyMs }: { weeklyMs: number }) {
+export const WeeklyAlert = memo(function WeeklyAlert({ weeklyMs }: { weeklyMs: number }) {
   return (
     <Card>
       <CardHeader>
@@ -35,4 +36,4 @@ export function WeeklyAlert({ weeklyMs }: { weeklyMs: number }) {
       </CardContent>
     </Card>
   )
-}
+})

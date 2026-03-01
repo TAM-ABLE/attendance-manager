@@ -137,6 +137,33 @@ export async function apiClient<T>(endpoint: string, options = {}) {
 - **リアルタイム性**: `mutate()` で即時更新
 - **エラーハンドリング**: 自動リトライ
 
+## 3. SWR グローバル設定（SWRProvider）
+
+`components/SWRProvider.tsx` で SWR のグローバル設定を管理し、`app/(auth)/layout.tsx` で認証済みページ全体をラップしています。
+
+```typescript
+// components/SWRProvider.tsx
+<SWRConfig value={{
+  revalidateOnFocus: false,   // タブ復帰時の自動再取得を無効化
+  dedupingInterval: 5000,     // 5秒以内の重複リクエストを抑制
+}}>
+```
+
+個別の SWR hook で同じ設定を繰り返す必要がなくなり、設定の一元管理が可能です。
+
+## 4. HTTP キャッシュ（Cache-Control）
+
+読み取り頻度の高い月次データエンドポイントに `Cache-Control` ヘッダーを設定しています。
+
+| エンドポイント | Cache-Control |
+|---------------|---------------|
+| `GET /api/attendance/month/{yearMonth}` | `private, max-age=60` |
+| `GET /api/admin/users/{userId}/attendance/month/{yearMonth}` | `private, max-age=60` |
+| `GET /api/daily-reports/user/{userId}/month/{yearMonth}` | `private, max-age=60` |
+
+- `private`: ブラウザキャッシュのみ（CDN キャッシュ不可）
+- `max-age=60`: 60秒間はブラウザキャッシュから返す
+
 ## 対象ページ
 
 | ページ | SSC取得データ |
@@ -149,6 +176,8 @@ export async function apiClient<T>(endpoint: string, options = {}) {
 ## 関連ファイル一覧
 
 ```
+components/
+└── SWRProvider.tsx       # SWRグローバル設定プロバイダー
 lib/
 ├── auth/
 │   └── server.ts        # fetchWithAuth（SSC用、app.fetch()で直接呼び出し）
