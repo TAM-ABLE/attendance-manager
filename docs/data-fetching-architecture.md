@@ -142,7 +142,6 @@ export async function apiClient<T>(endpoint: string, options = {}) {
 | ページ | SSC取得データ |
 |--------|---------------|
 | `/dashboard` | 今日の勤怠、週合計 |
-| `/attendance-history` | 今月の勤怠一覧 |
 | `/edit-attendance` | 特定日のセッション |
 | `/admin` | ユーザー一覧 |
 | `/report-list` | ユーザー一覧 |
@@ -168,12 +167,6 @@ app/(auth)/
     │   │   └── DashboardClient.tsx     # initialData受け取り
     │   └── hooks/
     │       └── useDashboardAttendance.ts  # fallbackData対応
-    ├── attendance-history/
-    │   ├── page.tsx
-    │   ├── components/
-    │   │   └── AttendanceHistoryClient.tsx
-    │   └── hooks/
-    │       └── useAttendanceHistory.ts
     ├── edit-attendance/
     │   └── page.tsx
     ├── report-list/

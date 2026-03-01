@@ -104,13 +104,12 @@ See `docs/authentication.md` for details.
 - First-login flow: new users must change their initial password before accessing the app
 - Route Groups for access control:
   - `(public)/` - Public pages (login, first-login)
-  - `(auth)/` - Authenticated pages (dashboard, attendance-history, edit-attendance, report-list)
+  - `(auth)/` - Authenticated pages (dashboard, edit-attendance, report-list)
   - `(auth)/(admin)/` - Admin-only pages (admin)
 
 #### Key Pages
 - `/dashboard` - Main employee view (clock-in/out, break management, session list)
 - `/admin` - Admin view (user management, user registration, attendance editing, CSV export, monthly close)
-- `/attendance-history` - Historical attendance records (calendar view)
 - `/edit-attendance` - Edit attendance sessions for a specific date (with close-month button)
 - `/report-list` - Daily reports list (all authenticated users)
 - `/login` - Authentication page

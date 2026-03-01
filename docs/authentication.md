@@ -120,7 +120,6 @@ app/
 ├── (auth)/                # 認証必須ページ
 │   ├── layout.tsx         # requireAuth() でチェック
 │   ├── dashboard/
-│   ├── attendance-history/
 │   ├── edit-attendance/
 │   ├── report-list/
 │   │

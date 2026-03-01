@@ -17,33 +17,11 @@ function nowJST(): Date {
 }
 
 /**
- * UTCのDateをJSTに変換
- */
-function toJST(date: Date): Date {
-  return new Date(date.getTime() + JST_OFFSET_MS)
-}
-
-/**
  * 今日の日付をJSTでYYYY-MM-DD形式で取得
  */
 export function todayJSTString(): string {
   const jst = nowJST()
   return jst.toISOString().split("T")[0]
-}
-
-/**
- * UTCのDateをJST基準で YYYY-MM-DD 文字列に変換
- */
-export function toJSTDateString(date: Date | undefined): string {
-  if (!date) return ""
-
-  const jst = toJST(date)
-
-  const yyyy = jst.getUTCFullYear()
-  const mm = (jst.getUTCMonth() + 1).toString().padStart(2, "0")
-  const dd = jst.getUTCDate().toString().padStart(2, "0")
-
-  return `${yyyy}-${mm}-${dd}`
 }
 
 /**
