@@ -47,6 +47,10 @@ export const adminMiddleware = async (
 ) => {
   const payload = c.get("jwtPayload")
 
+  if (!payload) {
+    return unauthorizedError(c, "Not authenticated")
+  }
+
   if (payload.role !== "admin") {
     return forbiddenError(c, "Admin access required")
   }
