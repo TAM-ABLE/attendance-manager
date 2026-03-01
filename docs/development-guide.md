@@ -142,8 +142,10 @@ pnpm dev
 
 起動後:
 - アプリ: http://localhost:3000
-- Swagger UI: http://localhost:3000/api/ui
-- OpenAPI spec: http://localhost:3000/api/doc
+- Swagger UI: http://localhost:3000/api/ui （開発環境のみ）
+- OpenAPI spec: http://localhost:3000/api/doc （開発環境のみ）
+
+> **Note**: Swagger UI と OpenAPI spec は `NODE_ENV !== "production"` の場合のみ有効です。`@hono/swagger-ui` は devDependencies に配置され、動的 import により本番バンドルから除外されます。
 
 ### その他のコマンド
 

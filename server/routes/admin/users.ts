@@ -389,6 +389,7 @@ usersRouter.openapi(getUserMonthlyRoute, async (c) => {
 
   try {
     const data = await attendance.findRecordsByDateRange(userId, start, end)
+    c.header("Cache-Control", "private, max-age=60")
     return successResponse(c, data.map(formatAttendanceRecord))
   } catch (e) {
     if (e instanceof DatabaseError) return databaseError(c, e.message)

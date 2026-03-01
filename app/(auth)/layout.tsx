@@ -3,16 +3,17 @@
 
 import { Footer } from "@/components/Footer"
 import { Header } from "@/components/Header"
+import { SWRProvider } from "@/components/SWRProvider"
 import { requireAuth } from "@/lib/auth/server"
 
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
   const user = await requireAuth()
 
   return (
-    <>
+    <SWRProvider>
       <Header user={user} />
       <main className="container mx-auto p-6 max-w-7xl">{children}</main>
       <Footer />
-    </>
+    </SWRProvider>
   )
 }
