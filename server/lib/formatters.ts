@@ -34,7 +34,7 @@ export interface FormattedAttendanceRecord {
 
 type DbWorkSession = DbAttendanceRecord["workSessions"][number]
 
-export function formatWorkSessions(workSessions: DbWorkSession[]): WorkSession[] {
+function formatWorkSessions(workSessions: DbWorkSession[]): WorkSession[] {
   return workSessions.map((s) => ({
     id: s.id,
     clockIn: s.clockIn ? new Date(s.clockIn).getTime() : null,
@@ -45,6 +45,13 @@ export function formatWorkSessions(workSessions: DbWorkSession[]): WorkSession[]
       end: b.breakEnd ? new Date(b.breakEnd).getTime() : null,
     })),
   }))
+}
+
+export function getFormattedSessions(record: DbAttendanceRecord | null): WorkSession[] {
+  if (!record?.workSessions || !Array.isArray(record.workSessions)) {
+    return []
+  }
+  return formatWorkSessions(record.workSessions)
 }
 
 export function formatAttendanceRecord(record: DbAttendanceRecord): FormattedAttendanceRecord {

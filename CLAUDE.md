@@ -23,8 +23,8 @@ pnpm tsc --noEmit     # Type check
 ### Project Structure
 - `app/` - Next.js App Router pages
 - `components/` - React components (shared + ui)
-- `hooks/` - Custom React hooks (usePasswordStrength, etc.)
-- `lib/` - Utilities (client-side + domain logic: schemas, time, calculation, constants)
+- `hooks/` - Shared custom React hooks (usePasswordStrength, useUserSelect, useDialogState, useMonthNavigation)
+- `lib/` - Utilities (client-side + domain logic: schemas, time, calculation, constants, swr-keys, task-form, exportCsv, utils)
 - `types/` - TypeScript type definitions (Attendance, DailyReport, ApiResponse)
 - `server/` - Hono API (routes, middleware, repositories)
 - `supabase/` - Supabase config, migrations, seed data
@@ -42,7 +42,7 @@ pnpm tsc --noEmit     # Type check
 - Auth middleware reads token from Authorization header or Cookie fallback
 - OpenAPI: `@hono/zod-openapi` for schema validation + API docs
 - Swagger UI: `/api/ui` (dev), OpenAPI spec: `/api/doc`
-- Environment variables: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `SLACK_BOT_TOKEN`, `SLACK_CHANNEL_ID`, `SLACK_CSV_CHANNEL_ID`
+- Environment variables: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `SLACK_BOT_TOKEN`, `SLACK_CHANNEL_ID`, `SLACK_CSV_CHANNEL_ID`, `SLACK_ICON_CLOCK_IN`, `SLACK_ICON_CLOCK_OUT`, `SLACK_ICON_ATTENDANCE_CLOSE`
 
 #### Server Code Structure
 ```
@@ -50,7 +50,7 @@ server/
 ├── app.ts                    ← Hono app with basePath("/api")
 ├── middleware/auth.ts         ← JWT auth + cookie fallback
 ├── routes/
-│   ├── auth/{index,login,logout,me,first-login}.ts
+│   ├── auth/{index,login,logout,me,first-login,constants}.ts
 │   ├── attendance/{index,clock,queries,breaks,sessions,close-month}.ts
 │   ├── admin/{index,users}.ts
 │   └── daily-reports.ts
@@ -58,13 +58,13 @@ server/
 │   ├── schema.ts                 ← Drizzle table + relation definitions
 │   └── index.ts                  ← DB client singleton (postgres.js + drizzle)
 ├── lib/
-│   ├── auth-helpers.ts           ← jose JWT verification + GoTrue REST API helpers (login, create, update)
-│   ├── errors.ts, formatters.ts, openapi-hono.ts
+│   ├── auth-helpers.ts           ← jose JWT verification + GoTrue REST API helpers (login, create, update) + extractBearerToken
+│   ├── errors.ts, formatters.ts (getFormattedSessions, formatAttendanceRecord), openapi-hono.ts
 │   ├── openapi-schemas.ts, sessions.ts
 │   ├── slack.ts                     ← Clock-in/out Slack notifications
 │   ├── slack-csv.ts                 ← Slack v2 file upload (monthly CSV)
 │   ├── csv.ts                       ← Monthly attendance CSV generation
-│   └── repositories/{index,attendance,profile,daily-report}.ts
+│   └── repositories/{index,errors,attendance,profile,daily-report}.ts
 └── types/env.ts
 ```
 
@@ -130,6 +130,10 @@ See `docs/authentication.md` for details.
 - `lib/time.ts` - Time formatting and calculation utilities
 - `lib/calculation.ts` - Working hours calculation
 - `lib/constants.ts` - Application constants
+- `lib/swr-keys.ts` - SWR cache key definitions (Single Source of Truth)
+- `lib/task-form.ts` - Task form utilities (generateTaskId, createEmptyTask, toTasks)
+- `lib/exportCsv.ts` - Client-side CSV export for admin
+- `lib/utils.ts` - cn() utility for Tailwind CSS class merging
 
 ## Code Quality
 

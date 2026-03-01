@@ -122,4 +122,9 @@ Scopeの設定後、アプリをワークスペースにインストールしま
 SLACK_BOT_TOKEN=xoxb-...           # Bot User OAuth Token
 SLACK_CHANNEL_ID=C01ABCDEFGH       # 勤怠通知チャンネルID
 SLACK_CSV_CHANNEL_ID=C02XYZABCDE   # CSV送信チャンネルID
+SLACK_ICON_CLOCK_IN=https://...    # 出勤通知アイコンURL（任意）
+SLACK_ICON_CLOCK_OUT=https://...   # 退勤通知アイコンURL（任意）
+SLACK_ICON_ATTENDANCE_CLOSE=https://...  # 月次締め通知アイコンURL（任意）
 ```
+
+> **アイコンURL**: 設定すると、Slack通知のBotアイコンをカスタマイズできます。未設定の場合はデフォルトの絵文字アイコン（🌅 / 🌃 / 📋）が使用されます。

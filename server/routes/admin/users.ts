@@ -1,6 +1,6 @@
 import crypto from "node:crypto"
 import { createRoute, z } from "@hono/zod-openapi"
-import { parseYearMonth } from "@/lib/time"
+import { getMonthDateRange, parseYearMonth } from "@/lib/time"
 import { adminCreateUser, adminUpdateUser } from "../../lib/auth-helpers"
 import {
   databaseError,
@@ -9,7 +9,7 @@ import {
   successResponse,
   validationError,
 } from "../../lib/errors"
-import { formatAttendanceRecord, formatWorkSessions } from "../../lib/formatters"
+import { formatAttendanceRecord, getFormattedSessions } from "../../lib/formatters"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
 import {
   adminCreateUserRequestSchema,
@@ -19,6 +19,7 @@ import {
   attendanceRecordSchema,
   dateSchema,
   errorResponseSchema,
+  nullResponseSchema,
   successResponseSchema,
   updateSessionsRequestSchema,
   userListResponseSchema,
@@ -32,8 +33,6 @@ import type { AuthVariables } from "../../middleware/auth"
 import type { Env } from "../../types/env"
 
 const usersRouter = createOpenAPIHono<{ Bindings: Env; Variables: AuthVariables }>()
-
-const nullResponseSchema = z.null().openapi({ description: "null" })
 
 const getUsersRoute = createRoute({
   method: "get",
@@ -72,7 +71,7 @@ usersRouter.openapi(getUsersRoute, async (c) => {
       id: u.id,
       name: u.name,
       email: u.email,
-      employeeNumber: u.employee_number,
+      employeeNumber: u.employeeNumber,
       role: u.role as "admin" | "user",
     }))
 
@@ -326,7 +325,7 @@ usersRouter.openapi(updateUserRoute, async (c) => {
       id: updated.id,
       name: updated.name,
       email: updated.email,
-      employeeNumber: updated.employee_number,
+      employeeNumber: updated.employeeNumber,
       role: updated.role as "admin" | "user",
     })
   } catch (e) {
@@ -384,10 +383,7 @@ usersRouter.openapi(getUserMonthlyRoute, async (c) => {
     return validationError(c, "Invalid year-month format")
   }
   const { year, month } = parsed
-
-  const start = `${year}-${String(month).padStart(2, "0")}-01`
-  const lastDay = new Date(year, month, 0).getDate()
-  const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
+  const { start, end } = getMonthDateRange(year, month)
 
   const { attendance } = createRepos(c.env)
 
@@ -439,12 +435,7 @@ usersRouter.openapi(getUserSessionsRoute, async (c) => {
 
   try {
     const data = await attendance.findRecordWithSessions(userId, date)
-
-    if (!data?.workSessions || !Array.isArray(data.workSessions)) {
-      return successResponse(c, [])
-    }
-
-    return successResponse(c, formatWorkSessions(data.workSessions))
+    return successResponse(c, getFormattedSessions(data))
   } catch (e) {
     if (e instanceof DatabaseError) return databaseError(c, e.message)
     throw e
