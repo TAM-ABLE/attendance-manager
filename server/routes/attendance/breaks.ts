@@ -1,15 +1,15 @@
 import { createRoute } from "@hono/zod-openapi"
 import { todayJSTString } from "@/lib/time"
-import { databaseError, successResponse, validationError } from "../../lib/errors"
+import { handleRouteError, successResponse, validationError } from "../../lib/errors"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
+import { serverErrorResponse, validationErrorResponse } from "../../lib/openapi-responses"
 import {
   breakEndRequestSchema,
   breakStartRequestSchema,
-  errorResponseSchema,
   nullResponseSchema,
   successResponseSchema,
 } from "../../lib/openapi-schemas"
-import { createRepos, DatabaseError } from "../../lib/repositories"
+import { createRepos } from "../../lib/repositories"
 import type { AuthVariables } from "../../middleware/auth"
 import type { Env } from "../../types/env"
 
@@ -34,31 +34,26 @@ const breakStartRoute = createRoute({
   },
   responses: {
     200: {
-      content: {
-        "application/json": {
-          schema: successResponseSchema(nullResponseSchema),
-        },
-      },
+      content: { "application/json": { schema: successResponseSchema(nullResponseSchema) } },
       description: "休憩開始成功",
     },
-    400: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "バリデーションエラー",
-    },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    400: validationErrorResponse,
+    500: serverErrorResponse,
   },
 })
+
+async function getActiveSessionForBreak(
+  repos: ReturnType<typeof createRepos>,
+  userId: string,
+  date: string,
+) {
+  const record = await repos.attendance.findRecordIdByUserAndDate(userId, date)
+  if (!record) return { ok: false, error: "No attendance record for today" } as const
+  const session = await repos.workSession.findActiveSession(record.id)
+  if (!session) return { ok: false, error: "No active session" } as const
+  const activeBreak = await repos.break.findActiveBreak(session.id)
+  return { ok: true, session, activeBreak } as const
+}
 
 breaksRouter.openapi(breakStartRoute, async (c) => {
   const { sub: userId } = c.get("jwtPayload")
@@ -68,27 +63,15 @@ breaksRouter.openapi(breakStartRoute, async (c) => {
   const repos = createRepos(c.env)
 
   try {
-    const record = await repos.attendance.findRecordIdByUserAndDate(userId, date)
-    if (!record) {
-      return validationError(c, "No attendance record for today")
-    }
+    const ctx = await getActiveSessionForBreak(repos, userId, date)
+    if (!ctx.ok) return validationError(c, ctx.error)
+    if (ctx.activeBreak) return validationError(c, "Break already in progress")
 
-    const session = await repos.workSession.findActiveSession(record.id)
-    if (!session) {
-      return validationError(c, "No active session")
-    }
-
-    const activeBreak = await repos.break.findActiveBreak(session.id)
-    if (activeBreak) {
-      return validationError(c, "Break already in progress")
-    }
-
-    await repos.break.startBreak(session.id, breakStartTime ?? new Date().toISOString())
+    await repos.break.startBreak(ctx.session.id, breakStartTime ?? new Date().toISOString())
 
     return successResponse(c, null)
   } catch (e) {
-    if (e instanceof DatabaseError) return databaseError(c, e.message)
-    throw e
+    return handleRouteError(c, e)
   }
 })
 
@@ -111,29 +94,11 @@ const breakEndRoute = createRoute({
   },
   responses: {
     200: {
-      content: {
-        "application/json": {
-          schema: successResponseSchema(nullResponseSchema),
-        },
-      },
+      content: { "application/json": { schema: successResponseSchema(nullResponseSchema) } },
       description: "休憩終了成功",
     },
-    400: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "バリデーションエラー",
-    },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    400: validationErrorResponse,
+    500: serverErrorResponse,
   },
 })
 
@@ -145,27 +110,15 @@ breaksRouter.openapi(breakEndRoute, async (c) => {
   const repos = createRepos(c.env)
 
   try {
-    const record = await repos.attendance.findRecordIdByUserAndDate(userId, date)
-    if (!record) {
-      return validationError(c, "No attendance record for today")
-    }
+    const ctx = await getActiveSessionForBreak(repos, userId, date)
+    if (!ctx.ok) return validationError(c, ctx.error)
+    if (!ctx.activeBreak) return validationError(c, "No active break to end")
 
-    const session = await repos.workSession.findActiveSession(record.id)
-    if (!session) {
-      return validationError(c, "No active session")
-    }
-
-    const activeBreak = await repos.break.findActiveBreak(session.id)
-    if (!activeBreak) {
-      return validationError(c, "No active break to end")
-    }
-
-    await repos.break.endBreak(activeBreak.id, breakEndTime ?? new Date().toISOString())
+    await repos.break.endBreak(ctx.activeBreak.id, breakEndTime ?? new Date().toISOString())
 
     return successResponse(c, null)
   } catch (e) {
-    if (e instanceof DatabaseError) return databaseError(c, e.message)
-    throw e
+    return handleRouteError(c, e)
   }
 })
 

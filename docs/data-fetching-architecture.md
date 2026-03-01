@@ -188,14 +188,19 @@ lib/
 │   └── daily-reports.ts # 日報API
 └── swr-keys.ts          # SWRキャッシュキー定義
 hooks/
-└── useUserSelect.ts     # 汎用ユーザー選択hook（initialData対応）
+├── useUserSelect.ts     # 汎用ユーザー選択hook（initialData対応）
+├── useAsyncAction.ts    # 非同期操作の共通hook（loading/error管理）
+└── useEditDialogBase.ts # 編集ダイアログの共通hook（open/close/save）
 app/(auth)/
     ├── dashboard/
     │   ├── page.tsx                    # SSCでデータ取得
     │   ├── components/
-    │   │   └── DashboardClient.tsx     # initialData受け取り
+    │   │   ├── DashboardClient.tsx     # initialData受け取り
+    │   │   ├── TaskListInput.tsx       # タスクリスト入力共通コンポーネント
+    │   │   └── TaskChipSelector.tsx    # タスク選択チップ
     │   └── hooks/
-    │       └── useDashboardAttendance.ts  # fallbackData対応
+    │       ├── useDashboardAttendance.ts  # fallbackData対応
+    │       └── useTaskList.ts             # タスクリスト状態管理
     ├── edit-attendance/
     │   └── page.tsx
     ├── report-list/
@@ -217,5 +222,6 @@ app/(auth)/
                 ├── useMonthlyAttendance.ts
                 ├── useCreateUser.ts
                 ├── useEditUser.ts
-                └── useEditDialog.ts
+                ├── useEditDialog.ts
+                └── useUserFormDialog.ts
 ```
