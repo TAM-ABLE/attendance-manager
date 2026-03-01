@@ -5,6 +5,7 @@ export const SWR_KEYS = {
   // ダッシュボード
   ATTENDANCE_TODAY: "attendance-today",
   ATTENDANCE_WEEK_TOTAL: "attendance-week-total",
+  PLANNED_TASKS_TODAY: "planned-tasks-today",
 
   // 勤怠履歴
   attendanceMonth: (yearMonth: string) => ["attendance-month", yearMonth] as const,

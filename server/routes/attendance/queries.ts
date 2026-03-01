@@ -214,13 +214,12 @@ queriesRouter.openapi(todayPlannedTasksRoute, async (c) => {
   const repos = createRepos(c.env)
 
   try {
-    const report = await repos.dailyReport.findUnsubmittedReport(userId, date)
+    const report = await repos.dailyReport.findUnsubmittedReportWithTasks(userId, date)
     if (!report) {
       return successResponse(c, [])
     }
 
-    const reportWithTasks = await repos.dailyReport.findReportWithTasks(report.id)
-    const plannedTasks = reportWithTasks.tasks
+    const plannedTasks = report.tasks
       .filter((t) => t.taskType === "planned")
       .sort((a, b) => a.sortOrder - b.sortOrder)
       .map((t) => ({ taskName: t.taskName, hours: t.hours }))
