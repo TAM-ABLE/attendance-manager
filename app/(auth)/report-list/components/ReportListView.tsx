@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic"
 import { useState } from "react"
+import { HelpPopover } from "@/components/HelpPopover"
 import { MonthNavigator } from "@/components/MonthNavigator"
 import { UserSelect } from "@/components/UserSelect"
 import { Card, CardContent } from "@/components/ui/card"
@@ -46,6 +47,36 @@ export function ReportListView({ initialUsers }: ReportListViewProps) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold">日報一覧</h2>
+          <p className="text-muted-foreground">自分や他のユーザーの日報を閲覧できます。</p>
+        </div>
+        <HelpPopover>
+          <div className="space-y-3">
+            <h4 className="font-semibold">日報一覧の使い方</h4>
+            <div className="space-y-2 text-muted-foreground">
+              <p>
+                <strong className="text-foreground">月の移動：</strong>
+                表示月を切り替えられます。
+              </p>
+              <p>
+                <strong className="text-foreground">ユーザー選択：</strong>
+                日報を閲覧したいユーザーを選択できます。
+              </p>
+              <p>
+                <strong className="text-foreground">日報の詳細：</strong>
+                詳細ボタンをクリックすると、日報の詳細を確認できます。
+              </p>
+              <p>
+                <strong className="text-foreground">ステータス：</strong>
+                日報を提出完了すると「提出済」、未提出だと「下書き」になります。
+              </p>
+            </div>
+          </div>
+        </HelpPopover>
+      </div>
+
       {/* 月移動＆ユーザー選択 */}
       <Card>
         <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

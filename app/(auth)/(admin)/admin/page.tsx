@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { fetchWithAuth } from "@/lib/auth/server"
 import type { User } from "@/types/Attendance"
 import type { DailyReportListItem } from "@/types/DailyReport"
+import { AdminHelpPopover } from "./components/AdminHelpPopover"
 import { MonthlyAttendanceView } from "./components/MonthlyAttendanceView"
 import { TodayReportsView } from "./components/TodayReportsView"
 import { UserManagementView } from "./components/UserManagementView"
@@ -28,6 +29,7 @@ export default async function AdminPage() {
           <h2 className="text-lg sm:text-xl font-semibold">管理者ダッシュボード</h2>
           <p className="text-sm sm:text-base text-muted-foreground">チーム全体の勤怠・日報を管理</p>
         </div>
+        <AdminHelpPopover />
       </div>
 
       <Tabs defaultValue="users" className="space-y-4 sm:space-y-6">

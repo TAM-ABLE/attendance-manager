@@ -50,7 +50,9 @@ export async function verifyJwt(
   if (!sub) throw new Error("Missing sub claim")
 
   const userMetadata = payload.user_metadata as { role?: string; name?: string } | undefined
-  const role = (userMetadata?.role as "admin" | "user") ?? "user"
+  const appMetadata = payload.app_metadata as { role?: string } | undefined
+  const role =
+    (userMetadata?.role as "admin" | "user") ?? (appMetadata?.role as "admin" | "user") ?? "user"
   const name = (userMetadata?.name as string) ?? ""
   const email = (payload.email as string) ?? ""
 
