@@ -1,7 +1,18 @@
 "use client"
 
-import { AlertTriangle, Check, Copy, Edit, Mail, MessageSquare, Plus, User } from "lucide-react"
-import { useCallback, useMemo, useState } from "react"
+import { Edit, KeyRound, Mail, Plus, User } from "lucide-react"
+import { useState } from "react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
@@ -26,6 +37,8 @@ import {
 import type { User as UserType } from "@/types/Attendance"
 import { useCreateUser } from "../hooks/useCreateUser"
 import { useEditUser } from "../hooks/useEditUser"
+import { usePasswordReset } from "../hooks/usePasswordReset"
+import { useResendInvite } from "../hooks/useResendInvite"
 import { useUserFormDialog } from "../hooks/useUserFormDialog"
 import { useUsers } from "../hooks/useUsers"
 
@@ -33,40 +46,17 @@ type UserManagementViewProps = {
   initialUsers?: UserType[]
 }
 
-function CopyButton({ value }: { value: string }) {
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = useCallback(async () => {
-    try {
-      await navigator.clipboard.writeText(value)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // フォールバック: clipboard API が使えない環境向け
-      const textarea = document.createElement("textarea")
-      textarea.value = value
-      textarea.style.position = "fixed"
-      textarea.style.opacity = "0"
-      document.body.appendChild(textarea)
-      textarea.select()
-      document.execCommand("copy")
-      document.body.removeChild(textarea)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }, [value])
-
-  return (
-    <Button variant="outline" size="sm" onClick={handleCopy} className="shrink-0">
-      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-      <span className="ml-1">{copied ? "コピー済み" : "コピー"}</span>
-    </Button>
-  )
+type EmailAction = {
+  userId: string
+  userName: string
+  type: "resend-invite" | "password-reset"
 }
 
 export function UserManagementView({ initialUsers }: UserManagementViewProps) {
   const { users, refetch } = useUsers(initialUsers)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [emailAction, setEmailAction] = useState<EmailAction | null>(null)
+  const [actionSuccessMessage, setActionSuccessMessage] = useState<string | null>(null)
 
   const { submit, loading, error, successData, clearSuccess, clearError } = useCreateUser(() => {
     setDialogOpen(false)
@@ -96,6 +86,43 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
     await editSubmit(editDialog.target.id, editDialog.form)
   }
 
+  // ===== 招待メール再送 =====
+  const {
+    submit: resendSubmit,
+    loading: resendLoading,
+    error: resendError,
+    clearError: clearResendError,
+  } = useResendInvite(() => {
+    setEmailAction(null)
+    setActionSuccessMessage("招待メールを再送しました")
+  })
+
+  // ===== パスワードリセット =====
+  const {
+    submit: resetSubmit,
+    loading: resetLoading,
+    error: resetError,
+    clearError: clearResetError,
+  } = usePasswordReset(() => {
+    setEmailAction(null)
+    setActionSuccessMessage("パスワードリセットメールを送信しました")
+  })
+
+  const handleEmailActionConfirm = async () => {
+    if (!emailAction) return
+    if (emailAction.type === "resend-invite") {
+      await resendSubmit(emailAction.userId)
+    } else {
+      await resetSubmit(emailAction.userId)
+    }
+  }
+
+  const handleEmailActionCancel = () => {
+    setEmailAction(null)
+    clearResendError()
+    clearResetError()
+  }
+
   // ===== 新規登録ダイアログ =====
   const [lastName, setLastName] = useState("")
   const [firstName, setFirstName] = useState("")
@@ -119,23 +146,8 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
     if (ok) resetForm()
   }
 
-  const firstLoginUrl =
-    typeof window !== "undefined" ? `${window.location.origin}/first-login` : "/first-login"
-
-  const slackMessage = useMemo(() => {
-    if (!successData) return ""
-    return [
-      `${successData.name}さん`,
-      "",
-      "勤怠管理システムのアカウントを作成しました。",
-      "以下の情報で初回ログインをお願いします。",
-      "",
-      `ログインURL: ${firstLoginUrl}`,
-      `初期パスワード: ${successData.initialPassword}`,
-      "",
-      "初回ログイン時にパスワードの変更が求められます。",
-    ].join("\n")
-  }, [successData, firstLoginUrl])
+  const emailActionLoading = resendLoading || resetLoading
+  const emailActionError = resendError || resetError
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -156,7 +168,8 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
               <DialogHeader>
                 <DialogTitle>新規ユーザー登録</DialogTitle>
                 <DialogDescription>
-                  社員番号は自動採番されます。ユーザーは一般ユーザーとして登録されます。初期パスワードは自動生成されます。
+                  社員番号は自動採番されます。ユーザーは一般ユーザーとして登録されます。登録後に招待メールが送信されます。
+                  ※ 招待メールは1時間あたり2通まで送信可能です。
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -221,13 +234,14 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
                 <TableHead className="w-[120px]">社員番号</TableHead>
                 <TableHead>名前</TableHead>
                 <TableHead>メールアドレス</TableHead>
-                <TableHead className="w-[80px]">操作</TableHead>
+                <TableHead className="w-[100px]">ステータス</TableHead>
+                <TableHead className="w-[160px]">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
                     ユーザーが登録されていません
                   </TableCell>
                 </TableRow>
@@ -238,14 +252,61 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
                     <TableCell>{user.name}</TableCell>
                     <TableCell className="text-muted-foreground">{user.email}</TableCell>
                     <TableCell>
-                      <Button
-                        size="sm"
-                        className="h-7 px-2 sm:px-3 bg-primary text-primary-foreground hover:bg-primary/90"
-                        onClick={() => editDialog.openDialog(user)}
-                      >
-                        <Edit className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                        <span className="hidden sm:inline">編集</span>
-                      </Button>
+                      {user.passwordChanged ? (
+                        <Badge variant="outline" className="text-green-700 border-green-300">
+                          設定済み
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-amber-700 border-amber-300">
+                          招待中
+                        </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          className="h-7 px-2 sm:px-3 bg-primary text-primary-foreground hover:bg-primary/90"
+                          onClick={() => editDialog.openDialog(user)}
+                        >
+                          <Edit className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                          <span className="hidden sm:inline">編集</span>
+                        </Button>
+                        {user.role !== "admin" &&
+                          (user.passwordChanged ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 sm:px-3"
+                              onClick={() =>
+                                setEmailAction({
+                                  userId: user.id,
+                                  userName: user.name,
+                                  type: "password-reset",
+                                })
+                              }
+                            >
+                              <KeyRound className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                              <span className="hidden sm:inline">リセット</span>
+                            </Button>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 sm:px-3"
+                              onClick={() =>
+                                setEmailAction({
+                                  userId: user.id,
+                                  userName: user.name,
+                                  type: "resend-invite",
+                                })
+                              }
+                            >
+                              <Mail className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                              <span className="hidden sm:inline">再送</span>
+                            </Button>
+                          ))}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -321,10 +382,7 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
       </Dialog>
 
       <Dialog open={!!successData}>
-        <DialogContent
-          onInteractOutside={(e) => e.preventDefault()}
-          onEscapeKeyDown={(e) => e.preventDefault()}
-        >
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>ユーザー登録完了</DialogTitle>
             <DialogDescription>
@@ -333,28 +391,56 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
             </DialogDescription>
           </DialogHeader>
           {successData && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium flex items-center gap-1.5">
-                  <MessageSquare className="h-4 w-4" />
-                  Slack通知用メッセージ
-                </Label>
-                <div className="rounded border bg-muted p-3 text-sm whitespace-pre-wrap break-words">
-                  {slackMessage}
-                </div>
-                <CopyButton value={slackMessage} />
-              </div>
-
-              <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 dark:border-amber-900 dark:bg-amber-950">
-                <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400 mt-0.5" />
-                <p className="text-sm text-amber-800 dark:text-amber-200">
-                  このパスワードはこの画面を閉じると再表示できません。必ずコピーして対象ユーザーに伝えてください。
-                </p>
-              </div>
+            <div className="rounded border bg-muted p-3 text-sm">
+              <Mail className="inline h-4 w-4 mr-1.5 align-text-bottom" />
+              {successData.email}{" "}
+              に招待メールを送信しました。メール内のリンクからパスワードを設定できます。
             </div>
           )}
           <DialogFooter>
             <Button onClick={clearSuccess}>閉じる</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 招待再送・パスワードリセット確認ダイアログ */}
+      <AlertDialog
+        open={!!emailAction}
+        onOpenChange={(open: boolean) => !open && handleEmailActionCancel()}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {emailAction?.type === "resend-invite" ? "招待メール再送" : "パスワードリセット"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {emailAction?.type === "resend-invite"
+                ? `${emailAction.userName} に招待メールを再送します。よろしいですか？`
+                : `${emailAction?.userName} にパスワードリセットメールを送信します。よろしいですか？`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {emailActionError && <p className="text-red-500 text-sm">{emailActionError}</p>}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={emailActionLoading}>キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={handleEmailActionConfirm} disabled={emailActionLoading}>
+              {emailActionLoading ? "送信中..." : "送信"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* アクション成功メッセージ */}
+      <Dialog
+        open={!!actionSuccessMessage}
+        onOpenChange={(open) => !open && setActionSuccessMessage(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>送信完了</DialogTitle>
+            <DialogDescription>{actionSuccessMessage}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setActionSuccessMessage(null)}>閉じる</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

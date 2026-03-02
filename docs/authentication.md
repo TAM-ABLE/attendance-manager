@@ -79,20 +79,63 @@
         │                     │
 ```
 
-## 初回パスワード変更フロー
+## 招待メールによるパスワード設定フロー
 
-管理者がユーザーを登録すると、初期パスワードが自動生成されます（`crypto.randomBytes` によるrejection sampling）。
-新規ユーザーは初回ログイン時にパスワード変更が必須です。
+管理者がユーザーを登録すると、Supabase GoTrueの `/invite` エンドポイント経由で招待メールが自動送信されます。
+新規ユーザーはメール内のリンクからパスワードを設定します。
 
 ### フロー
 
 ```
-1. 管理者がユーザー作成 → 初期パスワード自動生成（password_changed: false）
-2. ユーザーが /login でログイン → password_changed: false を検出 → /first-login へリダイレクト
-3. /first-login で現在のパスワード + 新パスワードを入力
-4. POST /api/auth/first-login → パスワード更新 + password_changed: true に設定 + Cookie発行
-5. /dashboard へリダイレクト
+1. 管理者がユーザー作成 → GoTrue /invite でメール送信（password_changed: false）
+2. ユーザーが招待メールのリンクをクリック
+3. Supabase がトークンを検証し /set-password#access_token=xxx&type=invite へリダイレクト
+4. /set-password ページがURLハッシュからアクセストークンを抽出
+5. POST /api/auth/set-password → トークン検証 + パスワード設定 + password_changed: true + Cookie発行
+6. /dashboard へリダイレクト
 ```
+
+### 未設定ユーザーのログイン制御
+
+パスワード未設定（`password_changed: false`）のユーザーが `/login` からログインを試みた場合、
+403エラーで「招待メールのリンクからパスワードを設定してください」と案内します。
+
+## 招待メール再送・パスワードリセット
+
+管理者画面からユーザーの状態に応じたリカバリー操作が可能です。
+
+### 招待メール再送（招待中ユーザー向け）
+
+招待リンクの期限切れ（24時間）やメール紛失時に、管理者が再送できます。
+
+```
+1. 管理者が /admin のユーザー一覧で「再送」ボタンをクリック
+2. POST /api/admin/users/{userId}/resend-invite → GoTrue /invite でメール再送
+3. ユーザーが新しい招待メールのリンクからパスワード設定
+```
+
+### パスワードリセット（設定済みユーザー向け）
+
+パスワードを忘れたユーザーに対し、管理者がリセットメールを送信できます。
+
+```
+1. 管理者が /admin のユーザー一覧で「リセット」ボタンをクリック
+2. POST /api/admin/users/{userId}/password-reset → GoTrue /recover でリカバリーメール送信
+3. ユーザーがメール内のリンクをクリック
+4. Supabase がトークンを検証し /set-password#access_token=xxx&type=recovery へリダイレクト
+5. /set-password ページが type=recovery を検出し「パスワードリセット」UIを表示
+6. POST /api/auth/set-password → 新パスワード設定 + Cookie発行
+7. /dashboard へリダイレクト
+```
+
+### ユーザーステータス
+
+管理者画面のユーザー一覧には、GoTrue の `user_metadata.password_changed` フラグに基づくステータスが表示されます。
+
+| ステータス | 条件 | 利用可能なアクション |
+|-----------|------|-------------------|
+| 招待中 | `password_changed: false` | 招待メール再送 |
+| 設定済み | `password_changed: true` | パスワードリセット |
 
 ### パスワード強度バリデーション（`hooks/usePasswordStrength.ts`）
 
@@ -100,14 +143,23 @@
 - 英字を含む
 - 数字を含む
 
+### メール配信
+
+- デフォルト: Supabase組み込みメール（1時間あたり2通まで）
+- 推奨: カスタムSMTP設定（レートリミット緩和）
+- 詳細: `docs/email-setup-guide.md`
+
 ### 主要ファイル
 
 | ファイル | 役割 |
 |----------|------|
-| `server/routes/auth/first-login.ts` | 初回パスワード変更API |
-| `app/(public)/first-login/page.tsx` | 初回パスワード変更ページ |
+| `server/routes/auth/set-password.ts` | パスワード設定API（トークンベース、invite/recovery 両対応） |
+| `server/routes/admin/users.ts` | 招待メール再送・パスワードリセットAPI |
+| `app/(public)/set-password/page.tsx` | パスワード設定ページ（invite/recovery で UI出し分け） |
+| `supabase/templates/invite.html` | 招待メールテンプレート |
+| `supabase/templates/recovery.html` | パスワードリセットメールテンプレート |
 | `hooks/usePasswordStrength.ts` | パスワード強度バリデーション |
-| `server/lib/auth-helpers.ts` | `adminUpdateUser()` - パスワード更新・メタデータ更新 |
+| `server/lib/auth-helpers.ts` | `inviteUserByEmail()` - 招待メール送信、`sendRecoveryEmail()` - リカバリーメール送信、`goTrueAdminListUsers()` - ユーザーメタデータ取得 |
 
 ## Route Groups によるアクセス制御
 
@@ -115,7 +167,7 @@
 app/
 ├── (public)/              # 公開ページ（認証不要）
 │   ├── login/
-│   └── first-login/       # 初回パスワード変更
+│   └── set-password/      # 招待メールからのパスワード設定
 │
 ├── (auth)/                # 認証必須ページ
 │   ├── layout.tsx         # requireAuth() でチェック
@@ -156,9 +208,9 @@ export default async function AdminLayout({ children }) {
 |----------|------|
 | `server/routes/auth/login.ts` | ログイン処理、Cookie にトークン保存 |
 | `server/routes/auth/logout.ts` | ログアウト処理、Cookie 削除 |
-| `server/routes/auth/first-login.ts` | 初回パスワード変更処理 |
+| `server/routes/auth/set-password.ts` | 招待トークンによるパスワード設定処理 |
 | `server/middleware/auth.ts` | JWT 認証ミドルウェア（jose でローカル検証、Cookie or Authorization ヘッダー） |
-| `server/lib/auth-helpers.ts` | jose JWT 検証 + GoTrue REST API ヘルパー（login, user creation, password update） |
+| `server/lib/auth-helpers.ts` | jose JWT 検証 + GoTrue REST API ヘルパー（login, invite, password update, listUsers, recovery） |
 | `app/api/[...route]/route.ts` | Hono アプリを Next.js API Routes にマウント |
 | `lib/auth/server.ts` | SSC 用認証ユーティリティ（`app.fetch()` で直接呼び出し） |
 | `lib/auth/with-retry.ts` | 401 エラー時のリダイレクト処理 |

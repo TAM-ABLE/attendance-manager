@@ -1,7 +1,12 @@
-import crypto from "node:crypto"
 import { createRoute, z } from "@hono/zod-openapi"
 import { parseYearMonthWithRange } from "@/lib/time"
-import { adminCreateUser, adminUpdateUser } from "../../lib/auth-helpers"
+import {
+  adminUpdateUser,
+  GoTrueError,
+  goTrueAdminListUsers,
+  inviteUserByEmail,
+  sendRecoveryEmail,
+} from "../../lib/auth-helpers"
 import {
   databaseError,
   handleRouteError,
@@ -20,6 +25,7 @@ import {
 import {
   adminCreateUserRequestSchema,
   adminCreateUserResponseSchema,
+  adminEmailActionResponseSchema,
   adminUpdateUserRequestSchema,
   adminUpdateUserResponseSchema,
   attendanceRecordSchema,
@@ -59,15 +65,25 @@ usersRouter.openapi(getUsersRoute, async (c) => {
   const { profile } = createRepos(c.env)
 
   try {
-    const data = await profile.findAllUsers()
+    const [data, goTrueUsers] = await Promise.all([
+      profile.findAllUsers(),
+      goTrueAdminListUsers(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY),
+    ])
 
-    const users = data.map((u) => ({
-      id: u.id,
-      name: u.name,
-      email: u.email,
-      employeeNumber: u.employeeNumber,
-      role: u.role as "admin" | "user",
-    }))
+    const goTrueMap = new Map(goTrueUsers.map((u) => [u.id, u]))
+
+    const users = data.map((u) => {
+      const goTrueUser = goTrueMap.get(u.id)
+      const passwordChanged = goTrueUser?.user_metadata?.password_changed === true
+      return {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        employeeNumber: u.employeeNumber,
+        role: u.role as "admin" | "user",
+        passwordChanged,
+      }
+    })
 
     return successResponse(c, users)
   } catch (e) {
@@ -81,36 +97,6 @@ function generateNextEmployeeNumber(maxNumber: string | null): string {
   if (!maxNumber) return "A-0001"
   const num = Number.parseInt(maxNumber.replace("A-", ""), 10)
   return `A-${String(num + 1).padStart(4, "0")}`
-}
-
-const LETTERS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-const DIGITS = "0123456789"
-const PASSWORD_CHARS = LETTERS + DIGITS
-const PASSWORD_LENGTH = 12
-
-function getRandomChar(chars: string): string {
-  const maxUnbiased = Math.floor(256 / chars.length) * chars.length
-  while (true) {
-    const byte = crypto.randomBytes(1)[0]
-    if (byte < maxUnbiased) {
-      return chars[byte % chars.length]
-    }
-  }
-}
-
-function generateRandomPassword(): string {
-  const chars: string[] = []
-  for (let i = 0; i < PASSWORD_LENGTH; i++) {
-    chars.push(getRandomChar(PASSWORD_CHARS))
-  }
-  // 英字・数字を最低1文字ずつ保証
-  if (!chars.some((c) => LETTERS.includes(c))) {
-    chars[0] = getRandomChar(LETTERS)
-  }
-  if (!chars.some((c) => DIGITS.includes(c))) {
-    chars[1] = getRandomChar(DIGITS)
-  }
-  return chars.join("")
 }
 
 const createUserRoute = createRoute({
@@ -146,23 +132,22 @@ usersRouter.openapi(createUserRoute, async (c) => {
   const { lastName, firstName, email } = c.req.valid("json")
   const name = `${lastName} ${firstName}`
   const { profile } = createRepos(c.env)
-  const initialPassword = generateRandomPassword()
 
   try {
     const maxNumber = await profile.findMaxEmployeeNumber()
     const employeeNumber = generateNextEmployeeNumber(maxNumber)
 
-    const user = await adminCreateUser(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY, {
+    const user = await inviteUserByEmail(
+      c.env.SUPABASE_URL,
+      c.env.SUPABASE_SERVICE_ROLE_KEY,
       email,
-      password: initialPassword,
-      email_confirm: true,
-      user_metadata: {
+      {
         name,
         role: "user",
         employee_number: employeeNumber,
         password_changed: false,
       },
-    })
+    )
 
     return successResponse(c, {
       id: user.id,
@@ -170,7 +155,6 @@ usersRouter.openapi(createUserRoute, async (c) => {
       email: user.email ?? email,
       employeeNumber,
       role: "user" as const,
-      initialPassword,
     })
   } catch (e) {
     if (e instanceof DatabaseError) return databaseError(c, e.message)
@@ -284,6 +268,101 @@ usersRouter.openapi(updateUserRoute, async (c) => {
     })
   } catch (e) {
     if (e instanceof DatabaseError) return databaseError(c, e.message)
+    return internalError(c, e instanceof Error ? e.message : "Unknown error")
+  }
+})
+
+// ===== POST /admin/users/:userId/resend-invite - 招待メール再送 =====
+
+const resendInviteRoute = createRoute({
+  method: "post",
+  path: "/{userId}/resend-invite",
+  tags: ["管理者"],
+  summary: "招待メール再送",
+  description: "指定ユーザーに招待メールを再送します。",
+  security: [{ Bearer: [] }],
+  request: {
+    params: z.object({
+      userId: uuidSchema,
+    }),
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: successResponseSchema(adminEmailActionResponseSchema),
+        },
+      },
+      description: "再送成功",
+    },
+    404: notFoundResponse("ユーザーが見つからない"),
+    500: serverErrorResponse,
+  },
+})
+
+usersRouter.openapi(resendInviteRoute, async (c) => {
+  const { userId } = c.req.valid("param")
+  const { profile } = createRepos(c.env)
+
+  try {
+    const user = await profile.findById(userId)
+
+    await inviteUserByEmail(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY, user.email, {
+      name: user.name,
+      role: user.role,
+      employee_number: user.employeeNumber,
+      password_changed: false,
+    })
+
+    return successResponse(c, { message: "招待メールを再送しました" })
+  } catch (e) {
+    if (e instanceof DatabaseError) return notFoundError(c, "User")
+    if (e instanceof GoTrueError) return internalError(c, e.message)
+    return internalError(c, e instanceof Error ? e.message : "Unknown error")
+  }
+})
+
+// ===== POST /admin/users/:userId/password-reset - パスワードリセット =====
+
+const passwordResetRoute = createRoute({
+  method: "post",
+  path: "/{userId}/password-reset",
+  tags: ["管理者"],
+  summary: "パスワードリセット",
+  description: "指定ユーザーにパスワードリセットメールを送信します。",
+  security: [{ Bearer: [] }],
+  request: {
+    params: z.object({
+      userId: uuidSchema,
+    }),
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: successResponseSchema(adminEmailActionResponseSchema),
+        },
+      },
+      description: "送信成功",
+    },
+    404: notFoundResponse("ユーザーが見つからない"),
+    500: serverErrorResponse,
+  },
+})
+
+usersRouter.openapi(passwordResetRoute, async (c) => {
+  const { userId } = c.req.valid("param")
+  const { profile } = createRepos(c.env)
+
+  try {
+    const user = await profile.findById(userId)
+
+    await sendRecoveryEmail(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY, user.email)
+
+    return successResponse(c, { message: "パスワードリセットメールを送信しました" })
+  } catch (e) {
+    if (e instanceof DatabaseError) return notFoundError(c, "User")
+    if (e instanceof GoTrueError) return internalError(c, e.message)
     return internalError(c, e instanceof Error ? e.message : "Unknown error")
   }
 })
