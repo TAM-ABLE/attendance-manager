@@ -1,6 +1,6 @@
 import { createRoute } from "@hono/zod-openapi"
 import { setCookie } from "hono/cookie"
-import { adminUpdateUser, signInWithPassword } from "../../lib/auth-helpers"
+import { adminUpdateUser, signInWithPassword, verifyJwt } from "../../lib/auth-helpers"
 import { internalError, successResponse, unauthorizedError } from "../../lib/errors"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
 import {
@@ -9,28 +9,28 @@ import {
   validationErrorResponse,
 } from "../../lib/openapi-responses"
 import {
-  firstLoginRequestSchema,
-  firstLoginResponseSchema,
+  setPasswordRequestSchema,
+  setPasswordResponseSchema,
   successResponseSchema,
 } from "../../lib/openapi-schemas"
 import type { Env } from "../../types/env"
 
 import { ACCESS_TOKEN_MAX_AGE } from "./constants"
 
-const firstLoginRouter = createOpenAPIHono<{ Bindings: Env }>()
+const setPasswordRouter = createOpenAPIHono<{ Bindings: Env }>()
 
-const firstLoginRoute = createRoute({
+const setPasswordRoute = createRoute({
   method: "post",
   path: "/",
   tags: ["認証"],
   security: [],
-  summary: "初回ログイン（パスワード変更）",
-  description: "初期パスワードで認証後、新しいパスワードに変更し、新パスワードでログインします。",
+  summary: "パスワード設定（招待メールから）",
+  description: "招待メールのトークンを使用してパスワードを設定し、ログインします。",
   request: {
     body: {
       content: {
         "application/json": {
-          schema: firstLoginRequestSchema,
+          schema: setPasswordRequestSchema,
         },
       },
       required: true,
@@ -38,8 +38,8 @@ const firstLoginRoute = createRoute({
   },
   responses: {
     200: {
-      content: { "application/json": { schema: successResponseSchema(firstLoginResponseSchema) } },
-      description: "パスワード変更・ログイン成功",
+      content: { "application/json": { schema: successResponseSchema(setPasswordResponseSchema) } },
+      description: "パスワード設定・ログイン成功",
     },
     400: validationErrorResponse,
     401: unauthorizedResponse,
@@ -47,42 +47,33 @@ const firstLoginRoute = createRoute({
   },
 })
 
-type SignInResult = Awaited<ReturnType<typeof signInWithPassword>>
+setPasswordRouter.openapi(setPasswordRoute, async (c) => {
+  const { accessToken, newPassword } = c.req.valid("json")
 
-firstLoginRouter.openapi(firstLoginRoute, async (c) => {
-  const { email, currentPassword, newPassword } = c.req.valid("json")
-
-  // 1. Verify current password
-  let currentAuth: SignInResult
+  // 1. Verify the invite token to get userId and email
+  let userId: string
+  let email: string
   try {
-    currentAuth = await signInWithPassword(
-      c.env.SUPABASE_URL,
-      c.env.SUPABASE_SERVICE_ROLE_KEY,
-      email,
-      currentPassword,
-    )
+    const payload = await verifyJwt(accessToken, c.env.JWT_SECRET)
+    userId = payload.sub
+    email = payload.email
   } catch {
-    return unauthorizedError(c, "現在のパスワードが正しくありません")
+    return unauthorizedError(c, "招待リンクが無効または期限切れです")
   }
 
-  // 2. Update password + mark as changed via Admin API (single request)
+  // 2. Update password + mark as changed via Admin API
   try {
-    await adminUpdateUser(
-      c.env.SUPABASE_URL,
-      c.env.SUPABASE_SERVICE_ROLE_KEY,
-      currentAuth.user.id,
-      {
-        password: newPassword,
-        user_metadata: { password_changed: true },
-      },
-    )
+    await adminUpdateUser(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY, userId, {
+      password: newPassword,
+      user_metadata: { password_changed: true },
+    })
   } catch (err) {
     console.error("Password update error:", err instanceof Error ? err.message : err)
-    return internalError(c, "Failed to update password")
+    return internalError(c, "パスワードの設定に失敗しました")
   }
 
-  // 3. Re-authenticate with new password
-  let newAuth: SignInResult
+  // 3. Re-authenticate with new password to get session
+  let newAuth: Awaited<ReturnType<typeof signInWithPassword>>
   try {
     newAuth = await signInWithPassword(
       c.env.SUPABASE_URL,
@@ -92,7 +83,7 @@ firstLoginRouter.openapi(firstLoginRoute, async (c) => {
     )
   } catch (err) {
     console.error("Re-auth error:", err instanceof Error ? err.message : err)
-    return internalError(c, "Failed to re-authenticate after password change")
+    return internalError(c, "パスワード設定後の認証に失敗しました")
   }
 
   // 4. Set cookie
@@ -115,4 +106,4 @@ firstLoginRouter.openapi(firstLoginRoute, async (c) => {
   })
 })
 
-export default firstLoginRouter
+export default setPasswordRouter

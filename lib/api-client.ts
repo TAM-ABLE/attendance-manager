@@ -108,19 +108,15 @@ export async function login(email: string, password: string): Promise<LoginResul
 }
 
 /**
- * 初回ログイン（パスワード変更 + ログイン）
- * 初期パスワードで認証後、新パスワードに変更してログイン
+ * パスワード設定（招待メールのトークンを使用）
+ * トークンで認証後、新パスワードを設定してログイン
  */
-export async function firstLogin(
-  email: string,
-  currentPassword: string,
-  newPassword: string,
-): Promise<LoginResult> {
+export async function setPassword(accessToken: string, newPassword: string): Promise<LoginResult> {
   try {
-    const res = await fetch("/api/auth/first-login", {
+    const res = await fetch("/api/auth/set-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, currentPassword, newPassword }),
+      body: JSON.stringify({ accessToken, newPassword }),
     })
 
     const json = await res.json()
@@ -128,14 +124,14 @@ export async function firstLogin(
     if (!res.ok || !json.success) {
       return {
         success: false,
-        error: json.error?.message ?? "パスワード変更に失敗しました",
+        error: json.error?.message ?? "パスワード設定に失敗しました",
       }
     }
 
     return { success: true }
   } catch (err) {
-    console.error("First login error:", err)
-    return { success: false, error: "パスワード変更に失敗しました" }
+    console.error("Set password error:", err)
+    return { success: false, error: "パスワード設定に失敗しました" }
   }
 }
 

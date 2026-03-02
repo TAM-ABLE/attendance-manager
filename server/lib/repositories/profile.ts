@@ -36,7 +36,9 @@ export class ProfileRepository {
       .select({
         id: profiles.id,
         name: profiles.name,
+        email: profiles.email,
         employeeNumber: profiles.employeeNumber,
+        role: profiles.role,
       })
       .from(profiles)
       .where(eq(profiles.id, userId))
