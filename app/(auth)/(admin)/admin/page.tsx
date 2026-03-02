@@ -42,7 +42,7 @@ export default async function AdminPage() {
           </TabsTrigger>
           <TabsTrigger value="reports" className="text-xs sm:text-sm">
             <FileText className="h-4 w-4 mr-1 sm:mr-2" />
-            本日の日報
+            提出された日報
           </TabsTrigger>
           <TabsTrigger value="settings" className="text-xs sm:text-sm">
             通知設定
