@@ -1,13 +1,14 @@
 "use client"
 
 import dynamic from "next/dynamic"
-import { useCallback, useRef, useState } from "react"
+import { useRef } from "react"
 import useSWR from "swr"
 import { MonthNavigator } from "@/components/MonthNavigator"
 import { UserMonthlyAttendance } from "@/components/UserMonthlyAttendance"
 import { Card, CardContent } from "@/components/ui/card"
+import { useMonthNavigation } from "@/hooks/useMonthNavigation"
 import { getMonth } from "@/lib/api-services/attendance"
-import { withRetry } from "@/lib/auth/with-retry"
+import { withRetryFetcher } from "@/lib/auth/with-retry"
 import { SWR_KEYS } from "@/lib/swr-keys"
 import { formatYearMonthFromDate } from "@/lib/time"
 import type { AttendanceRecord } from "@/types/Attendance"
@@ -28,7 +29,7 @@ type EditAttendanceClientProps = {
 }
 
 export function EditAttendanceClient({ user, initialData }: EditAttendanceClientProps) {
-  const [currentMonth, setCurrentMonth] = useState(new Date())
+  const { currentMonth, handlePrevMonth, handleNextMonth, handleToday } = useMonthNavigation()
 
   const yearMonth = formatYearMonthFromDate(currentMonth)
   const year = currentMonth.getFullYear()
@@ -39,42 +40,14 @@ export function EditAttendanceClient({ user, initialData }: EditAttendanceClient
 
   const { data: monthData, mutate } = useSWR(
     SWR_KEYS.attendanceMonth(yearMonth),
-    async () => {
-      const result = await withRetry(() => getMonth(year, month))
-      if (result.success) {
-        return result.data
-      }
-      throw new Error(result.error.message)
-    },
+    () => withRetryFetcher(() => getMonth(year, month)),
     {
       fallbackData: isInitialMonth ? initialData?.attendanceData : undefined,
       revalidateOnMount: !isInitialMonth || !initialData,
-      revalidateOnFocus: false,
-      dedupingInterval: 60000,
     },
   )
 
   const editDialog = useEditDialog(() => mutate())
-
-  const handlePrevMonth = useCallback(() => {
-    setCurrentMonth((prev) => {
-      const d = new Date(prev)
-      d.setMonth(prev.getMonth() - 1)
-      return d
-    })
-  }, [])
-
-  const handleNextMonth = useCallback(() => {
-    setCurrentMonth((prev) => {
-      const d = new Date(prev)
-      d.setMonth(prev.getMonth() + 1)
-      return d
-    })
-  }, [])
-
-  const handleToday = useCallback(() => {
-    setCurrentMonth(new Date())
-  }, [])
 
   return (
     <div className="space-y-4 sm:space-y-6">

@@ -8,11 +8,11 @@ import type { Break, WorkSession } from "../types/Attendance"
  * @param breaks 休憩一覧
  * @param options.now 進行中の休憩終了時刻として使う現在時刻（省略時は終了していない休憩は0として扱う）
  */
-export function calculateBreakMs(breaks: Break[], options?: { now?: number }): number {
+function calculateBreakMs(breaks: Break[], options?: { now?: number }): number {
   return breaks.reduce((sum, b) => {
-    if (!b.start) return sum
+    if (b.start == null) return sum
     // 終了していない休憩
-    if (!b.end) {
+    if (b.end == null) {
       // now が指定されていれば進行中として計算
       if (options?.now) {
         return sum + (options.now - b.start)
@@ -61,7 +61,7 @@ export function calculateActiveSession(
   const totalMs = now - session.clockIn
 
   const breakMs = session.breaks.reduce((sum, b) => {
-    if (!b.start) return sum
+    if (b.start == null) return sum
     const breakEnd = b.end != null ? b.end : onBreak ? now : b.start
     return sum + (breakEnd - b.start)
   }, 0)

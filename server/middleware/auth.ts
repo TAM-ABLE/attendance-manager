@@ -1,6 +1,6 @@
 import type { Context, Next } from "hono"
 import { getCookie } from "hono/cookie"
-import { verifyJwt } from "../lib/auth-helpers"
+import { extractBearerToken, verifyJwt } from "../lib/auth-helpers"
 import { forbiddenError, unauthorizedError } from "../lib/errors"
 import type { Env } from "../types/env"
 
@@ -11,13 +11,6 @@ export type JwtPayload = {
 
 export type AuthVariables = {
   jwtPayload: JwtPayload
-}
-
-function extractBearerToken(authHeader: string | undefined): string | null {
-  if (!authHeader?.startsWith("Bearer ")) {
-    return null
-  }
-  return authHeader.slice(7)
 }
 
 export const authMiddleware = async (
@@ -53,6 +46,10 @@ export const adminMiddleware = async (
   next: Next,
 ) => {
   const payload = c.get("jwtPayload")
+
+  if (!payload) {
+    return unauthorizedError(c, "Not authenticated")
+  }
 
   if (payload.role !== "admin") {
     return forbiddenError(c, "Admin access required")

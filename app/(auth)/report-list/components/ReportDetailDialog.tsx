@@ -1,12 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import useSWR from "swr"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { getDailyReportDetail } from "@/lib/api-services/daily-reports"
-import { withRetry } from "@/lib/auth/with-retry"
-import type { DailyReport } from "@/types/DailyReport"
+import { withRetryFetcher } from "@/lib/auth/with-retry"
+import { SWR_KEYS } from "@/lib/swr-keys"
+import { formatReportDateLong, getStatusDisplay } from "../lib/format"
 
 interface ReportDetailDialogProps {
   open: boolean
@@ -14,54 +15,13 @@ interface ReportDetailDialogProps {
   onClose: () => void
 }
 
-function getStatusDisplay(submittedAt: number | null): {
-  label: string
-  variant: "default" | "secondary"
-} {
-  return submittedAt !== null
-    ? { label: "提出済", variant: "default" }
-    : { label: "下書き", variant: "secondary" }
-}
-
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr)
-  const weekdays = ["日", "月", "火", "水", "木", "金", "土"]
-  const year = date.getFullYear()
-  const month = date.getMonth() + 1
-  const day = date.getDate()
-  const weekday = weekdays[date.getDay()]
-  return `${year}年${month}月${day}日 (${weekday})`
-}
-
 export function ReportDetailDialog({ open, reportId, onClose }: ReportDetailDialogProps) {
-  const [report, setReport] = useState<DailyReport | null>(null)
-  const [isLoading, setIsLoading] = useState(false)
+  const validId = reportId && reportId.trim() !== "" ? reportId : null
 
-  useEffect(() => {
-    // reportIdが空文字や無効な値の場合はAPIを呼び出さない
-    if (open && reportId && reportId.trim() !== "") {
-      const fetchReport = async () => {
-        setIsLoading(true)
-        try {
-          const result = await withRetry(() => getDailyReportDetail(reportId))
-          if (result.success) {
-            setReport(result.data)
-          } else {
-            console.error("Failed to fetch report detail:", result.error.message)
-            setReport(null)
-          }
-        } catch (err) {
-          console.error("Failed to fetch report detail:", err)
-          setReport(null)
-        } finally {
-          setIsLoading(false)
-        }
-      }
-      fetchReport()
-    } else {
-      setReport(null)
-    }
-  }, [open, reportId])
+  const { data: report, isLoading } = useSWR(
+    open && validId ? SWR_KEYS.reportDetail(validId) : null,
+    () => withRetryFetcher(() => getDailyReportDetail(validId!)),
+  )
 
   const status = report ? getStatusDisplay(report.submittedAt) : null
 
@@ -88,7 +48,7 @@ export function ReportDetailDialog({ open, reportId, onClose }: ReportDetailDial
         {!isLoading && report && (
           <div className="space-y-4">
             {/* 日付 */}
-            <div className="text-lg font-semibold">{formatDate(report.date)}</div>
+            <div className="text-lg font-semibold">{formatReportDateLong(report.date)}</div>
 
             <div className="border-t my-2" />
 

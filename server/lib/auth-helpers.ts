@@ -1,5 +1,12 @@
 import * as jose from "jose"
 
+export function extractBearerToken(authHeader: string | undefined): string | null {
+  if (!authHeader?.startsWith("Bearer ")) {
+    return null
+  }
+  return authHeader.slice(7)
+}
+
 export interface JwtPayloadResult {
   sub: string
   role: "admin" | "user"
@@ -94,20 +101,22 @@ export async function signInWithPassword(
   return res.json() as Promise<GoTrueTokenResponse>
 }
 
-export async function adminUpdateUser(
+async function goTrueAdminRequest<T = void>(
   supabaseUrl: string,
   serviceRoleKey: string,
-  userId: string,
-  params: { email?: string; password?: string; user_metadata?: Record<string, unknown> },
-): Promise<void> {
-  const res = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
-    method: "PUT",
+  path: string,
+  method: string,
+  body: unknown,
+  defaultErrorMessage: string,
+): Promise<T> {
+  const res = await fetch(`${supabaseUrl}/auth/v1${path}`, {
+    method,
     headers: {
       "Content-Type": "application/json",
       apikey: serviceRoleKey,
       Authorization: `Bearer ${serviceRoleKey}`,
     },
-    body: JSON.stringify(params),
+    body: JSON.stringify(body),
   })
 
   if (!res.ok) {
@@ -116,9 +125,28 @@ export async function adminUpdateUser(
       message?: string
       error_description?: string
     }
-    const msg = error.msg || error.message || error.error_description || "User update failed"
+    const msg = error.msg || error.message || error.error_description || defaultErrorMessage
     throw new GoTrueError(msg, res.status)
   }
+
+  const text = await res.text()
+  return text ? (JSON.parse(text) as T) : (undefined as T)
+}
+
+export async function adminUpdateUser(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  userId: string,
+  params: { email?: string; password?: string; user_metadata?: Record<string, unknown> },
+): Promise<void> {
+  await goTrueAdminRequest(
+    supabaseUrl,
+    serviceRoleKey,
+    `/admin/users/${userId}`,
+    "PUT",
+    params,
+    "User update failed",
+  )
 }
 
 export async function adminCreateUser(
@@ -131,20 +159,12 @@ export async function adminCreateUser(
     user_metadata: Record<string, unknown>
   },
 ): Promise<GoTrueUser> {
-  const res = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
-    },
-    body: JSON.stringify(params),
-  })
-
-  if (!res.ok) {
-    const error = (await res.json()) as { msg?: string }
-    throw new Error(error.msg || "User creation failed")
-  }
-
-  return res.json() as Promise<GoTrueUser>
+  return goTrueAdminRequest<GoTrueUser>(
+    supabaseUrl,
+    serviceRoleKey,
+    "/admin/users",
+    "POST",
+    params,
+    "User creation failed",
+  )
 }

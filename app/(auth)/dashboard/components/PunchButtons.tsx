@@ -1,6 +1,7 @@
 "use client"
 
 import { Clock, Coffee, LogIn, LogOut, Pause, Play } from "lucide-react"
+import { memo } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 
@@ -16,7 +17,7 @@ interface Props {
   sessionCount: number
 }
 
-export function PunchButtons({
+export const PunchButtons = memo(function PunchButtons({
   onClockIn,
   onClockOut,
   onBreakStart,
@@ -113,4 +114,4 @@ export function PunchButtons({
       </div>
     </div>
   )
-}
+})

@@ -13,29 +13,12 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import type { DailyReportListItem } from "@/types/DailyReport"
+import { formatReportDate, getStatusDisplay } from "../lib/format"
 
 interface ReportTableProps {
   reports: DailyReportListItem[]
   isLoading: boolean
   onViewDetail: (reportId: string) => void
-}
-
-function getStatusDisplay(submittedAt: number | null): {
-  label: string
-  variant: "default" | "secondary"
-} {
-  return submittedAt !== null
-    ? { label: "提出済", variant: "default" }
-    : { label: "下書き", variant: "secondary" }
-}
-
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr)
-  const weekdays = ["日", "月", "火", "水", "木", "金", "土"]
-  const month = date.getMonth() + 1
-  const day = date.getDate()
-  const weekday = weekdays[date.getDay()]
-  return `${month}/${day} (${weekday})`
 }
 
 function formatSubmittedAt(timestamp: number | null): string {
@@ -92,9 +75,16 @@ export function ReportTable({ reports, isLoading, onViewDetail }: ReportTablePro
               {reports.map((report) => {
                 const status = getStatusDisplay(report.submittedAt)
                 return (
-                  <TableRow key={report.id}>
+                  <TableRow
+                    key={report.id}
+                    className={
+                      report.hasIssues
+                        ? "bg-[oklch(0.704_0.191_22.216/0.15)] hover:bg-[oklch(0.704_0.191_22.216/0.25)]"
+                        : ""
+                    }
+                  >
                     <TableCell className="font-medium text-xs sm:text-sm">
-                      {formatDate(report.date)}
+                      {formatReportDate(report.date)}
                     </TableCell>
                     <TableCell>
                       <Badge variant={status.variant} className="text-xs">

@@ -1,12 +1,12 @@
 import { createRoute } from "@hono/zod-openapi"
 import { todayJSTString } from "@/lib/time"
-import { databaseError, successResponse, validationError } from "../../lib/errors"
+import { databaseError, handleRouteError, successResponse, validationError } from "../../lib/errors"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
+import { serverErrorResponse, validationErrorResponse } from "../../lib/openapi-responses"
 import {
   clockInRequestSchema,
   clockOutRequestSchema,
   clockResponseSchema,
-  errorResponseSchema,
   successResponseSchema,
   type Task,
 } from "../../lib/openapi-schemas"
@@ -36,29 +36,11 @@ const clockInRoute = createRoute({
   },
   responses: {
     200: {
-      content: {
-        "application/json": {
-          schema: successResponseSchema(clockResponseSchema),
-        },
-      },
+      content: { "application/json": { schema: successResponseSchema(clockResponseSchema) } },
       description: "出勤成功",
     },
-    400: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "バリデーションエラー",
-    },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    400: validationErrorResponse,
+    500: serverErrorResponse,
   },
 })
 
@@ -100,20 +82,23 @@ clockRouter.openapi(clockInRoute, async (c) => {
     }
 
     const slackConfig = getSlackConfig(c.env)
-    const slackResult = await sendClockInNotification(slackConfig, userName, plannedTasks)
-
-    if (slackResult.ts) {
-      try {
-        await repos.workSession.updateSlackTs(session.id, slackResult.ts)
-      } catch (e) {
-        console.error("Failed to save slack_clock_in_ts:", e)
-      }
+    if (slackConfig) {
+      sendClockInNotification(slackConfig, userName, plannedTasks)
+        .then((slackResult) => {
+          if (slackResult.ts) {
+            repos.workSession.updateSlackTs(session.id, slackResult.ts).catch((e) => {
+              console.error("Failed to save slack_clock_in_ts:", e)
+            })
+          }
+        })
+        .catch((e) => {
+          console.error("Failed to send clock-in Slack notification:", e)
+        })
     }
 
-    return successResponse(c, { slack_ts: slackResult.ts })
+    return successResponse(c, {})
   } catch (e) {
-    if (e instanceof DatabaseError) return databaseError(c, e.message)
-    throw e
+    return handleRouteError(c, e)
   }
 })
 
@@ -136,29 +121,11 @@ const clockOutRoute = createRoute({
   },
   responses: {
     200: {
-      content: {
-        "application/json": {
-          schema: successResponseSchema(clockResponseSchema),
-        },
-      },
+      content: { "application/json": { schema: successResponseSchema(clockResponseSchema) } },
       description: "退勤成功",
     },
-    400: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "バリデーションエラー",
-    },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    400: validationErrorResponse,
+    500: serverErrorResponse,
   },
 })
 
@@ -218,17 +185,20 @@ clockRouter.openapi(clockOutRoute, async (c) => {
     }
 
     const slackConfig = getSlackConfig(c.env)
-    const slackResult = await sendClockOutNotification(slackConfig, userName, actualTasks, {
-      summary,
-      issues,
-      notes,
-      threadTs: session.slack_clock_in_ts ?? undefined,
-    })
+    if (slackConfig) {
+      sendClockOutNotification(slackConfig, userName, actualTasks, {
+        summary,
+        issues,
+        notes,
+        threadTs: session.slackClockInTs ?? undefined,
+      }).catch((e) => {
+        console.error("Failed to send clock-out Slack notification:", e)
+      })
+    }
 
-    return successResponse(c, { slack_ts: slackResult.ts })
+    return successResponse(c, {})
   } catch (e) {
-    if (e instanceof DatabaseError) return databaseError(c, e.message)
-    throw e
+    return handleRouteError(c, e)
   }
 })
 

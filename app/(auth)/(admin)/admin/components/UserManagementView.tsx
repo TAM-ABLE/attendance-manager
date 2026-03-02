@@ -26,6 +26,7 @@ import {
 import type { User as UserType } from "@/types/Attendance"
 import { useCreateUser } from "../hooks/useCreateUser"
 import { useEditUser } from "../hooks/useEditUser"
+import { useUserFormDialog } from "../hooks/useUserFormDialog"
 import { useUsers } from "../hooks/useUsers"
 
 type UserManagementViewProps = {
@@ -73,48 +74,26 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
   })
 
   // ===== 編集ダイアログ =====
+  const editDialog = useUserFormDialog()
   const {
     submit: editSubmit,
     loading: editLoading,
     error: editError,
     clearError: clearEditError,
   } = useEditUser(() => {
-    setEditDialogOpen(false)
+    editDialog.handleOpenChange(false)
     refetch()
   })
 
-  const [editDialogOpen, setEditDialogOpen] = useState(false)
-  const [editTarget, setEditTarget] = useState<UserType | null>(null)
-  const [editLastName, setEditLastName] = useState("")
-  const [editFirstName, setEditFirstName] = useState("")
-  const [editEmail, setEditEmail] = useState("")
-
-  const openEditDialog = (user: UserType) => {
-    const [last, ...rest] = user.name.split(" ")
-    setEditLastName(last)
-    setEditFirstName(rest.join(" "))
-    setEditEmail(user.email)
-    setEditTarget(user)
-    clearEditError()
-    setEditDialogOpen(true)
-  }
-
   const handleEditOpenChange = (open: boolean) => {
-    setEditDialogOpen(open)
-    if (!open) {
-      setEditTarget(null)
-      clearEditError()
-    }
+    editDialog.handleOpenChange(open)
+    if (!open) clearEditError()
   }
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!editTarget) return
-    await editSubmit(editTarget.id, {
-      lastName: editLastName,
-      firstName: editFirstName,
-      email: editEmail,
-    })
+    if (!editDialog.target) return
+    await editSubmit(editDialog.target.id, editDialog.form)
   }
 
   // ===== 新規登録ダイアログ =====
@@ -262,7 +241,7 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
                       <Button
                         size="sm"
                         className="h-7 px-2 sm:px-3 bg-primary text-primary-foreground hover:bg-primary/90"
-                        onClick={() => openEditDialog(user)}
+                        onClick={() => editDialog.openDialog(user)}
                       >
                         <Edit className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                         <span className="hidden sm:inline">編集</span>
@@ -276,17 +255,17 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
         </CardContent>
       </Card>
 
-      <Dialog open={editDialogOpen} onOpenChange={handleEditOpenChange}>
+      <Dialog open={editDialog.open} onOpenChange={handleEditOpenChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>ユーザー情報編集</DialogTitle>
             <DialogDescription>社員番号は変更できません。</DialogDescription>
           </DialogHeader>
-          {editTarget && (
+          {editDialog.target && (
             <form onSubmit={handleEditSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label>社員番号</Label>
-                <Input value={editTarget.employeeNumber} disabled className="font-mono" />
+                <Input value={editDialog.target.employeeNumber} disabled className="font-mono" />
               </div>
 
               <div className="space-y-2">
@@ -297,8 +276,8 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
                     <Input
                       type="text"
                       placeholder="姓"
-                      value={editLastName}
-                      onChange={(e) => setEditLastName(e.target.value)}
+                      value={editDialog.form.lastName}
+                      onChange={(e) => editDialog.updateField("lastName", e.target.value)}
                       className="pl-10"
                       required
                     />
@@ -306,8 +285,8 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
                   <Input
                     type="text"
                     placeholder="名"
-                    value={editFirstName}
-                    onChange={(e) => setEditFirstName(e.target.value)}
+                    value={editDialog.form.firstName}
+                    onChange={(e) => editDialog.updateField("firstName", e.target.value)}
                     className="flex-1"
                     required
                   />
@@ -321,8 +300,8 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
                   <Input
                     type="email"
                     placeholder="user@example.com"
-                    value={editEmail}
-                    onChange={(e) => setEditEmail(e.target.value)}
+                    value={editDialog.form.email}
+                    onChange={(e) => editDialog.updateField("email", e.target.value)}
                     className="pl-10"
                     required
                   />

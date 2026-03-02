@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, like, ne } from "drizzle-orm"
 import type { Db } from "../../db"
 import { profiles } from "../../db/schema"
-import { DatabaseError } from "./attendance"
+import { DatabaseError } from "./errors"
 
 export class ProfileRepository {
   constructor(private db: Db) {}
@@ -12,7 +12,7 @@ export class ProfileRepository {
         id: profiles.id,
         name: profiles.name,
         email: profiles.email,
-        employee_number: profiles.employeeNumber,
+        employeeNumber: profiles.employeeNumber,
         role: profiles.role,
       })
       .from(profiles)
@@ -24,7 +24,7 @@ export class ProfileRepository {
       .select({
         id: profiles.id,
         name: profiles.name,
-        employee_number: profiles.employeeNumber,
+        employeeNumber: profiles.employeeNumber,
       })
       .from(profiles)
       .where(ne(profiles.role, "admin"))
@@ -36,7 +36,7 @@ export class ProfileRepository {
       .select({
         id: profiles.id,
         name: profiles.name,
-        employee_number: profiles.employeeNumber,
+        employeeNumber: profiles.employeeNumber,
       })
       .from(profiles)
       .where(eq(profiles.id, userId))
@@ -73,7 +73,7 @@ export class ProfileRepository {
         id: profiles.id,
         name: profiles.name,
         email: profiles.email,
-        employee_number: profiles.employeeNumber,
+        employeeNumber: profiles.employeeNumber,
         role: profiles.role,
       })
 
@@ -86,12 +86,12 @@ export class ProfileRepository {
 
   async findMaxEmployeeNumber(): Promise<string | null> {
     const result = await this.db
-      .select({ employee_number: profiles.employeeNumber })
+      .select({ employeeNumber: profiles.employeeNumber })
       .from(profiles)
       .where(like(profiles.employeeNumber, "A-%"))
       .orderBy(desc(profiles.employeeNumber))
       .limit(1)
 
-    return result[0]?.employee_number ?? null
+    return result[0]?.employeeNumber ?? null
   }
 }

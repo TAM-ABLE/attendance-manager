@@ -6,9 +6,7 @@ import {
   DATE_REGEX,
   MAX_TASK_HOURS,
   MAX_TASK_NAME_LENGTH,
-  MAX_TEXT_FIELD_LENGTH,
   MIN_TASK_HOURS,
-  TIME_REGEX,
   YEAR_MONTH_REGEX,
 } from "./constants"
 
@@ -21,9 +19,6 @@ export const dateSchema = z.string().regex(DATE_REGEX, "Invalid date format (YYY
 export const yearMonthSchema = z
   .string()
   .regex(YEAR_MONTH_REGEX, "Invalid year-month format (YYYY-MM)")
-
-/** HH:MM形式の時刻文字列 */
-export const timeSchema = z.string().regex(TIME_REGEX, "Invalid time format (HH:MM)")
 
 /** 正のタイムスタンプ（ミリ秒） */
 export const timestampSchema = z.number().positive("Timestamp must be positive")
@@ -64,29 +59,6 @@ export const workSessionSchema = z.object({
 
 export type WorkSession = z.infer<typeof workSessionSchema>
 
-/** 勤務セッション（更新用） - clockIn/clockOut の前後関係をバリデーション */
-export const workSessionUpdateSchema = z
-  .object({
-    id: uuidSchema.optional(),
-    clockIn: timestampSchema.nullable().optional(),
-    clockOut: timestampSchema.nullable().optional(),
-    breaks: z
-      .array(breakSchema.extend({ id: uuidSchema.optional() }))
-      .optional()
-      .default([]),
-  })
-  .refine(
-    (data) => {
-      if (data.clockIn && data.clockOut) {
-        return data.clockOut > data.clockIn
-      }
-      return true
-    },
-    { message: "clockOut must be after clockIn" },
-  )
-
-export type WorkSessionUpdate = z.infer<typeof workSessionUpdateSchema>
-
 // ===== 勤怠記録関連 =====
 
 /** 勤怠記録 - shared/types/Attendance.ts の AttendanceRecord 型に対応 */
@@ -102,9 +74,7 @@ export type AttendanceRecord = z.infer<typeof attendanceRecordSchema>
 // ===== 日報関連 =====
 
 /** タスク種別 */
-export const taskTypeSchema = z.enum(["planned", "actual"])
-
-export type TaskType = z.infer<typeof taskTypeSchema>
+const taskTypeSchema = z.enum(["planned", "actual"])
 
 /** 日報タスク - shared/types/DailyReport.ts の DailyReportTask 型に対応 */
 export const dailyReportTaskSchema = z.object({
@@ -144,6 +114,7 @@ export const dailyReportListItemSchema = z.object({
   submittedAt: z.number().nullable(),
   plannedTaskCount: z.number(),
   actualTaskCount: z.number(),
+  hasIssues: z.boolean(),
 })
 
 export type DailyReportListItem = z.infer<typeof dailyReportListItemSchema>
@@ -156,9 +127,6 @@ export const userForSelectSchema = z.object({
 })
 
 export type UserForSelect = z.infer<typeof userForSelectSchema>
-
-/** 日報テキストフィールド（summary, issues, notes）*/
-export const reportTextFieldSchema = z.string().max(MAX_TEXT_FIELD_LENGTH).nullable()
 
 // ===== ユーザー関連 =====
 
