@@ -137,6 +137,7 @@ export const userSchema = z.object({
   email: z.string().email(),
   employeeNumber: z.string().min(1),
   role: z.enum(["admin", "user"]),
+  passwordChanged: z.boolean(),
 })
 
 export type User = z.infer<typeof userSchema>

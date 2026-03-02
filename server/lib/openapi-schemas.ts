@@ -136,17 +136,12 @@ export const authResponseSchema = z
 
 export const loginResponseSchema = authResponseSchema
 
-// ===== 初回ログイン =====
+// ===== パスワード設定（招待メールからのトークンベース） =====
 
-export const firstLoginRequestSchema = z
+export const setPasswordRequestSchema = z
   .object({
-    email: z.email().openapi({
-      description: "メールアドレス",
-      example: "user@example.com",
-    }),
-    currentPassword: z.string().min(1).openapi({
-      description: "現在のパスワード（管理者から受け取った初期パスワード）",
-      example: "initialPass123",
+    accessToken: z.string().min(1).openapi({
+      description: "招待メールのリンクに含まれるアクセストークン",
     }),
     newPassword: z
       .string()
@@ -158,9 +153,9 @@ export const firstLoginRequestSchema = z
         example: "newPassword456",
       }),
   })
-  .openapi("FirstLoginRequest")
+  .openapi("SetPasswordRequest")
 
-export const firstLoginResponseSchema = authResponseSchema
+export const setPasswordResponseSchema = authResponseSchema
 
 // ===== 管理者ユーザー登録 =====
 
@@ -188,9 +183,6 @@ export const adminCreateUserResponseSchema = z
     email: z.email(),
     employeeNumber: z.string(),
     role: z.literal("user"),
-    initialPassword: z.string().openapi({
-      description: "自動生成された初期パスワード",
-    }),
   })
   .openapi("AdminCreateUserResponse")
 
@@ -344,3 +336,11 @@ export const dailyReportListResponseSchema = z
 export const dailyReportDetailResponseSchema = dailyReportSchema
 
 export const usersForSelectResponseSchema = z.array(userForSelectSchema).openapi("UsersForSelect")
+
+// ===== 管理者メールアクション =====
+
+export const adminEmailActionResponseSchema = z
+  .object({
+    message: z.string().openapi({ example: "招待メールを再送しました" }),
+  })
+  .openapi("AdminEmailActionResponse")
