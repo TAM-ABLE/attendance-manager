@@ -145,8 +145,8 @@ See `docs/authentication.md` for details.
 #### Component Organization
 - `components/` - Shared components (Header, Footer, Loader, SuccessDialog, SWRProvider, TimeInput, DialogWrapper, EditAttendanceDialog, MonthNavigator, ReportDetailDialog, HelpPopover)
 - `components/ui/` - shadcn/ui base components (button, dialog, card, popover, etc.)
-- `app/(auth)/[page]/components/` - Page-specific components (e.g. TaskListInput, TaskChipSelector in dashboard, DashboardHelpPopover, EditAttendanceHelpPopover, ReportListHelpPopover, AdminHelpPopover)
-- `app/(auth)/[page]/hooks/` - Page-specific custom hooks (e.g. useTaskList, useUserFormDialog)
+- `app/(auth)/[page]/components/` - Page-specific components (e.g. TaskListInput, TaskChipSelector in dashboard, DashboardHelpPopover, EditAttendanceHelpPopover, ReportListHelpPopover, AdminHelpPopover, UserTable, CreateUserDialog, EditUserDialog, EmailActionConfirmDialog, UserFormFields, ReportsTable, NotificationSettingsView)
+- `app/(auth)/[page]/hooks/` - Page-specific custom hooks (e.g. useTaskList, useEmailAction)
 
 ### Types & Domain Logic
 - `types/Attendance.ts` - Core data models (WorkSession, AttendanceRecord, DayAttendance, Break, User)
