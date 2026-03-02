@@ -35,7 +35,8 @@ const getReportsByDateRoute = createRoute({
   path: "/by-date",
   tags: ["日報"],
   summary: "指定日の提出済み日報一覧取得",
-  description: "指定日に提出された全ユーザーの日報一覧を取得します（管理者用）。日付を指定しない場合は本日の日報を返します。",
+  description:
+    "指定日に提出された全ユーザーの日報一覧を取得します（管理者用）。日付を指定しない場合は本日の日報を返します。",
   security: [{ Bearer: [] }],
   request: {
     query: z.object({

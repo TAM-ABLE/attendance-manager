@@ -18,7 +18,11 @@ export interface JwtPayloadResult {
 let jwksCache: jose.JWTVerifyGetKey | null = null
 let jwksCacheUrl: string | null = null
 
-export async function verifyJwt(token: string, secret: string, supabaseUrl?: string): Promise<JwtPayloadResult> {
+export async function verifyJwt(
+  token: string,
+  secret: string,
+  supabaseUrl?: string,
+): Promise<JwtPayloadResult> {
   // JWTヘッダーのアルゴリズムを確認
   const [headerB64] = token.split(".")
   const header = JSON.parse(Buffer.from(headerB64, "base64url").toString())

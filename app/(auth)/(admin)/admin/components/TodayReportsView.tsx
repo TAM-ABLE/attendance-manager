@@ -114,17 +114,17 @@ export function TodayReportsView({ initialReports }: TodayReportsViewProps) {
     }
   }
 
-  const renderReportsTable = (reports: DailyReportListItem[], isLoading: boolean, emptyMessage: string) => {
+  const renderReportsTable = (
+    reports: DailyReportListItem[],
+    isLoading: boolean,
+    emptyMessage: string,
+  ) => {
     if (isLoading) {
       return <div className="py-8 text-center text-muted-foreground">読み込み中...</div>
     }
 
     if (reports.length === 0) {
-      return (
-        <div className="py-8 text-center text-muted-foreground">
-          {emptyMessage}
-        </div>
-      )
+      return <div className="py-8 text-center text-muted-foreground">{emptyMessage}</div>
     }
 
     return (
@@ -160,11 +160,7 @@ export function TodayReportsView({ initialReports }: TodayReportsViewProps) {
                     {report.actualTaskCount}件
                   </TableCell>
                   <TableCell className="text-center">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleViewDetail(report.id)}
-                    >
+                    <Button variant="ghost" size="sm" onClick={() => handleViewDetail(report.id)}>
                       <Eye className="h-4 w-4" />
                     </Button>
                   </TableCell>
@@ -192,9 +188,7 @@ export function TodayReportsView({ initialReports }: TodayReportsViewProps) {
                 <FileText className="h-5 w-5" />
                 日報一覧
               </CardTitle>
-              <CardDescription className="text-xs sm:text-sm">
-                提出された日報を確認
-              </CardDescription>
+              <CardDescription className="text-xs sm:text-sm">提出された日報を確認</CardDescription>
             </div>
             <Button
               variant="outline"
@@ -218,7 +212,11 @@ export function TodayReportsView({ initialReports }: TodayReportsViewProps) {
               {renderReportsTable(todayReports, isLoadingToday, "本日提出された日報はありません")}
             </TabsContent>
             <TabsContent value="yesterday">
-              {renderReportsTable(yesterdayReports, isLoadingYesterday, "前日提出された日報はありません")}
+              {renderReportsTable(
+                yesterdayReports,
+                isLoadingYesterday,
+                "前日提出された日報はありません",
+              )}
             </TabsContent>
           </Tabs>
         </CardContent>
