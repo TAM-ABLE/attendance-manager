@@ -3,7 +3,6 @@
 import dynamic from "next/dynamic"
 import { useRef } from "react"
 import useSWR from "swr"
-import { HelpPopover } from "@/components/HelpPopover"
 import { MonthNavigator } from "@/components/MonthNavigator"
 import { UserMonthlyAttendance } from "@/components/UserMonthlyAttendance"
 import { Card, CardContent } from "@/components/ui/card"
@@ -15,6 +14,7 @@ import { formatYearMonthFromDate } from "@/lib/time"
 import type { AttendanceRecord } from "@/types/Attendance"
 import { useEditDialog } from "../hooks/useEditDialog"
 import { CloseMonthButton } from "./CloseMonthButton"
+import { EditAttendanceHelpPopover } from "./EditAttendanceHelpPopover"
 
 const EditAttendanceDialog = dynamic(
   () => import("@/components/EditAttendanceDialog").then((mod) => mod.EditAttendanceDialog),
@@ -57,29 +57,7 @@ export function EditAttendanceClient({ user, initialData }: EditAttendanceClient
           <h2 className="text-xl font-semibold">勤怠編集</h2>
           <p className="text-muted-foreground">自分の勤怠データを編集できます。</p>
         </div>
-        <HelpPopover>
-          <div className="space-y-3">
-            <h4 className="font-semibold">勤怠編集の使い方</h4>
-            <div className="space-y-2 text-muted-foreground">
-              <p>
-                <strong className="text-foreground">月の移動：</strong>
-                表示月を切り替えられます。
-              </p>
-              <p>
-                <strong className="text-foreground">勤怠の編集：</strong>
-                編集する日付の編集ボタンをクリックすると、その日の出勤・退勤時間を編集できます。
-              </p>
-              <p>
-                <strong className="text-foreground">複数回出勤：</strong>
-                1日に複数回出勤すると、出勤2・出勤3と追加されていきます。
-              </p>
-              <p>
-                <strong className="text-foreground">月次締め：</strong>
-                月初に勤怠を締めるボタンを押すと、その月の勤怠が確定されます。
-              </p>
-            </div>
-          </div>
-        </HelpPopover>
+        <EditAttendanceHelpPopover />
       </div>
 
       {/* 月移動 */}
