@@ -211,8 +211,8 @@ export function TodayReportsView({ initialReports }: TodayReportsViewProps) {
         <CardContent>
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "today" | "yesterday")}>
             <TabsList className="mb-4">
-              <TabsTrigger value="today">本日</TabsTrigger>
               <TabsTrigger value="yesterday">前日 ({formatDate(getYesterday())})</TabsTrigger>
+              <TabsTrigger value="today">本日</TabsTrigger>
             </TabsList>
             <TabsContent value="today">
               {renderReportsTable(todayReports, isLoadingToday, "本日提出された日報はありません")}
