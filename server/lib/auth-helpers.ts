@@ -126,22 +126,68 @@ export async function adminUpdateUser(
   )
 }
 
-export async function adminCreateUser(
+export async function inviteUserByEmail(
   supabaseUrl: string,
   serviceRoleKey: string,
-  params: {
-    email: string
-    password: string
-    email_confirm: boolean
-    user_metadata: Record<string, unknown>
-  },
+  email: string,
+  data: Record<string, unknown>,
 ): Promise<GoTrueUser> {
   return goTrueAdminRequest<GoTrueUser>(
     supabaseUrl,
     serviceRoleKey,
-    "/admin/users",
+    "/invite",
     "POST",
-    params,
-    "User creation failed",
+    { email, data },
+    "User invitation failed",
   )
+}
+
+interface GoTrueAdminUser {
+  id: string
+  email: string
+  user_metadata: Record<string, unknown>
+}
+
+interface GoTrueAdminListResponse {
+  users: GoTrueAdminUser[]
+}
+
+export async function goTrueAdminListUsers(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+): Promise<GoTrueAdminUser[]> {
+  const res = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
+    method: "GET",
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+    },
+  })
+
+  if (!res.ok) {
+    throw new GoTrueError("Failed to list users", res.status)
+  }
+
+  const data = (await res.json()) as GoTrueAdminListResponse
+  return data.users
+}
+
+export async function sendRecoveryEmail(
+  supabaseUrl: string,
+  apiKey: string,
+  email: string,
+): Promise<void> {
+  const res = await fetch(`${supabaseUrl}/auth/v1/recover`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      apikey: apiKey,
+    },
+    body: JSON.stringify({ email }),
+  })
+
+  if (!res.ok) {
+    const error = (await res.json()) as { msg?: string; message?: string }
+    throw new GoTrueError(error.msg || error.message || "Recovery email failed", res.status)
+  }
 }

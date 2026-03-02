@@ -45,9 +45,20 @@ export function createUser(data: { lastName: string; firstName: string; email: s
     email: string
     employeeNumber: string
     role: "user"
-    initialPassword: string
   }>("/admin/users", {
     method: "POST",
     body: data,
+  })
+}
+
+export function resendInvite(userId: string) {
+  return apiClient<{ message: string }>(`/admin/users/${userId}/resend-invite`, {
+    method: "POST",
+  })
+}
+
+export function resetPassword(userId: string) {
+  return apiClient<{ message: string }>(`/admin/users/${userId}/password-reset`, {
+    method: "POST",
   })
 }

@@ -16,7 +16,6 @@ export function useCreateUser(onSuccess: () => void) {
     name: string
     email: string
     employeeNumber: string
-    initialPassword: string
   } | null>(null)
 
   const submit = async (form: CreateUserForm) => {
@@ -27,7 +26,6 @@ export function useCreateUser(onSuccess: () => void) {
         name: result.data.name,
         email: result.data.email,
         employeeNumber: result.data.employeeNumber,
-        initialPassword: result.data.initialPassword,
       })
       onSuccess()
     }

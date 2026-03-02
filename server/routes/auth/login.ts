@@ -43,7 +43,7 @@ const loginRoute = createRoute({
     },
     400: validationErrorResponse,
     401: unauthorizedResponse,
-    403: forbiddenResponse("初回パスワード変更が未完了"),
+    403: forbiddenResponse("パスワード設定が未完了"),
   },
 })
 
@@ -58,11 +58,11 @@ loginRouter.openapi(loginRoute, async (c) => {
       password,
     )
 
-    // 初回パスワード変更が未完了の場合はログインを拒否
+    // パスワード設定が未完了の場合はログインを拒否
     if (data.user.user_metadata?.password_changed === false) {
       return forbiddenError(
         c,
-        "初回パスワード変更が必要です。「初めてお使いの方へ」からパスワードを変更してください。",
+        "パスワードの設定が完了していません。招待メールのリンクからパスワードを設定してください。",
       )
     }
 

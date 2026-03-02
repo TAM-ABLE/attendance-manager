@@ -1,16 +1,15 @@
 "use client"
 
-import { Check, Clock, Info, KeyRound, Lock, Mail, X } from "lucide-react"
-import Link from "next/link"
+import { Check, Clock, KeyRound, Loader2, X } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { usePasswordStrength } from "@/hooks/usePasswordStrength"
-import { firstLogin } from "@/lib/api-client"
+import { setPassword } from "@/lib/api-client"
 
 function PasswordCheck({ passed, label }: { passed: boolean; label: string }) {
   return (
@@ -25,10 +24,25 @@ function PasswordCheck({ passed, label }: { passed: boolean; label: string }) {
   )
 }
 
-export default function FirstLoginPage() {
+function parseHashParams(hash: string): Record<string, string> {
+  const params: Record<string, string> = {}
+  const str = hash.startsWith("#") ? hash.slice(1) : hash
+  for (const part of str.split("&")) {
+    const [key, value] = part.split("=")
+    if (key && value) {
+      params[decodeURIComponent(key)] = decodeURIComponent(value)
+    }
+  }
+  return params
+}
+
+type FlowType = "invite" | "recovery"
+
+export default function SetPasswordPage() {
   const router = useRouter()
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [accessToken, setAccessToken] = useState<string | null>(null)
+  const [flowType, setFlowType] = useState<FlowType>("invite")
+  const [tokenError, setTokenError] = useState(false)
   const [newPassword, setNewPassword] = useState("")
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("")
   const [error, setError] = useState<string | null>(null)
@@ -37,22 +51,46 @@ export default function FirstLoginPage() {
   const passwordStrength = usePasswordStrength(newPassword)
   const passwordsMatch = newPassword === newPasswordConfirm
 
+  const isRecovery = flowType === "recovery"
+
+  useEffect(() => {
+    const hash = window.location.hash
+    if (!hash) {
+      setTokenError(true)
+      return
+    }
+
+    const params = parseHashParams(hash)
+    const token = params.access_token
+    const type = params.type
+
+    if (!token || (type !== "invite" && type !== "recovery")) {
+      setTokenError(true)
+      return
+    }
+
+    setFlowType(type as FlowType)
+    setAccessToken(token)
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (!accessToken) return
+
     if (!passwordStrength.isValid) {
-      setError("新しいパスワードの要件を満たしてください。")
+      setError("パスワードの要件を満たしてください。")
       return
     }
     if (!passwordsMatch) {
-      setError("新しいパスワードが一致しません。")
+      setError("パスワードが一致しません。")
       return
     }
 
     setLoading(true)
     setError(null)
 
-    const result = await firstLogin(email, password, newPassword)
+    const result = await setPassword(accessToken, newPassword)
 
     if (result.success) {
       router.push("/dashboard")
@@ -61,7 +99,37 @@ export default function FirstLoginPage() {
     }
 
     setLoading(false)
-    setError(result.error || "パスワード変更に失敗しました。")
+    setError(result.error || "パスワード設定に失敗しました。")
+  }
+
+  if (tokenError) {
+    return (
+      <Card className="w-full max-w-md shadow-lg">
+        <CardHeader className="space-y-4 text-center">
+          <div className="flex justify-center">
+            <div className="h-16 w-16 rounded-2xl bg-destructive flex items-center justify-center">
+              <X className="h-10 w-10 text-white" />
+            </div>
+          </div>
+          <div>
+            <CardTitle>無効なリンク</CardTitle>
+            <CardDescription className="mt-2">
+              リンクが無効または期限切れです。管理者にメールの再送を依頼してください。
+            </CardDescription>
+          </div>
+        </CardHeader>
+      </Card>
+    )
+  }
+
+  if (!accessToken) {
+    return (
+      <Card className="w-full max-w-md shadow-lg">
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -74,59 +142,31 @@ export default function FirstLoginPage() {
         </div>
         <div>
           <CardTitle>勤怠管理システム</CardTitle>
-          <CardDescription className="mt-2">初回パスワード変更</CardDescription>
+          <CardDescription className="mt-2">
+            {isRecovery ? "パスワードリセット" : "パスワード設定"}
+          </CardDescription>
         </div>
       </CardHeader>
 
       <CardContent className="space-y-6">
-        <Alert className="bg-amber-50 border-amber-200">
-          <Info className="h-4 w-4 text-amber-600" />
-          <AlertDescription className="text-amber-900">
-            管理者から受け取った初期パスワードを新しいパスワードに変更します。
+        <Alert className="bg-blue-50 border-blue-200">
+          <KeyRound className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-900">
+            {isRecovery
+              ? "新しいパスワードを設定してください。設定後、自動的にログインします。"
+              : "アカウントのパスワードを設定してください。設定後、自動的にログインします。"}
           </AlertDescription>
         </Alert>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="first-email">メールアドレス</Label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="first-email"
-                type="email"
-                placeholder="your.email@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="pl-10"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="current-password">初期パスワード</Label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="current-password"
-                type="password"
-                placeholder="管理者から受け取ったパスワード"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pl-10"
-                required
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="new-password">新しいパスワード</Label>
+            <Label htmlFor="new-password">パスワード</Label>
             <div className="relative">
               <KeyRound className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="new-password"
                 type="password"
-                placeholder="••••••••"
+                placeholder="8文字以上（英字・数字を含む）"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
                 className="pl-10"
@@ -143,13 +183,13 @@ export default function FirstLoginPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="new-password-confirm">新しいパスワード（確認）</Label>
+            <Label htmlFor="new-password-confirm">パスワード（確認）</Label>
             <div className="relative">
               <KeyRound className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
                 id="new-password-confirm"
                 type="password"
-                placeholder="••••••••"
+                placeholder="もう一度入力してください"
                 value={newPasswordConfirm}
                 onChange={(e) => setNewPasswordConfirm(e.target.value)}
                 className="pl-10"
@@ -172,18 +212,13 @@ export default function FirstLoginPage() {
             size="lg"
             disabled={loading || !passwordStrength.isValid || !passwordsMatch}
           >
-            {loading ? "処理中..." : "パスワードを変更してログイン"}
+            {loading
+              ? "設定中..."
+              : isRecovery
+                ? "パスワードを再設定してログイン"
+                : "パスワードを設定してログイン"}
           </Button>
         </form>
-
-        <div className="text-center">
-          <Link
-            href="/login"
-            className="text-sm text-muted-foreground hover:text-primary hover:underline"
-          >
-            通常のログインに戻る
-          </Link>
-        </div>
       </CardContent>
     </Card>
   )
