@@ -161,6 +161,7 @@ export class DailyReportRepository {
         id: true,
         userId: true,
         date: true,
+        issues: true,
         submittedAt: true,
       },
       with: {
