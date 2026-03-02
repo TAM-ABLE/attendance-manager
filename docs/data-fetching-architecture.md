@@ -230,13 +230,21 @@ app/(auth)/
         └── admin/
             ├── page.tsx
             ├── components/
+            │   ├── UserManagementView.tsx  # ユーザー管理オーケストレーター
+            │   ├── UserTable.tsx
+            │   ├── CreateUserDialog.tsx
+            │   ├── EditUserDialog.tsx
+            │   ├── EmailActionConfirmDialog.tsx
+            │   ├── UserFormFields.tsx       # 作成・編集共通フォーム
             │   ├── MonthlyAttendanceView.tsx
-            │   └── TodayReportsView.tsx   # 本日・前日の日報一覧（自動ポーリング）
+            │   ├── TodayReportsView.tsx     # 本日・前日の日報一覧（自動ポーリング）
+            │   ├── ReportsTable.tsx          # 日報テーブル表示
+            │   └── NotificationSettingsView.tsx
             └── hooks/
                 ├── useUsers.ts
                 ├── useMonthlyAttendance.ts
                 ├── useCreateUser.ts
                 ├── useEditUser.ts
                 ├── useEditDialog.ts
-                └── useUserFormDialog.ts
+                └── useEmailAction.ts        # 招待再送・パスワードリセット統合
 ```

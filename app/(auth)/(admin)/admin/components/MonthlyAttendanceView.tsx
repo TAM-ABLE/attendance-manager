@@ -30,15 +30,10 @@ export function MonthlyAttendanceView({ initialUsers }: MonthlyAttendanceViewPro
 
   const editDialog = useEditDialog(selectedUser, refetch)
 
+  const canExportCSV = !!selectedUser && !!monthData
+
   const handleExportCSV = () => {
-    if (!selectedUser) {
-      alert("ユーザーが選択されていません。ユーザーを選択してからエクスポートしてください。")
-      return
-    }
-    if (!monthData) {
-      alert("勤怠データが読み込まれていません。しばらく待ってから再度お試しください。")
-      return
-    }
+    if (!selectedUser || !monthData) return
     exportMonthlyAttendanceCSV(monthData, selectedUser.name)
   }
 
@@ -63,6 +58,7 @@ export function MonthlyAttendanceView({ initialUsers }: MonthlyAttendanceViewPro
             <Button
               size="sm"
               onClick={handleExportCSV}
+              disabled={!canExportCSV}
               className="bg-primary text-primary-foreground hover:bg-primary/90 whitespace-nowrap"
             >
               <Download className="h-4 w-4 sm:mr-2" />
