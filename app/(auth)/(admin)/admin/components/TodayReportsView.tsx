@@ -36,7 +36,7 @@ function getYesterday(): string {
 }
 
 function formatDate(dateStr: string): string {
-  const [year, month, day] = dateStr.split("-")
+  const [, month, day] = dateStr.split("-")
   return `${month}/${day}`
 }
 
