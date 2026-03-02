@@ -7,6 +7,7 @@ import { BreakDialog } from "./BreakDialog"
 import { ClockCard } from "./ClockCard"
 import { ClockInDialog } from "./ClockInDialog"
 import { ClockOutDialog } from "./ClockOutDialog"
+import { DashboardHelpPopover } from "./DashboardHelpPopover"
 import { PunchButtons } from "./PunchButtons"
 import { SessionList } from "./SessionList"
 import { SummaryCard } from "./SummaryCard"
@@ -43,6 +44,13 @@ export function DashboardClient({ user, initialData }: DashboardClientProps) {
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold">ダッシュボード</h2>
+          <p className="text-muted-foreground">本日の勤怠を管理できます。</p>
+        </div>
+        <DashboardHelpPopover />
+      </div>
       <ClockCard />
 
       {/* 出勤・退勤ボタン */}

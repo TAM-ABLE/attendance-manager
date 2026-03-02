@@ -143,9 +143,9 @@ See `docs/authentication.md` for details.
 - `/set-password` - Token-based password setup (from invite email link) or password reset (from recovery email link)
 
 #### Component Organization
-- `components/` - Shared components (Header, Footer, Loader, SuccessDialog, SWRProvider, TimeInput, DialogWrapper, EditAttendanceDialog, MonthNavigator, ReportDetailDialog)
-- `components/ui/` - shadcn/ui base components (button, dialog, card, etc.)
-- `app/(auth)/[page]/components/` - Page-specific components (e.g. TaskListInput, TaskChipSelector in dashboard)
+- `components/` - Shared components (Header, Footer, Loader, SuccessDialog, SWRProvider, TimeInput, DialogWrapper, EditAttendanceDialog, MonthNavigator, ReportDetailDialog, HelpPopover)
+- `components/ui/` - shadcn/ui base components (button, dialog, card, popover, etc.)
+- `app/(auth)/[page]/components/` - Page-specific components (e.g. TaskListInput, TaskChipSelector in dashboard, DashboardHelpPopover, EditAttendanceHelpPopover, ReportListHelpPopover, AdminHelpPopover)
 - `app/(auth)/[page]/hooks/` - Page-specific custom hooks (e.g. useTaskList, useUserFormDialog)
 
 ### Types & Domain Logic
