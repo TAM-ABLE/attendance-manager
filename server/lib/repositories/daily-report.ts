@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, isNull, lte } from "drizzle-orm"
+import { and, asc, desc, eq, gte, isNotNull, isNull, lte } from "drizzle-orm"
 import type { Db } from "../../db"
 import { dailyReports, dailyReportTasks } from "../../db/schema"
 import { DatabaseError } from "./attendance"
@@ -118,5 +118,37 @@ export class DailyReportRepository {
         hours: t.hours != null ? Number(t.hours) : null,
       })),
     }
+  }
+
+  async findSubmittedReportsByDate(date: string) {
+    return this.db.query.dailyReports.findMany({
+      where: and(eq(dailyReports.date, date), isNotNull(dailyReports.submittedAt)),
+      orderBy: [desc(dailyReports.submittedAt)],
+      columns: {
+        id: true,
+        userId: true,
+        date: true,
+        submittedAt: true,
+      },
+      with: {
+        profile: {
+          columns: {
+            name: true,
+            employeeNumber: true,
+          },
+        },
+        tasks: {
+          columns: {
+            id: true,
+            taskType: true,
+          },
+        },
+      },
+    })
+  }
+
+  /** @deprecated Use findSubmittedReportsByDate instead */
+  async findTodaySubmittedReports(today: string) {
+    return this.findSubmittedReportsByDate(today)
   }
 }
