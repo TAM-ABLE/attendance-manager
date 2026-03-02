@@ -18,3 +18,11 @@ export function getUserMonthlyReports(userId: string, yearMonth: string) {
 export function getDailyReportDetail(reportId: string) {
   return apiClient<DailyReport>(`/daily-reports/${reportId}`)
 }
+
+export function getTodayReports() {
+  return apiClient<DailyReportListItem[]>("/daily-reports/today")
+}
+
+export function getReportsByDate(date: string) {
+  return apiClient<DailyReportListItem[]>(`/daily-reports/by-date?date=${date}`)
+}

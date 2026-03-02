@@ -1,19 +1,24 @@
 // app/(auth)/(admin)/admin/page.tsx
 
-import { CalendarDays, Users } from "lucide-react"
+import { CalendarDays, FileText, Users } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { fetchWithAuth } from "@/lib/auth/server"
 import type { User } from "@/types/Attendance"
+import type { DailyReportListItem } from "@/types/DailyReport"
 import { MonthlyAttendanceView } from "./components/MonthlyAttendanceView"
+import { TodayReportsView } from "./components/TodayReportsView"
 import { UserManagementView } from "./components/UserManagementView"
 
 export default async function AdminPage() {
   // 認証・権限チェックは(admin)/layout.tsxで実施済み
 
-  // SSCでユーザー一覧を取得
-  const users = await fetchWithAuth<User[]>("/admin/users")
+  // SSCでユーザー一覧と本日の日報を取得
+  const [users, todayReports] = await Promise.all([
+    fetchWithAuth<User[]>("/admin/users"),
+    fetchWithAuth<DailyReportListItem[]>("/daily-reports/today"),
+  ])
   const regularUsers = users?.filter((u) => u.role !== "admin")
 
   return (
@@ -26,7 +31,7 @@ export default async function AdminPage() {
       </div>
 
       <Tabs defaultValue="users" className="space-y-4 sm:space-y-6">
-        <TabsList className="grid grid-cols-3 w-full sm:max-w-lg">
+        <TabsList className="grid grid-cols-4 w-full sm:max-w-2xl">
           <TabsTrigger value="users" className="text-xs sm:text-sm">
             <Users className="h-4 w-4 mr-1 sm:mr-2" />
             ユーザー管理
@@ -34,6 +39,10 @@ export default async function AdminPage() {
           <TabsTrigger value="monthly" className="text-xs sm:text-sm">
             <CalendarDays className="h-4 w-4 mr-1 sm:mr-2" />
             月別詳細
+          </TabsTrigger>
+          <TabsTrigger value="reports" className="text-xs sm:text-sm">
+            <FileText className="h-4 w-4 mr-1 sm:mr-2" />
+            本日の日報
           </TabsTrigger>
           <TabsTrigger value="settings" className="text-xs sm:text-sm">
             通知設定
@@ -46,6 +55,10 @@ export default async function AdminPage() {
 
         <TabsContent value="monthly">
           <MonthlyAttendanceView initialUsers={regularUsers ?? undefined} />
+        </TabsContent>
+
+        <TabsContent value="reports">
+          <TodayReportsView initialReports={todayReports ?? undefined} />
         </TabsContent>
 
         <TabsContent value="settings">

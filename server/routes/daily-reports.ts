@@ -10,6 +10,7 @@ import { databaseError, notFoundError, successResponse, validationError } from "
 import { createOpenAPIHono } from "../lib/openapi-hono"
 import {
   dailyReportDetailResponseSchema,
+  dailyReportListItemSchema,
   dailyReportListResponseSchema,
   errorResponseSchema,
   successResponseSchema,
@@ -22,6 +23,151 @@ import type { AuthVariables } from "../middleware/auth"
 import type { Env } from "../types/env"
 
 const dailyReportsRouter = createOpenAPIHono<{ Bindings: Env; Variables: AuthVariables }>()
+
+// ===== 指定日の日報取得 =====
+
+const getReportsByDateRoute = createRoute({
+  method: "get",
+  path: "/by-date",
+  tags: ["日報"],
+  summary: "指定日の提出済み日報一覧取得",
+  description: "指定日に提出された全ユーザーの日報一覧を取得します（管理者用）。日付を指定しない場合は本日の日報を返します。",
+  security: [{ Bearer: [] }],
+  request: {
+    query: z.object({
+      date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional()
+        .openapi({ description: "対象日（YYYY-MM-DD形式）。省略時は本日。" }),
+    }),
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: successResponseSchema(z.array(dailyReportListItemSchema)),
+        },
+      },
+      description: "取得成功",
+    },
+    500: {
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+      description: "サーバーエラー",
+    },
+  },
+})
+
+dailyReportsRouter.openapi(getReportsByDateRoute, async (c) => {
+  const { dailyReport: dailyReportRepo } = createRepos(c.env)
+  const { date } = c.req.valid("query")
+
+  try {
+    // 日付が指定されていない場合は本日（日本時間）
+    let targetDate = date
+    if (!targetDate) {
+      const now = new Date()
+      const jstOffset = 9 * 60 * 60 * 1000
+      const jstDate = new Date(now.getTime() + jstOffset)
+      targetDate = jstDate.toISOString().split("T")[0]
+    }
+
+    const reports = await dailyReportRepo.findSubmittedReportsByDate(targetDate)
+
+    const reportList: DailyReportListItem[] = reports.map((report) => {
+      const tasks = report.tasks || []
+      const plannedCount = tasks.filter((t) => t.taskType === "planned").length
+      const actualCount = tasks.filter((t) => t.taskType === "actual").length
+
+      return {
+        id: report.id,
+        userId: report.userId,
+        userName: report.profile.name,
+        employeeNumber: report.profile.employeeNumber,
+        date: report.date,
+        submittedAt: report.submittedAt ? new Date(report.submittedAt).getTime() : null,
+        plannedTaskCount: plannedCount,
+        actualTaskCount: actualCount,
+      }
+    })
+
+    return successResponse(c, reportList)
+  } catch (e) {
+    if (e instanceof DatabaseError) return databaseError(c, e.message)
+    throw e
+  }
+})
+
+// ===== 本日の日報取得（後方互換性のため残す） =====
+
+const getTodayReportsRoute = createRoute({
+  method: "get",
+  path: "/today",
+  tags: ["日報"],
+  summary: "本日の提出済み日報一覧取得",
+  description: "本日提出された全ユーザーの日報一覧を取得します（管理者用）。",
+  security: [{ Bearer: [] }],
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: successResponseSchema(z.array(dailyReportListItemSchema)),
+        },
+      },
+      description: "取得成功",
+    },
+    500: {
+      content: {
+        "application/json": {
+          schema: errorResponseSchema,
+        },
+      },
+      description: "サーバーエラー",
+    },
+  },
+})
+
+dailyReportsRouter.openapi(getTodayReportsRoute, async (c) => {
+  const { dailyReport: dailyReportRepo } = createRepos(c.env)
+
+  try {
+    // 本日の日付を取得（日本時間）
+    const now = new Date()
+    const jstOffset = 9 * 60 * 60 * 1000
+    const jstDate = new Date(now.getTime() + jstOffset)
+    const today = jstDate.toISOString().split("T")[0]
+
+    const reports = await dailyReportRepo.findSubmittedReportsByDate(today)
+
+    const reportList: DailyReportListItem[] = reports.map((report) => {
+      const tasks = report.tasks || []
+      const plannedCount = tasks.filter((t) => t.taskType === "planned").length
+      const actualCount = tasks.filter((t) => t.taskType === "actual").length
+
+      return {
+        id: report.id,
+        userId: report.userId,
+        userName: report.profile.name,
+        employeeNumber: report.profile.employeeNumber,
+        date: report.date,
+        submittedAt: report.submittedAt ? new Date(report.submittedAt).getTime() : null,
+        plannedTaskCount: plannedCount,
+        actualTaskCount: actualCount,
+      }
+    })
+
+    return successResponse(c, reportList)
+  } catch (e) {
+    if (e instanceof DatabaseError) return databaseError(c, e.message)
+    throw e
+  }
+})
+
+// ===== ユーザー一覧取得 =====
 
 const getUsersRoute = createRoute({
   method: "get",
