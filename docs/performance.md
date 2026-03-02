@@ -161,6 +161,15 @@ const client = postgres(databaseUrl, {
 - 個別 hook での設定重複を排除
 - `revalidateOnFocus: false` により不要なバックグラウンドリクエストを防止
 
+### 管理者日報一覧の自動ポーリング
+
+`TodayReportsView` では SWR の `refreshInterval: 60_000` を設定し、60秒ごとに日報データを自動更新します。
+
+- 管理者が手動で更新ボタンを押す必要がなく、提出された日報がほぼリアルタイムに反映
+- 非アクティブなタブ（SWR キーが `null`）ではポーリングされないため、不要なリクエストは発生しない
+
+**対象ファイル**: `app/(auth)/(admin)/admin/components/TodayReportsView.tsx`
+
 ---
 
 ## 5. その他

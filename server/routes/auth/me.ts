@@ -47,7 +47,7 @@ meRouter.openapi(meRoute, async (c) => {
   }
 
   try {
-    const payload = await verifyJwt(accessToken, c.env.JWT_SECRET)
+    const payload = await verifyJwt(accessToken, c.env.JWT_SECRET, c.env.SUPABASE_URL)
 
     return successResponse(c, {
       id: payload.sub,

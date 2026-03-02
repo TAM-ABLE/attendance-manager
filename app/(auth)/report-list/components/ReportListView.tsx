@@ -12,7 +12,7 @@ import { useReportUsers } from "../hooks/useReportUsers"
 import { ReportTable } from "./ReportTable"
 
 const ReportDetailDialog = dynamic(
-  () => import("./ReportDetailDialog").then((mod) => mod.ReportDetailDialog),
+  () => import("@/components/ReportDetailDialog").then((mod) => mod.ReportDetailDialog),
   { ssr: false },
 )
 

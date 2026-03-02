@@ -24,7 +24,7 @@ pnpm tsc --noEmit     # Type check
 - `app/` - Next.js App Router pages
 - `components/` - React components (shared + ui)
 - `hooks/` - Shared custom React hooks (usePasswordStrength, useUserSelect, useDialogState, useMonthNavigation, useAsyncAction, useEditDialogBase)
-- `lib/` - Utilities (client-side + domain logic: schemas, time, calculation, constants, swr-keys, task-form, exportCsv, utils)
+- `lib/` - Utilities (client-side + domain logic: schemas, time, calculation, constants, swr-keys, task-form, exportCsv, report-format, utils)
 - `types/` - TypeScript type definitions (Attendance, DailyReport, ApiResponse)
 - `server/` - Hono API (routes, middleware, repositories)
 - `supabase/` - Supabase config, migrations, seed data, email templates
@@ -38,9 +38,9 @@ pnpm tsc --noEmit     # Type check
   - `/api/admin/users/{userId}/password-reset` - Send password reset email
   - `/api/attendance` - Attendance CRUD (clock-in/out, breaks, queries, close-month)
   - `/api/admin` - Admin operations (user management, attendance editing)
-  - `/api/daily-reports` - Daily report management
+  - `/api/daily-reports` - Daily report management (including admin by-date view)
 - Database: Drizzle ORM + postgres.js (direct TCP connection to PostgreSQL, connection pool: max 10, idle timeout 20s)
-- Auth: JWT verification via jose (local, no HTTP roundtrip) + GoTrue REST API via fetch (login, invite, password update, recovery)
+- Auth: JWT verification via jose (HS256, local, no HTTP roundtrip) + GoTrue REST API via fetch (login, invite, password update, recovery)
 - Auth middleware reads token from Authorization header or Cookie fallback
 - OpenAPI: `@hono/zod-openapi` for schema validation + API docs
 - Swagger UI: `/api/ui` (dev only, dynamic import), OpenAPI spec: `/api/doc` (dev only)
@@ -60,7 +60,7 @@ server/
 │   ├── schema.ts                 ← Drizzle table + relation definitions
 │   └── index.ts                  ← DB client singleton (postgres.js + drizzle, connection pool)
 ├── lib/
-│   ├── auth-helpers.ts           ← jose JWT verification + GoTrue REST API helpers (login, invite, update, listUsers, recovery) + extractBearerToken
+│   ├── auth-helpers.ts           ← jose JWT verification (HS256) + GoTrue REST API helpers (login, invite, update, listUsers, recovery) + extractBearerToken
 │   ├── errors.ts, formatters.ts (getFormattedSessions, formatAttendanceRecord), openapi-hono.ts
 │   ├── openapi-schemas.ts, openapi-responses.ts, sessions.ts
 │   ├── slack.ts                     ← Clock-in/out Slack notifications
@@ -117,6 +117,7 @@ See `docs/data-fetching-architecture.md` for details.
 - **Client updates (SWR)**: After user actions, SWR `mutate()` refetches via `/api/*` → Hono API
 - **No loading on initial render**: `fallbackData` in SWR prevents loading spinners
 - **SWR global config**: `SWRProvider` in auth layout sets `revalidateOnFocus: false` and `dedupingInterval: 5000`
+- **Auto-polling**: Admin today reports view uses `refreshInterval: 60_000` (60s) for automatic updates
 - **Cache-Control**: Monthly attendance and daily reports endpoints return `Cache-Control: private, max-age=60`
 
 #### Authentication Architecture
@@ -135,14 +136,14 @@ See `docs/authentication.md` for details.
 
 #### Key Pages
 - `/dashboard` - Main employee view (clock-in/out, break management, session list)
-- `/admin` - Admin view (user management, user registration, invite resend, password reset, attendance editing, CSV export, monthly close)
+- `/admin` - Admin view (user management, user registration, invite resend, password reset, attendance editing, CSV export, monthly close, today's reports)
 - `/edit-attendance` - Edit attendance sessions for a specific date (with close-month button)
 - `/report-list` - Daily reports list (all authenticated users)
 - `/login` - Authentication page
 - `/set-password` - Token-based password setup (from invite email link) or password reset (from recovery email link)
 
 #### Component Organization
-- `components/` - Shared components (Header, Footer, Loader, SuccessDialog, SWRProvider, TimeInput, DialogWrapper, EditAttendanceDialog, MonthNavigator)
+- `components/` - Shared components (Header, Footer, Loader, SuccessDialog, SWRProvider, TimeInput, DialogWrapper, EditAttendanceDialog, MonthNavigator, ReportDetailDialog)
 - `components/ui/` - shadcn/ui base components (button, dialog, card, etc.)
 - `app/(auth)/[page]/components/` - Page-specific components (e.g. TaskListInput, TaskChipSelector in dashboard)
 - `app/(auth)/[page]/hooks/` - Page-specific custom hooks (e.g. useTaskList, useUserFormDialog)

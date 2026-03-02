@@ -21,4 +21,5 @@ export const SWR_KEYS = {
   monthlyReports: (userId: string, yearMonth: string) =>
     ["monthly-reports", userId, yearMonth] as const,
   reportDetail: (reportId: string) => ["report-detail", reportId] as const,
+  reportsByDate: (date?: string) => ["reports-by-date", date ?? "today"] as const,
 } as const
