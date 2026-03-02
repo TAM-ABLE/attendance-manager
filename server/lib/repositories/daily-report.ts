@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, gte, isNotNull, isNull, lte } from "drizzle-orm"
 import type { Db } from "../../db"
 import { dailyReports, dailyReportTasks } from "../../db/schema"
-import { DatabaseError } from "./attendance"
+import { DatabaseError } from "./errors"
 
 export class DailyReportRepository {
   constructor(private db: Db) {}
@@ -66,6 +66,38 @@ export class DailyReportRepository {
     await this.db.update(dailyReports).set(updateData).where(eq(dailyReports.id, reportId))
   }
 
+  async findUnsubmittedReportWithTasks(userId: string, date: string) {
+    const result = await this.db.query.dailyReports.findFirst({
+      where: and(
+        eq(dailyReports.userId, userId),
+        eq(dailyReports.date, date),
+        isNull(dailyReports.submittedAt),
+      ),
+      orderBy: [desc(dailyReports.createdAt)],
+      with: {
+        tasks: {
+          columns: {
+            id: true,
+            taskType: true,
+            taskName: true,
+            hours: true,
+            sortOrder: true,
+          },
+        },
+      },
+    })
+
+    if (!result) return null
+
+    return {
+      ...result,
+      tasks: result.tasks.map((t) => ({
+        ...t,
+        hours: t.hours != null ? Number(t.hours) : null,
+      })),
+    }
+  }
+
   async findReportsByDateRange(userId: string, startDate: string, endDate: string) {
     return this.db.query.dailyReports.findMany({
       where: and(
@@ -78,6 +110,7 @@ export class DailyReportRepository {
         id: true,
         userId: true,
         date: true,
+        issues: true,
         submittedAt: true,
       },
       with: {

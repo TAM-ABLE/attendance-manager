@@ -127,6 +127,9 @@ JWT_SECRET=<supabase status で表示される jwt_secret>
 SLACK_BOT_TOKEN=<Slack Bot Token（任意）>
 SLACK_CHANNEL_ID=<Slack Channel ID（任意、出退勤通知用）>
 SLACK_CSV_CHANNEL_ID=<Slack Channel ID（任意、月次CSV送信用）>
+SLACK_ICON_CLOCK_IN=<出勤通知アイコンURL（任意）>
+SLACK_ICON_CLOCK_OUT=<退勤通知アイコンURL（任意）>
+SLACK_ICON_ATTENDANCE_CLOSE=<月次締め通知アイコンURL（任意）>
 ```
 
 > **Note**: ローカル Supabase のキー情報は `supabase status` で確認できます。`DATABASE_URL` はローカル Supabase の PostgreSQL に直接接続するための URL です。
@@ -139,8 +142,10 @@ pnpm dev
 
 起動後:
 - アプリ: http://localhost:3000
-- Swagger UI: http://localhost:3000/api/ui
-- OpenAPI spec: http://localhost:3000/api/doc
+- Swagger UI: http://localhost:3000/api/ui （開発環境のみ）
+- OpenAPI spec: http://localhost:3000/api/doc （開発環境のみ）
+
+> **Note**: Swagger UI と OpenAPI spec は `NODE_ENV !== "production"` の場合のみ有効です。`@hono/swagger-ui` は devDependencies に配置され、動的 import により本番バンドルから除外されます。
 
 ### その他のコマンド
 

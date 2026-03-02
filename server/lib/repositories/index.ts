@@ -14,4 +14,4 @@ export function createRepos(env: { DATABASE_URL: string }) {
   }
 }
 
-export { DatabaseError } from "./attendance"
+export { DatabaseError } from "./errors"

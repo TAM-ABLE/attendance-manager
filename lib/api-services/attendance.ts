@@ -3,7 +3,7 @@ import { formatYearMonth } from "@/lib/time"
 import type { AttendanceRecord, Task, WorkSession } from "@/types/Attendance"
 
 export function clockIn(userName: string, plannedTasks: Task[], clockInTime?: string) {
-  return apiClient<{ slack_ts?: string }>("/attendance/clock-in", {
+  return apiClient<{ slackTs?: string }>("/attendance/clock-in", {
     method: "POST",
     body: { userName, plannedTasks, clockInTime },
   })
@@ -17,7 +17,7 @@ export function clockOut(
   notes: string,
   clockOutTime?: string,
 ) {
-  return apiClient<{ slack_ts?: string }>("/attendance/clock-out", {
+  return apiClient<{ slackTs?: string }>("/attendance/clock-out", {
     method: "POST",
     body: { userName, actualTasks, summary, issues, notes, clockOutTime },
   })
@@ -39,6 +39,10 @@ export function endBreak(breakEndTime?: string) {
 
 export function getToday() {
   return apiClient<AttendanceRecord | null>("/attendance/today")
+}
+
+export function getTodayPlannedTasks() {
+  return apiClient<Task[]>("/attendance/today/planned-tasks")
 }
 
 export function getWeekTotal() {

@@ -12,18 +12,6 @@ import type { ApiResult } from "@/types/ApiResponse"
 export type DialogMode = "form" | "loading" | "success"
 
 /**
- * useDialogStateの戻り値
- */
-export interface UseDialogStateReturn {
-  mode: DialogMode
-  error: string | null
-  setMode: (mode: DialogMode) => void
-  setError: (error: string | null) => void
-  handleSubmit: <T>(submitFn: () => Promise<ApiResult<T>>) => Promise<boolean>
-  reset: () => void
-}
-
-/**
  * ダイアログの状態管理を共通化するフック
  *
  * @example
@@ -36,7 +24,7 @@ export interface UseDialogStateReturn {
  *   }
  * };
  */
-export function useDialogState(): UseDialogStateReturn {
+export function useDialogState() {
   const [mode, setMode] = useState<DialogMode>("form")
   const [error, setError] = useState<string | null>(null)
 

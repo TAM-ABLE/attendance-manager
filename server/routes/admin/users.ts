@@ -1,16 +1,22 @@
 import crypto from "node:crypto"
 import { createRoute, z } from "@hono/zod-openapi"
-import { parseYearMonth } from "@/lib/time"
+import { parseYearMonthWithRange } from "@/lib/time"
 import { adminCreateUser, adminUpdateUser } from "../../lib/auth-helpers"
 import {
   databaseError,
+  handleRouteError,
   internalError,
   notFoundError,
   successResponse,
   validationError,
 } from "../../lib/errors"
-import { formatAttendanceRecord, formatWorkSessions } from "../../lib/formatters"
+import { formatAttendanceRecord, getFormattedSessions } from "../../lib/formatters"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
+import {
+  notFoundResponse,
+  serverErrorResponse,
+  validationErrorResponse,
+} from "../../lib/openapi-responses"
 import {
   adminCreateUserRequestSchema,
   adminCreateUserResponseSchema,
@@ -18,7 +24,7 @@ import {
   adminUpdateUserResponseSchema,
   attendanceRecordSchema,
   dateSchema,
-  errorResponseSchema,
+  nullResponseSchema,
   successResponseSchema,
   updateSessionsRequestSchema,
   userListResponseSchema,
@@ -33,8 +39,6 @@ import type { Env } from "../../types/env"
 
 const usersRouter = createOpenAPIHono<{ Bindings: Env; Variables: AuthVariables }>()
 
-const nullResponseSchema = z.null().openapi({ description: "null" })
-
 const getUsersRoute = createRoute({
   method: "get",
   path: "/",
@@ -44,21 +48,10 @@ const getUsersRoute = createRoute({
   security: [{ Bearer: [] }],
   responses: {
     200: {
-      content: {
-        "application/json": {
-          schema: successResponseSchema(userListResponseSchema),
-        },
-      },
+      content: { "application/json": { schema: successResponseSchema(userListResponseSchema) } },
       description: "取得成功",
     },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    500: serverErrorResponse,
   },
 })
 
@@ -72,14 +65,13 @@ usersRouter.openapi(getUsersRoute, async (c) => {
       id: u.id,
       name: u.name,
       email: u.email,
-      employeeNumber: u.employee_number,
+      employeeNumber: u.employeeNumber,
       role: u.role as "admin" | "user",
     }))
 
     return successResponse(c, users)
   } catch (e) {
-    if (e instanceof DatabaseError) return databaseError(c, e.message)
-    throw e
+    return handleRouteError(c, e)
   }
 })
 
@@ -141,28 +133,12 @@ const createUserRoute = createRoute({
   responses: {
     200: {
       content: {
-        "application/json": {
-          schema: successResponseSchema(adminCreateUserResponseSchema),
-        },
+        "application/json": { schema: successResponseSchema(adminCreateUserResponseSchema) },
       },
       description: "作成成功",
     },
-    400: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "バリデーションエラー",
-    },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    400: validationErrorResponse,
+    500: serverErrorResponse,
   },
 })
 
@@ -228,36 +204,13 @@ const updateUserRoute = createRoute({
   responses: {
     200: {
       content: {
-        "application/json": {
-          schema: successResponseSchema(adminUpdateUserResponseSchema),
-        },
+        "application/json": { schema: successResponseSchema(adminUpdateUserResponseSchema) },
       },
       description: "更新成功",
     },
-    400: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "バリデーションエラー",
-    },
-    404: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "ユーザーが見つからない",
-    },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    400: validationErrorResponse,
+    404: notFoundResponse("ユーザーが見つからない"),
+    500: serverErrorResponse,
   },
 })
 
@@ -326,7 +279,7 @@ usersRouter.openapi(updateUserRoute, async (c) => {
       id: updated.id,
       name: updated.name,
       email: updated.email,
-      employeeNumber: updated.employee_number,
+      employeeNumber: updated.employeeNumber,
       role: updated.role as "admin" | "user",
     })
   } catch (e) {
@@ -351,52 +304,30 @@ const getUserMonthlyRoute = createRoute({
   responses: {
     200: {
       content: {
-        "application/json": {
-          schema: successResponseSchema(z.array(attendanceRecordSchema)),
-        },
+        "application/json": { schema: successResponseSchema(z.array(attendanceRecordSchema)) },
       },
       description: "取得成功",
     },
-    400: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "バリデーションエラー",
-    },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    400: validationErrorResponse,
+    500: serverErrorResponse,
   },
 })
 
 usersRouter.openapi(getUserMonthlyRoute, async (c) => {
   const { userId, yearMonth } = c.req.valid("param")
 
-  const parsed = parseYearMonth(yearMonth)
-  if (!parsed) {
-    return validationError(c, "Invalid year-month format")
-  }
-  const { year, month } = parsed
-
-  const start = `${year}-${String(month).padStart(2, "0")}-01`
-  const lastDay = new Date(year, month, 0).getDate()
-  const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
+  const parsed = parseYearMonthWithRange(yearMonth)
+  if (!parsed) return validationError(c, "Invalid year-month format")
+  const { start, end } = parsed
 
   const { attendance } = createRepos(c.env)
 
   try {
     const data = await attendance.findRecordsByDateRange(userId, start, end)
+    c.header("Cache-Control", "private, max-age=60")
     return successResponse(c, data.map(formatAttendanceRecord))
   } catch (e) {
-    if (e instanceof DatabaseError) return databaseError(c, e.message)
-    throw e
+    return handleRouteError(c, e)
   }
 })
 
@@ -416,20 +347,11 @@ const getUserSessionsRoute = createRoute({
   responses: {
     200: {
       content: {
-        "application/json": {
-          schema: successResponseSchema(z.array(workSessionSchema)),
-        },
+        "application/json": { schema: successResponseSchema(z.array(workSessionSchema)) },
       },
       description: "取得成功",
     },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    500: serverErrorResponse,
   },
 })
 
@@ -439,15 +361,9 @@ usersRouter.openapi(getUserSessionsRoute, async (c) => {
 
   try {
     const data = await attendance.findRecordWithSessions(userId, date)
-
-    if (!data?.workSessions || !Array.isArray(data.workSessions)) {
-      return successResponse(c, [])
-    }
-
-    return successResponse(c, formatWorkSessions(data.workSessions))
+    return successResponse(c, getFormattedSessions(data))
   } catch (e) {
-    if (e instanceof DatabaseError) return databaseError(c, e.message)
-    throw e
+    return handleRouteError(c, e)
   }
 })
 
@@ -474,29 +390,11 @@ const updateUserSessionsRoute = createRoute({
   },
   responses: {
     200: {
-      content: {
-        "application/json": {
-          schema: successResponseSchema(nullResponseSchema),
-        },
-      },
+      content: { "application/json": { schema: successResponseSchema(nullResponseSchema) } },
       description: "更新成功",
     },
-    400: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "バリデーションエラー",
-    },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    400: validationErrorResponse,
+    500: serverErrorResponse,
   },
 })
 
@@ -512,8 +410,7 @@ usersRouter.openapi(updateUserSessionsRoute, async (c) => {
     }
     return successResponse(c, null)
   } catch (e) {
-    if (e instanceof DatabaseError) return databaseError(c, e.message)
-    throw e
+    return handleRouteError(c, e)
   }
 })
 

@@ -1,22 +1,21 @@
 import { createRoute, z } from "@hono/zod-openapi"
-import { databaseError, successResponse, validationError } from "../../lib/errors"
-import { formatWorkSessions } from "../../lib/formatters"
+import { handleRouteError, successResponse, validationError } from "../../lib/errors"
+import { getFormattedSessions } from "../../lib/formatters"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
+import { serverErrorResponse, validationErrorResponse } from "../../lib/openapi-responses"
 import {
   dateSchema,
-  errorResponseSchema,
+  nullResponseSchema,
   successResponseSchema,
   updateSessionsRequestSchema,
   workSessionSchema,
 } from "../../lib/openapi-schemas"
-import { createRepos, DatabaseError } from "../../lib/repositories"
+import { createRepos } from "../../lib/repositories"
 import { replaceSessions } from "../../lib/sessions"
 import type { AuthVariables } from "../../middleware/auth"
 import type { Env } from "../../types/env"
 
 const sessionsRouter = createOpenAPIHono<{ Bindings: Env; Variables: AuthVariables }>()
-
-const nullResponseSchema = z.null().openapi({ description: "null" })
 
 const getDateSessionsRoute = createRoute({
   method: "get",
@@ -33,20 +32,11 @@ const getDateSessionsRoute = createRoute({
   responses: {
     200: {
       content: {
-        "application/json": {
-          schema: successResponseSchema(z.array(workSessionSchema)),
-        },
+        "application/json": { schema: successResponseSchema(z.array(workSessionSchema)) },
       },
       description: "取得成功",
     },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    500: serverErrorResponse,
   },
 })
 
@@ -57,15 +47,9 @@ sessionsRouter.openapi(getDateSessionsRoute, async (c) => {
 
   try {
     const data = await attendance.findRecordWithSessions(userId, date)
-
-    if (!data?.workSessions || !Array.isArray(data.workSessions)) {
-      return successResponse(c, [])
-    }
-
-    return successResponse(c, formatWorkSessions(data.workSessions))
+    return successResponse(c, getFormattedSessions(data))
   } catch (e) {
-    if (e instanceof DatabaseError) return databaseError(c, e.message)
-    throw e
+    return handleRouteError(c, e)
   }
 })
 
@@ -91,29 +75,11 @@ const updateDateSessionsRoute = createRoute({
   },
   responses: {
     200: {
-      content: {
-        "application/json": {
-          schema: successResponseSchema(nullResponseSchema),
-        },
-      },
+      content: { "application/json": { schema: successResponseSchema(nullResponseSchema) } },
       description: "更新成功",
     },
-    400: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "バリデーションエラー",
-    },
-    500: {
-      content: {
-        "application/json": {
-          schema: errorResponseSchema,
-        },
-      },
-      description: "サーバーエラー",
-    },
+    400: validationErrorResponse,
+    500: serverErrorResponse,
   },
 })
 
@@ -130,8 +96,7 @@ sessionsRouter.openapi(updateDateSessionsRoute, async (c) => {
     }
     return successResponse(c, null)
   } catch (e) {
-    if (e instanceof DatabaseError) return databaseError(c, e.message)
-    throw e
+    return handleRouteError(c, e)
   }
 })
 

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm"
+import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from "drizzle-orm"
 import type { Db } from "../../db"
 import { attendanceRecords, breaks, workSessions } from "../../db/schema"
 import type { DbAttendanceRecord } from "../formatters"
@@ -24,9 +24,15 @@ export class AttendanceRepository {
   }
 
   async findOrCreateRecord(userId: string, date: string): Promise<{ id: string }> {
-    const existing = await this.findRecordIdByUserAndDate(userId, date)
-    if (existing) return existing
-    return this.createRecord(userId, date)
+    const [result] = await this.db
+      .insert(attendanceRecords)
+      .values({ userId, date })
+      .onConflictDoUpdate({
+        target: [attendanceRecords.userId, attendanceRecords.date],
+        set: { userId: attendanceRecords.userId },
+      })
+      .returning({ id: attendanceRecords.id })
+    return result
   }
 
   async findRecordWithSessions(userId: string, date: string): Promise<DbAttendanceRecord | null> {
@@ -45,6 +51,38 @@ export class AttendanceRepository {
       },
     })
     return (result as DbAttendanceRecord | undefined) ?? null
+  }
+
+  async calculateNetWorkMsByDateRange(
+    userId: string,
+    startDate: string,
+    endDate: string,
+  ): Promise<number> {
+    const result = await this.db
+      .select({
+        netWorkMs: sql<number>`COALESCE(SUM(
+          GREATEST(0,
+            EXTRACT(EPOCH FROM (${workSessions.clockOut} - ${workSessions.clockIn})) * 1000
+            - COALESCE((
+              SELECT SUM(EXTRACT(EPOCH FROM (${breaks.breakEnd} - ${breaks.breakStart})) * 1000)
+              FROM ${breaks}
+              WHERE ${breaks.sessionId} = ${workSessions.id}
+                AND ${breaks.breakEnd} IS NOT NULL
+            ), 0)
+          )
+        ), 0)::bigint`,
+      })
+      .from(attendanceRecords)
+      .innerJoin(workSessions, eq(workSessions.attendanceId, attendanceRecords.id))
+      .where(
+        and(
+          eq(attendanceRecords.userId, userId),
+          gte(attendanceRecords.date, startDate),
+          lte(attendanceRecords.date, endDate),
+          sql`${workSessions.clockOut} IS NOT NULL`,
+        ),
+      )
+    return Number(result[0]?.netWorkMs ?? 0)
   }
 
   async findRecordsByDateRange(
@@ -102,11 +140,11 @@ export class WorkSessionRepository {
 
   async findActiveSessionWithSlackTs(
     attendanceId: string,
-  ): Promise<{ id: string; slack_clock_in_ts: string | null } | null> {
+  ): Promise<{ id: string; slackClockInTs: string | null } | null> {
     const result = await this.db
       .select({
         id: workSessions.id,
-        slack_clock_in_ts: workSessions.slackClockInTs,
+        slackClockInTs: workSessions.slackClockInTs,
       })
       .from(workSessions)
       .where(and(eq(workSessions.attendanceId, attendanceId), isNull(workSessions.clockOut)))
@@ -184,12 +222,5 @@ export class BreakRepository {
   ): Promise<void> {
     if (breaksData.length === 0) return
     await this.db.insert(breaks).values(breaksData)
-  }
-}
-
-export class DatabaseError extends Error {
-  constructor(message: string) {
-    super(message)
-    this.name = "DatabaseError"
   }
 }

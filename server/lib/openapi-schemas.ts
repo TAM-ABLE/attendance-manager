@@ -79,6 +79,10 @@ export const dailyReportListItemSchema = withOpenApi(
 )
 export const dailyReportSchema = withOpenApi(_dailyReportSchema, "DailyReport")
 
+// ===== 共通レスポンス =====
+
+export const nullResponseSchema = z.null().openapi({ description: "null" })
+
 // ===== APIエラー =====
 
 export const apiErrorSchema = z
@@ -119,9 +123,7 @@ export const loginRequestSchema = z
   })
   .openapi("LoginRequest")
 
-export type LoginRequest = z.infer<typeof loginRequestSchema>
-
-export const loginResponseSchema = z
+export const authResponseSchema = z
   .object({
     user: z.object({
       id: uuidSchema,
@@ -130,7 +132,9 @@ export const loginResponseSchema = z
       role: z.enum(["admin", "user"]),
     }),
   })
-  .openapi("LoginResponse")
+  .openapi("AuthResponse")
+
+export const loginResponseSchema = authResponseSchema
 
 // ===== 初回ログイン =====
 
@@ -156,18 +160,7 @@ export const firstLoginRequestSchema = z
   })
   .openapi("FirstLoginRequest")
 
-export type FirstLoginRequest = z.infer<typeof firstLoginRequestSchema>
-
-export const firstLoginResponseSchema = z
-  .object({
-    user: z.object({
-      id: uuidSchema,
-      name: z.string(),
-      email: z.email(),
-      role: z.enum(["admin", "user"]),
-    }),
-  })
-  .openapi("FirstLoginResponse")
+export const firstLoginResponseSchema = authResponseSchema
 
 // ===== 管理者ユーザー登録 =====
 
@@ -187,8 +180,6 @@ export const adminCreateUserRequestSchema = z
     }),
   })
   .openapi("AdminCreateUserRequest")
-
-export type AdminCreateUserRequest = z.infer<typeof adminCreateUserRequestSchema>
 
 export const adminCreateUserResponseSchema = z
   .object({
@@ -222,8 +213,6 @@ export const adminUpdateUserRequestSchema = z
   })
   .openapi("AdminUpdateUserRequest")
 
-export type AdminUpdateUserRequest = z.infer<typeof adminUpdateUserRequestSchema>
-
 export const adminUpdateUserResponseSchema = z
   .object({
     id: uuidSchema,
@@ -252,8 +241,6 @@ export const clockInRequestSchema = z
   })
   .openapi("ClockInRequest")
 
-export type ClockInRequest = z.infer<typeof clockInRequestSchema>
-
 export const clockOutRequestSchema = z
   .object({
     userName: z.string().min(1).openapi({
@@ -279,11 +266,9 @@ export const clockOutRequestSchema = z
   })
   .openapi("ClockOutRequest")
 
-export type ClockOutRequest = z.infer<typeof clockOutRequestSchema>
-
 export const clockResponseSchema = z
   .object({
-    slack_ts: z.string().optional().openapi({
+    slackTs: z.string().optional().openapi({
       description: "Slackメッセージのタイムスタンプ",
     }),
   })
@@ -298,8 +283,6 @@ export const breakStartRequestSchema = z
   })
   .openapi("BreakStartRequest")
 
-export type BreakStartRequest = z.infer<typeof breakStartRequestSchema>
-
 export const breakEndRequestSchema = z
   .object({
     breakEndTime: z.string().datetime().optional().openapi({
@@ -308,8 +291,6 @@ export const breakEndRequestSchema = z
     }),
   })
   .openapi("BreakEndRequest")
-
-export type BreakEndRequest = z.infer<typeof breakEndRequestSchema>
 
 // ===== 週間合計 =====
 
@@ -347,36 +328,6 @@ export const updateSessionsRequestSchema = z
     sessions: z.array(sessionUpdateSchema),
   })
   .openapi("UpdateSessionsRequest")
-
-export type UpdateSessionsRequest = z.infer<typeof updateSessionsRequestSchema>
-
-// ===== パラメータスキーマ =====
-
-export const yearMonthParamsSchema = z.object({
-  yearMonth: yearMonthSchema,
-})
-
-export type YearMonthParams = z.infer<typeof yearMonthParamsSchema>
-
-export const userDateParamsSchema = z.object({
-  userId: uuidSchema,
-  date: dateSchema,
-})
-
-export type UserDateParams = z.infer<typeof userDateParamsSchema>
-
-export const userYearMonthParamsSchema = z.object({
-  userId: uuidSchema,
-  yearMonth: yearMonthSchema,
-})
-
-export type UserYearMonthParams = z.infer<typeof userYearMonthParamsSchema>
-
-export const reportIdParamsSchema = z.object({
-  id: uuidSchema,
-})
-
-export type ReportIdParams = z.infer<typeof reportIdParamsSchema>
 
 // ===== レスポンススキーマ =====
 

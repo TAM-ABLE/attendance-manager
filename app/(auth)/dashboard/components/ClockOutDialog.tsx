@@ -2,8 +2,10 @@
 "use client"
 
 import { useState } from "react"
+import useSWR from "swr"
 import { DialogWrapper } from "@/components/DialogWrapper"
-import { TaskListEditor } from "@/components/TaskListEditor"
+import { Loader } from "@/components/Loader"
+import { TimeInput } from "@/components/TimeInput"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -13,13 +15,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useDialogState } from "@/hooks/useDialogState"
-import { type TaskFormItem, toTasks } from "@/lib/task-form"
+import { getTodayPlannedTasks } from "@/lib/api-services/attendance"
+import { withRetryFetcher } from "@/lib/auth/with-retry"
+import { SWR_KEYS } from "@/lib/swr-keys"
+import { fromPlannedTask, toTasks } from "@/lib/task-form"
+import { getCurrentTimeString, timeToISOString } from "@/lib/time"
 import type { ApiResult } from "@/types/ApiResponse"
 import type { Task } from "@/types/Attendance"
+import { useTaskList } from "../hooks/useTaskList"
+import { TaskListInput } from "./TaskListInput"
 
 interface ClockOutDialogProps {
   open: boolean
@@ -33,37 +40,39 @@ interface ClockOutDialogProps {
   ) => Promise<ApiResult<unknown>>
 }
 
-// 現在時刻をHH:mm形式で取得
-function getCurrentTimeString(): string {
-  const now = new Date()
-  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`
-}
-
-// HH:mm形式の時間をISO文字列に変換（今日の日付で）
-function timeToISOString(time: string): string {
-  const [hours, minutes] = time.split(":").map(Number)
-  const date = new Date()
-  date.setHours(hours, minutes, 0, 0)
-  return date.toISOString()
-}
-
 export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps) => {
-  const [actualTasks, setActualTasks] = useState<TaskFormItem[]>([])
   const [summary, setSummary] = useState<string>("")
   const [issues, setIssues] = useState<string>("")
   const [notes, setNotes] = useState<string>("")
   const [clockOutTime, setClockOutTime] = useState(getCurrentTimeString())
-  const { mode, error, handleSubmit, reset } = useDialogState()
+  const { mode, error, handleSubmit, reset: resetDialog } = useDialogState()
+  const taskList = useTaskList()
+
+  // ダイアログが開いたとき、出勤時の予定タスクをSWRで取得
+  const { isLoading: isFetching, error: fetchError } = useSWR(
+    open ? SWR_KEYS.PLANNED_TASKS_TODAY : null,
+    () => withRetryFetcher(getTodayPlannedTasks),
+    {
+      onSuccess: (data) => {
+        if (data.length > 0) {
+          taskList.setTasks(data.map(fromPlannedTask))
+        }
+      },
+      revalidateOnFocus: false,
+    },
+  )
 
   const onFormSubmit = async () => {
+    if (!taskList.validate()) return
+    const allTasks: Task[] = toTasks(taskList.tasks)
     await handleSubmit(() =>
-      onSubmit(toTasks(actualTasks), summary, issues, notes, timeToISOString(clockOutTime)),
+      onSubmit(allTasks, summary, issues, notes, timeToISOString(clockOutTime)),
     )
   }
 
   const handleClose = () => {
-    reset()
-    setActualTasks([])
+    resetDialog()
+    taskList.reset()
     setSummary("")
     setIssues("")
     setNotes("")
@@ -72,7 +81,7 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
   }
 
   return (
-    <DialogWrapper open={open} onClose={handleClose} mode={mode} onReset={reset}>
+    <DialogWrapper open={open} onClose={handleClose} mode={mode} onReset={resetDialog}>
       <Dialog open={open} onOpenChange={handleClose}>
         <DialogContent className="w-[calc(100%-2rem)] max-w-2xl max-h-[90vh] overflow-y-auto p-6">
           <DialogHeader>
@@ -81,62 +90,81 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
           </DialogHeader>
 
           {error && <div className="text-red-500 text-sm p-2 bg-red-50 rounded">{error}</div>}
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="clockOutTime">退勤時間</Label>
-              <Input
-                id="clockOutTime"
-                type="time"
-                value={clockOutTime}
-                onChange={(e) => setClockOutTime(e.target.value)}
-                className="w-32"
-              />
+          {taskList.hasValidated && taskList.hasTaskError && (
+            <div className="text-red-500 text-sm p-2 bg-red-50 rounded">
+              {taskList.tasks.length === 0
+                ? "タスクを1つ以上追加してください"
+                : "タスク名を入力するか、不要な行を削除してください"}
             </div>
-
-            <TaskListEditor
-              tasks={actualTasks}
-              onChange={setActualTasks}
-              label="実施タスクと実工数（時間）"
-            />
-
-            <div>
-              <Label htmlFor="summary">本日のまとめ（感想・気づき）</Label>
-              <Textarea
-                id="summary"
-                placeholder="本日の業務についての感想や気づきを入力..."
-                value={summary}
-                onChange={(e) => setSummary(e.target.value)}
-                className="mt-2 min-h-24"
-              />
+          )}
+          {fetchError && (
+            <div className="text-red-500 text-sm p-2 bg-red-50 rounded">
+              予定タスクの取得に失敗しました
             </div>
+          )}
 
-            <div>
-              <Label htmlFor="issues">困っていること・相談したいこと</Label>
-              <Textarea
-                id="issues"
-                placeholder="困っていることや相談したいことがあれば入力..."
-                value={issues}
-                onChange={(e) => setIssues(e.target.value)}
-                className="mt-2 min-h-24"
-              />
+          {isFetching ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader />
             </div>
+          ) : (
+            <>
+              <div className="space-y-4 py-4">
+                <TimeInput
+                  id="clockOutTime"
+                  label="退勤時間"
+                  value={clockOutTime}
+                  onChange={setClockOutTime}
+                />
 
-            <div>
-              <Label htmlFor="notes">連絡事項</Label>
-              <Textarea
-                id="notes"
-                placeholder="連絡事項があれば入力..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                className="mt-2 min-h-24"
-              />
-            </div>
-          </div>
+                <div>
+                  <Label className="text-base">予定タスクの実績入力</Label>
+                  <div className="mt-3">
+                    <TaskListInput taskList={taskList} />
+                  </div>
+                </div>
 
-          <DialogFooter>
-            <Button onClick={onFormSubmit}>送信</Button>
-          </DialogFooter>
+                <div>
+                  <Label htmlFor="summary">本日のまとめ（感想・気づき）</Label>
+                  <Textarea
+                    id="summary"
+                    placeholder="本日の業務についての感想や気づきを入力..."
+                    value={summary}
+                    onChange={(e) => setSummary(e.target.value)}
+                    className="mt-2 min-h-24"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="issues">困っていること・相談したいこと</Label>
+                  <Textarea
+                    id="issues"
+                    placeholder="困っていることや相談したいことがあれば入力..."
+                    value={issues}
+                    onChange={(e) => setIssues(e.target.value)}
+                    className="mt-2 min-h-24"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="notes">連絡事項</Label>
+                  <Textarea
+                    id="notes"
+                    placeholder="連絡事項があれば入力..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="mt-2 min-h-24"
+                  />
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button onClick={onFormSubmit} disabled={mode === "loading"}>
+                  送信
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </DialogWrapper>

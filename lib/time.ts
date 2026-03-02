@@ -2,10 +2,9 @@
 // フロントエンド・バックエンド共通の時間ユーティリティ
 
 // 定数
-export const JST_OFFSET_MS = 9 * 60 * 60 * 1000
-export const MS_PER_SECOND = 1000
-export const MS_PER_MINUTE = 60 * MS_PER_SECOND
-export const MS_PER_HOUR = 60 * MS_PER_MINUTE
+const JST_OFFSET_MS = 9 * 60 * 60 * 1000
+const MS_PER_MINUTE = 60 * 1000
+const MS_PER_HOUR = 60 * MS_PER_MINUTE
 
 // 曜日ラベル
 const JP_WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const
@@ -13,15 +12,8 @@ const JP_WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"] as const
 /**
  * 現在時刻をJSTとして取得
  */
-export function nowJST(): Date {
+function nowJST(): Date {
   return new Date(Date.now() + JST_OFFSET_MS)
-}
-
-/**
- * UTCのDateをJSTに変換
- */
-export function toJST(date: Date): Date {
-  return new Date(date.getTime() + JST_OFFSET_MS)
 }
 
 /**
@@ -30,21 +22,6 @@ export function toJST(date: Date): Date {
 export function todayJSTString(): string {
   const jst = nowJST()
   return jst.toISOString().split("T")[0]
-}
-
-/**
- * UTCのDateをJST基準で YYYY-MM-DD 文字列に変換
- */
-export function toJSTDateString(date: Date | undefined): string {
-  if (!date) return ""
-
-  const jst = toJST(date)
-
-  const yyyy = jst.getUTCFullYear()
-  const mm = (jst.getUTCMonth() + 1).toString().padStart(2, "0")
-  const dd = jst.getUTCDate().toString().padStart(2, "0")
-
-  return `${yyyy}-${mm}-${dd}`
 }
 
 /**
@@ -143,6 +120,51 @@ export function formatYearMonth(year: number, month: number): string {
  */
 export function formatYearMonthFromDate(date: Date): string {
   return formatYearMonth(date.getFullYear(), date.getMonth() + 1)
+}
+
+/**
+ * 指定月の開始日と終了日をYYYY-MM-DD形式で返す
+ * @param year 年（4桁）
+ * @param month 月（1-12）
+ */
+export function getMonthDateRange(year: number, month: number): { start: string; end: string } {
+  const mm = String(month).padStart(2, "0")
+  const lastDay = new Date(year, month, 0).getDate()
+  return {
+    start: `${year}-${mm}-01`,
+    end: `${year}-${mm}-${String(lastDay).padStart(2, "0")}`,
+  }
+}
+
+/**
+ * 現在時刻をHH:mm形式で取得
+ */
+export function getCurrentTimeString(): string {
+  const now = new Date()
+  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`
+}
+
+/**
+ * HH:mm形式の時間をISO文字列に変換（今日の日付で）
+ */
+export function timeToISOString(time: string): string {
+  const [hours, minutes] = time.split(":").map(Number)
+  const date = new Date()
+  date.setHours(hours, minutes, 0, 0)
+  return date.toISOString()
+}
+
+/**
+ * YYYY-MM形式の文字列をパースして年月と日付範囲を一括取得
+ */
+export function parseYearMonthWithRange(
+  yearMonth: string,
+): { year: number; month: number; start: string; end: string } | null {
+  const parsed = parseYearMonth(yearMonth)
+  if (!parsed) return null
+  const { year, month } = parsed
+  const { start, end } = getMonthDateRange(year, month)
+  return { year, month, start, end }
 }
 
 /**

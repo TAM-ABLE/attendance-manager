@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { DialogWrapper } from "@/components/DialogWrapper"
+import { TimeInput } from "@/components/TimeInput"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -10,9 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { useDialogState } from "@/hooks/useDialogState"
+import { getCurrentTimeString, timeToISOString } from "@/lib/time"
 import type { ApiResult } from "@/types/ApiResponse"
 
 interface BreakDialogProps {
@@ -21,20 +21,6 @@ interface BreakDialogProps {
   onClose: () => void
   onStart: (breakStartTime?: string) => Promise<ApiResult<unknown>>
   onEnd: (breakEndTime?: string) => Promise<ApiResult<unknown>>
-}
-
-// 現在時刻をHH:mm形式で取得
-function getCurrentTimeString(): string {
-  const now = new Date()
-  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`
-}
-
-// HH:mm形式の時間をISO文字列に変換（今日の日付で）
-function timeToISOString(time: string): string {
-  const [hours, minutes] = time.split(":").map(Number)
-  const date = new Date()
-  date.setHours(hours, minutes, 0, 0)
-  return date.toISOString()
 }
 
 export const BreakDialog = ({ open, mode, onClose, onStart, onEnd }: BreakDialogProps) => {
@@ -63,22 +49,18 @@ export const BreakDialog = ({ open, mode, onClose, onStart, onEnd }: BreakDialog
           {error && <div className="text-red-500 text-sm p-2 bg-red-50 rounded">{error}</div>}
 
           <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="breakTime">
-                {mode === "start" ? "休憩開始時間" : "休憩終了時間"}
-              </Label>
-              <Input
-                id="breakTime"
-                type="time"
-                value={breakTime}
-                onChange={(e) => setBreakTime(e.target.value)}
-                className="w-32"
-              />
-            </div>
+            <TimeInput
+              id="breakTime"
+              label={mode === "start" ? "休憩開始時間" : "休憩終了時間"}
+              value={breakTime}
+              onChange={setBreakTime}
+            />
           </div>
 
           <DialogFooter>
-            <Button onClick={onFormSubmit}>{mode === "start" ? "開始" : "終了"}</Button>
+            <Button onClick={onFormSubmit} disabled={dialogMode === "loading"}>
+              {mode === "start" ? "開始" : "終了"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

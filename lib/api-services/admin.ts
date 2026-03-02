@@ -7,9 +7,7 @@ export function getUsers() {
 }
 
 export function getUserMonthlyAttendance(userId: string, year: number, month: number) {
-  // month は 0-indexed (Date.getMonth() から) なので +1 して YYYY-MM 形式に変換
-  const actualMonth = month + 1
-  const yearMonth = formatYearMonth(year, actualMonth)
+  const yearMonth = formatYearMonth(year, month)
   return apiClient<AttendanceRecord[]>(`/admin/users/${userId}/attendance/month/${yearMonth}`)
 }
 

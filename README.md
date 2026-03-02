@@ -14,9 +14,6 @@
 - 休憩開始 / 休憩終了
 - 複数セッション（1日最大3セッション）対応
 - 勤務時間の自動集計
-- カレンダー形式での勤怠履歴表示
-- 月次サマリー表示
-
 ### 日報
 - 日報の作成・提出
 - タスクリスト形式での作業内容記録
@@ -33,8 +30,8 @@
 - 初回ログイン時のパスワード変更フロー（パスワード強度バリデーション付き）
 
 ### 通知・Slack連携
-- 出勤通知（ユーザー名・予定タスクをSlack投稿）
-- 退勤通知（業務内容・まとめをスレッドで投稿）
+- 出勤通知（ユーザー名・予定タスクをSlack投稿、非同期 fire-and-forget）
+- 退勤通知（業務内容・まとめをスレッドで投稿、非同期 fire-and-forget）
 - 月次勤怠CSV送信（管理者が月次締め時にSlackにアップロード）
 
 ---
@@ -51,16 +48,13 @@
 | Radix UI | - |
 | shadcn/ui | - |
 | SWR | 2 |
-| Framer Motion | 12 |
-| date-fns | 4 |
 | lucide-react | - |
-| react-day-picker | 9 |
 
 ### バックエンド (Next.js 統合)
 | 技術 | 用途 |
 |------|------|
 | Hono | Web フレームワーク (Next.js API Routes 上で動作) |
-| Hono Zod OpenAPI | API スキーマ定義 |
+| Hono Zod OpenAPI | API スキーマ定義・Swagger UI（開発環境のみ） |
 | Drizzle ORM | データベースアクセス (PostgreSQL) |
 | jose | JWT 検証 (ローカル検証) |
 | Supabase | PostgreSQL ホスティング + GoTrue 認証 |
@@ -91,7 +85,6 @@ attendance-manager/
 │   └── (auth)/                # 認証必須ページ
 │       ├── layout.tsx         # requireAuth()
 │       ├── dashboard/         # /dashboard
-│       ├── attendance-history/ # /attendance-history
 │       ├── edit-attendance/   # /edit-attendance
 │       ├── report-list/       # /report-list
 │       └── (admin)/           # 管理者専用
@@ -100,8 +93,10 @@ attendance-manager/
 ├── components/                # React コンポーネント
 │   ├── ui/                    # shadcn/ui コンポーネント
 │   ├── Header/                # ヘッダー
+│   ├── TimeInput.tsx          # 時間入力共通コンポーネント
+│   ├── SWRProvider.tsx        # SWR グローバル設定プロバイダー
 │   └── ...
-├── hooks/                     # カスタムフック（usePasswordStrength 等）
+├── hooks/                     # カスタムフック（usePasswordStrength, useAsyncAction, useEditDialogBase 等）
 ├── lib/                       # ユーティリティ
 │   ├── api-client.ts          # API クライアント
 │   ├── api-services/          # API サービス層（admin, attendance, daily-reports）
@@ -121,7 +116,7 @@ attendance-manager/
 │   ├── db/                    # Drizzle ORM スキーマ・クライアント
 │   ├── middleware/auth.ts     # JWT 認証ミドルウェア (jose)
 │   ├── routes/                # API ルート
-│   ├── lib/                   # サーバーユーティリティ（slack, csv, auth-helpers）
+│   ├── lib/                   # サーバーユーティリティ（slack, csv, auth-helpers, openapi-responses, swagger）
 │   └── types/                 # サーバー型定義
 ├── supabase/                  # Supabase 設定
 │   ├── config.toml            # Supabase 設定
@@ -154,6 +149,7 @@ attendance-manager/
 | [data-fetching-architecture.md](docs/data-fetching-architecture.md) | データ取得設計（SSC + SWR） |
 | [authentication.md](docs/authentication.md) | 認証設計（JWT + HttpOnly Cookie + 初回パスワード変更） |
 | [slack-setup-guide.md](docs/slack-setup-guide.md) | Slack連携セットアップガイド（管理者向け） |
+| [performance.md](docs/performance.md) | パフォーマンス最適化（バンドル・DB・キャッシュ・レンダリング） |
 
 ---
 
@@ -169,7 +165,7 @@ attendance-manager/
 | Route Group | 認証 | 含まれるページ |
 |-------------|------|---------------|
 | `(public)` | 不要 | /login, /first-login |
-| `(auth)` | 必須 | /dashboard, /attendance-history, /edit-attendance, /report-list |
+| `(auth)` | 必須 | /dashboard, /edit-attendance, /report-list |
 | `(auth)/(admin)` | 管理者のみ | /admin |
 
 ---
@@ -180,6 +176,8 @@ SSC（Server Component）での初期データ取得 + SWR でのクライアン
 
 - **初回表示**: SSC で `fetchWithAuth()` → `initialData` として Client Component に渡す → ローディングなし
 - **操作後**: SWR `mutate()` で `/api/*` 経由で再取得 → 画面更新
+- **SWR グローバル設定**: `SWRProvider` で `revalidateOnFocus: false`、`dedupingInterval: 5000` を一括設定
+- **HTTPキャッシュ**: 月次勤怠・日報エンドポイントに `Cache-Control: private, max-age=60` を設定
 
 ---
 
@@ -206,6 +204,9 @@ JWT_SECRET=your_jwt_secret
 SLACK_BOT_TOKEN=your_slack_bot_token (optional)
 SLACK_CHANNEL_ID=your_slack_channel_id (optional)
 SLACK_CSV_CHANNEL_ID=your_slack_csv_channel_id (optional)
+SLACK_ICON_CLOCK_IN=https://example.com/icon.png (optional)
+SLACK_ICON_CLOCK_OUT=https://example.com/icon.png (optional)
+SLACK_ICON_ATTENDANCE_CLOSE=https://example.com/icon.png (optional)
 ```
 
 ---
@@ -252,6 +253,7 @@ pnpm tsc --noEmit     # 型チェック
 |--------|----------|------|
 | GET | `/api/admin/users` | ユーザー一覧取得 |
 | POST | `/api/admin/users` | ユーザー作成 |
+| PATCH | `/api/admin/users/{userId}` | ユーザー情報更新 |
 | GET | `/api/admin/users/{userId}/attendance/month/{yearMonth}` | ユーザーの月別勤怠取得 |
 | GET | `/api/admin/users/{userId}/attendance/{date}/sessions` | ユーザーの特定日セッション取得 |
 | PUT | `/api/admin/users/{userId}/attendance/{date}/sessions` | ユーザーの特定日セッション更新 |

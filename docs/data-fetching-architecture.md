@@ -137,12 +137,38 @@ export async function apiClient<T>(endpoint: string, options = {}) {
 - **リアルタイム性**: `mutate()` で即時更新
 - **エラーハンドリング**: 自動リトライ
 
+## 3. SWR グローバル設定（SWRProvider）
+
+`components/SWRProvider.tsx` で SWR のグローバル設定を管理し、`app/(auth)/layout.tsx` で認証済みページ全体をラップしています。
+
+```typescript
+// components/SWRProvider.tsx
+<SWRConfig value={{
+  revalidateOnFocus: false,   // タブ復帰時の自動再取得を無効化
+  dedupingInterval: 5000,     // 5秒以内の重複リクエストを抑制
+}}>
+```
+
+個別の SWR hook で同じ設定を繰り返す必要がなくなり、設定の一元管理が可能です。
+
+## 4. HTTP キャッシュ（Cache-Control）
+
+読み取り頻度の高い月次データエンドポイントに `Cache-Control` ヘッダーを設定しています。
+
+| エンドポイント | Cache-Control |
+|---------------|---------------|
+| `GET /api/attendance/month/{yearMonth}` | `private, max-age=60` |
+| `GET /api/admin/users/{userId}/attendance/month/{yearMonth}` | `private, max-age=60` |
+| `GET /api/daily-reports/user/{userId}/month/{yearMonth}` | `private, max-age=60` |
+
+- `private`: ブラウザキャッシュのみ（CDN キャッシュ不可）
+- `max-age=60`: 60秒間はブラウザキャッシュから返す
+
 ## 対象ページ
 
 | ページ | SSC取得データ |
 |--------|---------------|
 | `/dashboard` | 今日の勤怠、週合計 |
-| `/attendance-history` | 今月の勤怠一覧 |
 | `/edit-attendance` | 特定日のセッション |
 | `/admin` | ユーザー一覧 |
 | `/report-list` | ユーザー一覧 |
@@ -150,6 +176,8 @@ export async function apiClient<T>(endpoint: string, options = {}) {
 ## 関連ファイル一覧
 
 ```
+components/
+└── SWRProvider.tsx       # SWRグローバル設定プロバイダー
 lib/
 ├── auth/
 │   └── server.ts        # fetchWithAuth（SSC用、app.fetch()で直接呼び出し）
@@ -160,33 +188,40 @@ lib/
 │   └── daily-reports.ts # 日報API
 └── swr-keys.ts          # SWRキャッシュキー定義
 hooks/
-└── useUserSelect.ts     # 汎用ユーザー選択hook（initialData対応）
+├── useUserSelect.ts     # 汎用ユーザー選択hook（initialData対応）
+├── useAsyncAction.ts    # 非同期操作の共通hook（loading/error管理）
+└── useEditDialogBase.ts # 編集ダイアログの共通hook（open/close/save）
 app/(auth)/
     ├── dashboard/
     │   ├── page.tsx                    # SSCでデータ取得
     │   ├── components/
-    │   │   └── DashboardClient.tsx     # initialData受け取り
+    │   │   ├── DashboardClient.tsx     # initialData受け取り
+    │   │   ├── TaskListInput.tsx       # タスクリスト入力共通コンポーネント
+    │   │   └── TaskChipSelector.tsx    # タスク選択チップ
     │   └── hooks/
-    │       └── useDashboardAttendance.ts  # fallbackData対応
-    ├── attendance-history/
-    │   ├── page.tsx
-    │   ├── components/
-    │   │   └── AttendanceHistoryClient.tsx
-    │   └── hooks/
-    │       └── useAttendanceHistory.ts
+    │       ├── useDashboardAttendance.ts  # fallbackData対応
+    │       └── useTaskList.ts             # タスクリスト状態管理
     ├── edit-attendance/
     │   └── page.tsx
     ├── report-list/
     │   ├── page.tsx
     │   ├── components/
     │   │   └── ReportListView.tsx
-    │   └── hooks/
-    │       └── useReportUsers.ts
+    │   ├── hooks/
+    │   │   ├── useReportUsers.ts
+    │   │   └── useMonthlyReports.ts
+    │   └── lib/
+    │       └── format.ts
     └── (admin)/
         └── admin/
             ├── page.tsx
             ├── components/
             │   └── MonthlyAttendanceView.tsx
             └── hooks/
-                └── useUsers.ts
+                ├── useUsers.ts
+                ├── useMonthlyAttendance.ts
+                ├── useCreateUser.ts
+                ├── useEditUser.ts
+                ├── useEditDialog.ts
+                └── useUserFormDialog.ts
 ```
