@@ -1,14 +1,21 @@
 import { createRoute, z } from "@hono/zod-openapi"
-import { parseYearMonthWithRange } from "@/lib/time"
+import { parseYearMonthWithRange, todayJSTString } from "@/lib/time"
 import type {
   DailyReport,
   DailyReportListItem,
   DailyReportTask,
   UserForSelect,
 } from "@/types/DailyReport"
-import { handleRouteError, notFoundError, successResponse, validationError } from "../lib/errors"
+import {
+  forbiddenError,
+  handleRouteError,
+  notFoundError,
+  successResponse,
+  validationError,
+} from "../lib/errors"
 import { createOpenAPIHono } from "../lib/openapi-hono"
 import {
+  forbiddenResponse,
   notFoundResponse,
   serverErrorResponse,
   validationErrorResponse,
@@ -28,13 +35,38 @@ import type { Env } from "../types/env"
 
 const dailyReportsRouter = createOpenAPIHono<{ Bindings: Env; Variables: AuthVariables }>()
 
+function toReportListItem(
+  report: {
+    id: string
+    userId: string
+    date: string
+    issues: string | null
+    submittedAt: string | null
+    tasks: { taskType: string }[]
+  },
+  user: { name: string; employeeNumber: string },
+): DailyReportListItem {
+  const tasks = report.tasks || []
+  return {
+    id: report.id,
+    userId: report.userId,
+    userName: user.name,
+    employeeNumber: user.employeeNumber,
+    date: report.date,
+    submittedAt: report.submittedAt ? new Date(report.submittedAt).getTime() : null,
+    plannedTaskCount: tasks.filter((t) => t.taskType === "planned").length,
+    actualTaskCount: tasks.filter((t) => t.taskType === "actual").length,
+    hasIssues: report.issues != null && report.issues.trim() !== "",
+  }
+}
+
 // ===== 指定日の日報取得 =====
 
 const getReportsByDateRoute = createRoute({
   method: "get",
   path: "/by-date",
   tags: ["日報"],
-  summary: "指定日の提出済み日報一覧取得",
+  summary: "指定日の提出済み日報一覧取得（管理者用）",
   description:
     "指定日に提出された全ユーザーの日報一覧を取得します（管理者用）。日付を指定しない場合は本日の日報を返します。",
   security: [{ Bearer: [] }],
@@ -56,101 +88,25 @@ const getReportsByDateRoute = createRoute({
       },
       description: "取得成功",
     },
+    403: forbiddenResponse("管理者権限が必要です"),
     500: serverErrorResponse,
   },
 })
 
 dailyReportsRouter.openapi(getReportsByDateRoute, async (c) => {
+  const payload = c.get("jwtPayload")
+  if (payload.role !== "admin") {
+    return forbiddenError(c, "Admin access required")
+  }
+
   const { dailyReport: dailyReportRepo } = createRepos(c.env)
   const { date } = c.req.valid("query")
 
   try {
-    // 日付が指定されていない場合は本日（日本時間）
-    let targetDate = date
-    if (!targetDate) {
-      const now = new Date()
-      const jstOffset = 9 * 60 * 60 * 1000
-      const jstDate = new Date(now.getTime() + jstOffset)
-      targetDate = jstDate.toISOString().split("T")[0]
-    }
+    const targetDate = date ?? todayJSTString()
 
     const reports = await dailyReportRepo.findSubmittedReportsByDate(targetDate)
-
-    const reportList: DailyReportListItem[] = reports.map((report) => {
-      const tasks = report.tasks || []
-      const plannedCount = tasks.filter((t) => t.taskType === "planned").length
-      const actualCount = tasks.filter((t) => t.taskType === "actual").length
-
-      return {
-        id: report.id,
-        userId: report.userId,
-        userName: report.profile.name,
-        employeeNumber: report.profile.employeeNumber,
-        date: report.date,
-        submittedAt: report.submittedAt ? new Date(report.submittedAt).getTime() : null,
-        plannedTaskCount: plannedCount,
-        actualTaskCount: actualCount,
-        hasIssues: report.issues != null && report.issues.trim() !== "",
-      }
-    })
-
-    return successResponse(c, reportList)
-  } catch (e) {
-    return handleRouteError(c, e)
-  }
-})
-
-// ===== 本日の日報取得（後方互換性のため残す） =====
-
-const getTodayReportsRoute = createRoute({
-  method: "get",
-  path: "/today",
-  tags: ["日報"],
-  summary: "本日の提出済み日報一覧取得",
-  description: "本日提出された全ユーザーの日報一覧を取得します（管理者用）。",
-  security: [{ Bearer: [] }],
-  responses: {
-    200: {
-      content: {
-        "application/json": {
-          schema: successResponseSchema(z.array(dailyReportListItemSchema)),
-        },
-      },
-      description: "取得成功",
-    },
-    500: serverErrorResponse,
-  },
-})
-
-dailyReportsRouter.openapi(getTodayReportsRoute, async (c) => {
-  const { dailyReport: dailyReportRepo } = createRepos(c.env)
-
-  try {
-    // 本日の日付を取得（日本時間）
-    const now = new Date()
-    const jstOffset = 9 * 60 * 60 * 1000
-    const jstDate = new Date(now.getTime() + jstOffset)
-    const today = jstDate.toISOString().split("T")[0]
-
-    const reports = await dailyReportRepo.findSubmittedReportsByDate(today)
-
-    const reportList: DailyReportListItem[] = reports.map((report) => {
-      const tasks = report.tasks || []
-      const plannedCount = tasks.filter((t) => t.taskType === "planned").length
-      const actualCount = tasks.filter((t) => t.taskType === "actual").length
-
-      return {
-        id: report.id,
-        userId: report.userId,
-        userName: report.profile.name,
-        employeeNumber: report.profile.employeeNumber,
-        date: report.date,
-        submittedAt: report.submittedAt ? new Date(report.submittedAt).getTime() : null,
-        plannedTaskCount: plannedCount,
-        actualTaskCount: actualCount,
-        hasIssues: report.issues != null && report.issues.trim() !== "",
-      }
-    })
+    const reportList = reports.map((report) => toReportListItem(report, report.profile))
 
     return successResponse(c, reportList)
   } catch (e) {
@@ -240,24 +196,7 @@ dailyReportsRouter.openapi(getUserMonthlyReportsRoute, async (c) => {
     }
 
     const reports = await repos.dailyReport.findReportsByDateRange(userId, monthStart, monthEnd)
-
-    const reportList: DailyReportListItem[] = (reports || []).map((report) => {
-      const tasks = report.tasks || []
-      const plannedCount = tasks.filter((t) => t.taskType === "planned").length
-      const actualCount = tasks.filter((t) => t.taskType === "actual").length
-
-      return {
-        id: report.id,
-        userId: report.userId,
-        userName: userData.name,
-        employeeNumber: userData.employeeNumber,
-        date: report.date,
-        submittedAt: report.submittedAt ? new Date(report.submittedAt).getTime() : null,
-        plannedTaskCount: plannedCount,
-        actualTaskCount: actualCount,
-        hasIssues: report.issues != null && report.issues.trim() !== "",
-      }
-    })
+    const reportList = (reports || []).map((report) => toReportListItem(report, userData))
 
     c.header("Cache-Control", "private, max-age=60")
     return successResponse(c, {

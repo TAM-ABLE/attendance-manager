@@ -25,6 +25,15 @@ export function todayJSTString(): string {
 }
 
 /**
+ * 昨日の日付をJSTでYYYY-MM-DD形式で取得
+ */
+export function yesterdayJSTString(): string {
+  const jst = nowJST()
+  jst.setDate(jst.getDate() - 1)
+  return jst.toISOString().split("T")[0]
+}
+
+/**
  * ミリ秒を「X時間Y分」形式に変換
  */
 export function formatDurationMs(ms: number): string {

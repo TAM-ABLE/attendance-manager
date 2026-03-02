@@ -180,9 +180,4 @@ export class DailyReportRepository {
       },
     })
   }
-
-  /** @deprecated Use findSubmittedReportsByDate instead */
-  async findTodaySubmittedReports(today: string) {
-    return this.findSubmittedReportsByDate(today)
-  }
 }

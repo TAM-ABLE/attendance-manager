@@ -17,7 +17,7 @@ export default async function AdminPage() {
   // SSCでユーザー一覧と本日の日報を取得
   const [users, todayReports] = await Promise.all([
     fetchWithAuth<User[]>("/admin/users"),
-    fetchWithAuth<DailyReportListItem[]>("/daily-reports/today"),
+    fetchWithAuth<DailyReportListItem[]>("/daily-reports/by-date"),
   ])
   const regularUsers = users?.filter((u) => u.role !== "admin")
 

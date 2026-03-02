@@ -6,8 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { getDailyReportDetail } from "@/lib/api-services/daily-reports"
 import { withRetryFetcher } from "@/lib/auth/with-retry"
+import { formatReportDateLong, getStatusDisplay } from "@/lib/report-format"
 import { SWR_KEYS } from "@/lib/swr-keys"
-import { formatReportDateLong, getStatusDisplay } from "../lib/format"
 
 interface ReportDetailDialogProps {
   open: boolean

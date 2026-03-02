@@ -151,6 +151,20 @@ export async function apiClient<T>(endpoint: string, options = {}) {
 
 個別の SWR hook で同じ設定を繰り返す必要がなくなり、設定の一元管理が可能です。
 
+### 自動ポーリング（refreshInterval）
+
+管理者向け日報一覧（`TodayReportsView`）では、SWR の `refreshInterval: 60_000` を設定し、60秒ごとに自動で最新データを取得します。
+
+```typescript
+// app/(auth)/(admin)/admin/components/TodayReportsView.tsx
+useSWR(key, fetcher, {
+  refreshInterval: 60_000,  // 60秒ごとに自動更新
+})
+```
+
+- 手動更新ボタンも併用可能
+- 非アクティブなタブ（SWR キーが `null`）ではポーリングされない
+
 ## 4. HTTP キャッシュ（Cache-Control）
 
 読み取り頻度の高い月次データエンドポイントに `Cache-Control` ヘッダーを設定しています。
@@ -170,14 +184,15 @@ export async function apiClient<T>(endpoint: string, options = {}) {
 |--------|---------------|
 | `/dashboard` | 今日の勤怠、週合計 |
 | `/edit-attendance` | 特定日のセッション |
-| `/admin` | ユーザー一覧 |
+| `/admin` | ユーザー一覧、本日の提出済み日報 |
 | `/report-list` | ユーザー一覧 |
 
 ## 関連ファイル一覧
 
 ```
 components/
-└── SWRProvider.tsx       # SWRグローバル設定プロバイダー
+├── SWRProvider.tsx       # SWRグローバル設定プロバイダー
+└── ReportDetailDialog.tsx  # 日報詳細ダイアログ（共有）
 lib/
 ├── auth/
 │   └── server.ts        # fetchWithAuth（SSC用、app.fetch()で直接呼び出し）
@@ -186,6 +201,7 @@ lib/
 │   ├── admin.ts         # 管理者API
 │   ├── attendance.ts    # 勤怠API
 │   └── daily-reports.ts # 日報API
+├── report-format.ts     # 日報フォーマットユーティリティ（共有）
 └── swr-keys.ts          # SWRキャッシュキー定義
 hooks/
 ├── useUserSelect.ts     # 汎用ユーザー選択hook（initialData対応）
@@ -207,16 +223,15 @@ app/(auth)/
     │   ├── page.tsx
     │   ├── components/
     │   │   └── ReportListView.tsx
-    │   ├── hooks/
-    │   │   ├── useReportUsers.ts
-    │   │   └── useMonthlyReports.ts
-    │   └── lib/
-    │       └── format.ts
+    │   └── hooks/
+    │       ├── useReportUsers.ts
+    │       └── useMonthlyReports.ts
     └── (admin)/
         └── admin/
             ├── page.tsx
             ├── components/
-            │   └── MonthlyAttendanceView.tsx
+            │   ├── MonthlyAttendanceView.tsx
+            │   └── TodayReportsView.tsx   # 本日・前日の日報一覧（自動ポーリング）
             └── hooks/
                 ├── useUsers.ts
                 ├── useMonthlyAttendance.ts
