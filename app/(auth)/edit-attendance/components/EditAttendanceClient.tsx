@@ -14,6 +14,7 @@ import { formatYearMonthFromDate } from "@/lib/time"
 import type { AttendanceRecord } from "@/types/Attendance"
 import { useEditDialog } from "../hooks/useEditDialog"
 import { CloseMonthButton } from "./CloseMonthButton"
+import { EditAttendanceHelpPopover } from "./EditAttendanceHelpPopover"
 
 const EditAttendanceDialog = dynamic(
   () => import("@/components/EditAttendanceDialog").then((mod) => mod.EditAttendanceDialog),
@@ -51,8 +52,13 @@ export function EditAttendanceClient({ user, initialData }: EditAttendanceClient
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <h2 className="text-xl font-semibold">勤怠編集</h2>
-      <p className="text-muted-foreground">自分の勤怠データを編集できます。</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold">勤怠編集</h2>
+          <p className="text-muted-foreground">自分の勤怠データを編集できます。</p>
+        </div>
+        <EditAttendanceHelpPopover />
+      </div>
 
       {/* 月移動 */}
       <Card>
