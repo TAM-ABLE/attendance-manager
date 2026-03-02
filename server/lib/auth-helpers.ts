@@ -24,8 +24,7 @@ export async function verifyJwt(
   supabaseUrl?: string,
 ): Promise<JwtPayloadResult> {
   // JWTヘッダーのアルゴリズムを確認
-  const [headerB64] = token.split(".")
-  const header = JSON.parse(Buffer.from(headerB64, "base64url").toString())
+  const header = jose.decodeProtectedHeader(token)
 
   let payload: jose.JWTPayload
 
