@@ -25,15 +25,8 @@ function PasswordCheck({ passed, label }: { passed: boolean; label: string }) {
 }
 
 function parseHashParams(hash: string): Record<string, string> {
-  const params: Record<string, string> = {}
   const str = hash.startsWith("#") ? hash.slice(1) : hash
-  for (const part of str.split("&")) {
-    const [key, value] = part.split("=")
-    if (key && value) {
-      params[decodeURIComponent(key)] = decodeURIComponent(value)
-    }
-  }
-  return params
+  return Object.fromEntries(new URLSearchParams(str))
 }
 
 type FlowType = "invite" | "recovery"
