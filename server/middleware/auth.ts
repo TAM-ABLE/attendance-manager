@@ -27,7 +27,7 @@ export const authMiddleware = async (
   }
 
   try {
-    const payload = await verifyJwt(token, c.env.JWT_SECRET)
+    const payload = await verifyJwt(token, c.env.JWT_SECRET, c.env.SUPABASE_URL)
 
     c.set("jwtPayload", {
       sub: payload.sub,

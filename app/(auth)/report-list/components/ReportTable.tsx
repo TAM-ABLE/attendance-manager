@@ -12,8 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { formatReportDate, getStatusDisplay } from "@/lib/report-format"
 import type { DailyReportListItem } from "@/types/DailyReport"
-import { formatReportDate, getStatusDisplay } from "../lib/format"
 
 interface ReportTableProps {
   reports: DailyReportListItem[]

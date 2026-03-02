@@ -14,11 +14,38 @@ export interface JwtPayloadResult {
   email: string
 }
 
-export async function verifyJwt(token: string, secret: string): Promise<JwtPayloadResult> {
-  const secretKey = new TextEncoder().encode(secret)
-  const { payload } = await jose.jwtVerify(token, secretKey, {
-    algorithms: ["HS256"],
-  })
+// JWKSキャッシュ
+let jwksCache: jose.JWTVerifyGetKey | null = null
+let jwksCacheUrl: string | null = null
+
+export async function verifyJwt(
+  token: string,
+  secret: string,
+  supabaseUrl?: string,
+): Promise<JwtPayloadResult> {
+  // JWTヘッダーのアルゴリズムを確認
+  const [headerB64] = token.split(".")
+  const header = JSON.parse(Buffer.from(headerB64, "base64url").toString())
+
+  let payload: jose.JWTPayload
+
+  if (header.alg === "ES256" && supabaseUrl) {
+    // ES256の場合はJWKSを使用
+    const jwksUrl = `${supabaseUrl}/auth/v1/.well-known/jwks.json`
+    if (!jwksCache || jwksCacheUrl !== jwksUrl) {
+      jwksCache = jose.createRemoteJWKSet(new URL(jwksUrl))
+      jwksCacheUrl = jwksUrl
+    }
+    const result = await jose.jwtVerify(token, jwksCache)
+    payload = result.payload
+  } else {
+    // HS256/HS384/HS512の場合はシークレットを使用
+    const secretKey = new TextEncoder().encode(secret)
+    const result = await jose.jwtVerify(token, secretKey, {
+      algorithms: ["HS256", "HS384", "HS512"],
+    })
+    payload = result.payload
+  }
 
   const sub = payload.sub
   if (!sub) throw new Error("Missing sub claim")
