@@ -7,21 +7,26 @@ import type { Env } from "../types/env"
 export type JwtPayload = {
   sub: string
   role: "admin" | "user"
+  name: string
+  email: string
 }
 
 export type AuthVariables = {
   jwtPayload: JwtPayload
 }
 
+export function extractToken(
+  c: Context<{ Bindings: Env; Variables: AuthVariables }>,
+): string | null {
+  const authHeader = c.req.header("Authorization")
+  return extractBearerToken(authHeader) ?? getCookie(c, "accessToken") ?? null
+}
+
 export const authMiddleware = async (
   c: Context<{ Bindings: Env; Variables: AuthVariables }>,
   next: Next,
 ) => {
-  const authHeader = c.req.header("Authorization")
-  let token = extractBearerToken(authHeader)
-  if (!token) {
-    token = getCookie(c, "accessToken") ?? null
-  }
+  const token = extractToken(c)
   if (!token) {
     return unauthorizedError(c, "Not authenticated")
   }
@@ -32,6 +37,8 @@ export const authMiddleware = async (
     c.set("jwtPayload", {
       sub: payload.sub,
       role: payload.role,
+      name: payload.name,
+      email: payload.email,
     })
 
     await next()

@@ -30,7 +30,9 @@ app.use("*", async (c, next) => {
   await next()
 })
 
-// 認証不要: /api/auth
+// /api/auth/me のみ認証が必要
+app.use("/auth/me", authMiddleware)
+// /api/auth（login, logout, set-password は認証不要）
 app.route("/auth", authRoute)
 
 // 認証が必要なルート: /api/attendance/*

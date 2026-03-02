@@ -1,13 +1,12 @@
 import { createRoute, z } from "@hono/zod-openapi"
-import { getCookie } from "hono/cookie"
-import { extractBearerToken, verifyJwt } from "../../lib/auth-helpers"
-import { successResponse, unauthorizedError } from "../../lib/errors"
+import { successResponse } from "../../lib/errors"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
 import { unauthorizedResponse } from "../../lib/openapi-responses"
 import { successResponseSchema, uuidSchema } from "../../lib/openapi-schemas"
+import type { AuthVariables } from "../../middleware/auth"
 import type { Env } from "../../types/env"
 
-const meRouter = createOpenAPIHono<{ Bindings: Env }>()
+const meRouter = createOpenAPIHono<{ Bindings: Env; Variables: AuthVariables }>()
 
 const meResponseSchema = z
   .object({
@@ -36,29 +35,14 @@ const meRoute = createRoute({
 })
 
 meRouter.openapi(meRoute, async (c) => {
-  const authHeader = c.req.header("Authorization")
-  let accessToken = extractBearerToken(authHeader)
-  if (!accessToken) {
-    accessToken = getCookie(c, "accessToken") ?? null
-  }
+  const payload = c.get("jwtPayload")
 
-  if (!accessToken) {
-    return unauthorizedError(c, "Not authenticated")
-  }
-
-  try {
-    const payload = await verifyJwt(accessToken, c.env.JWT_SECRET, c.env.SUPABASE_URL)
-
-    return successResponse(c, {
-      id: payload.sub,
-      name: payload.name,
-      email: payload.email,
-      role: payload.role,
-    })
-  } catch (err) {
-    console.error("Auth me error:", err)
-    return unauthorizedError(c, "Invalid token")
-  }
+  return successResponse(c, {
+    id: payload.sub,
+    name: payload.name,
+    email: payload.email,
+    role: payload.role,
+  })
 })
 
 export default meRouter
