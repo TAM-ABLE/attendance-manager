@@ -1,7 +1,6 @@
 "use client"
 
-import { Clock, Info, KeyRound, Lock, Mail } from "lucide-react"
-import Link from "next/link"
+import { Clock, Info, Lock, Mail } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -137,15 +136,9 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <div className="text-center">
-          <Link
-            href="/first-login"
-            className="text-sm text-primary hover:underline inline-flex items-center gap-1"
-          >
-            <KeyRound className="h-3.5 w-3.5" />
-            初めてお使いの方へ（パスワード変更）
-          </Link>
-        </div>
+        <p className="text-center text-sm text-muted-foreground">
+          初めてお使いの方は、管理者から届いた招待メールのリンクからパスワードを設定してください。
+        </p>
       </CardContent>
     </Card>
   )

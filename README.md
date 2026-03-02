@@ -20,14 +20,17 @@
 - 日報一覧の確認
 
 ### 管理者機能
-- ユーザー登録（管理者のみ、初期パスワード自動生成）
-- ユーザー一覧表示
+- ユーザー登録（管理者のみ、招待メール送信）
+- ユーザー一覧表示（パスワード設定ステータス付き）
+- 招待メール再送（未設定ユーザー向け）
+- パスワードリセットメール送信（設定済みユーザー向け）
 - 勤怠データの確認・編集
 - ユーザーの月次勤怠データをCSV形式でエクスポート
 - 月次勤怠締め（CSVをSlackに送信）
 
 ### 認証
-- 初回ログイン時のパスワード変更フロー（パスワード強度バリデーション付き）
+- 招待メールによるパスワード設定フロー（パスワード強度バリデーション付き）
+- パスワードリセットフロー（管理者がリセットメール送信 → ユーザーが再設定）
 
 ### 通知・Slack連携
 - 出勤通知（ユーザー名・予定タスクをSlack投稿、非同期 fire-and-forget）
@@ -81,7 +84,7 @@ attendance-manager/
 │   ├── api/[...route]/        # Hono API catch-all route
 │   ├── (public)/              # 公開ページ
 │   │   ├── login/             # /login
-│   │   └── first-login/       # /first-login（初回パスワード変更）
+│   │   └── set-password/       # /set-password（招待メールからのパスワード設定）
 │   └── (auth)/                # 認証必須ページ
 │       ├── layout.tsx         # requireAuth()
 │       ├── dashboard/         # /dashboard
@@ -120,6 +123,7 @@ attendance-manager/
 │   └── types/                 # サーバー型定義
 ├── supabase/                  # Supabase 設定
 │   ├── config.toml            # Supabase 設定
+│   ├── templates/             # メールテンプレート（invite.html, recovery.html）
 │   ├── migrations/            # DB マイグレーション
 │   └── seed.sql               # シードデータ
 ├── public/                    # 静的アセット
@@ -147,7 +151,8 @@ attendance-manager/
 |-------------|------|
 | [development-guide.md](docs/development-guide.md) | 開発環境ガイド（Supabase CLI、起動方法） |
 | [data-fetching-architecture.md](docs/data-fetching-architecture.md) | データ取得設計（SSC + SWR） |
-| [authentication.md](docs/authentication.md) | 認証設計（JWT + HttpOnly Cookie + 初回パスワード変更） |
+| [authentication.md](docs/authentication.md) | 認証設計（JWT + HttpOnly Cookie + 招待メールによるパスワード設定 + パスワードリセット） |
+| [email-setup-guide.md](docs/email-setup-guide.md) | メール配信セットアップガイド（SMTP設定、トラブルシューティング） |
 | [slack-setup-guide.md](docs/slack-setup-guide.md) | Slack連携セットアップガイド（管理者向け） |
 | [performance.md](docs/performance.md) | パフォーマンス最適化（バンドル・DB・キャッシュ・レンダリング） |
 
@@ -164,7 +169,7 @@ attendance-manager/
 
 | Route Group | 認証 | 含まれるページ |
 |-------------|------|---------------|
-| `(public)` | 不要 | /login, /first-login |
+| `(public)` | 不要 | /login, /set-password |
 | `(auth)` | 必須 | /dashboard, /edit-attendance, /report-list |
 | `(auth)/(admin)` | 管理者のみ | /admin |
 
@@ -232,7 +237,7 @@ pnpm tsc --noEmit     # 型チェック
 | POST | `/api/auth/login` | ログイン |
 | POST | `/api/auth/logout` | ログアウト |
 | GET | `/api/auth/me` | 現在のユーザー情報取得 |
-| POST | `/api/auth/first-login` | 初回パスワード変更 |
+| POST | `/api/auth/set-password` | パスワード設定（招待メール・リカバリーメールから） |
 
 ### 勤怠
 | Method | Endpoint | 説明 |
@@ -257,6 +262,8 @@ pnpm tsc --noEmit     # 型チェック
 | GET | `/api/admin/users/{userId}/attendance/month/{yearMonth}` | ユーザーの月別勤怠取得 |
 | GET | `/api/admin/users/{userId}/attendance/{date}/sessions` | ユーザーの特定日セッション取得 |
 | PUT | `/api/admin/users/{userId}/attendance/{date}/sessions` | ユーザーの特定日セッション更新 |
+| POST | `/api/admin/users/{userId}/resend-invite` | 招待メール再送 |
+| POST | `/api/admin/users/{userId}/password-reset` | パスワードリセットメール送信 |
 
 ### 日報
 | Method | Endpoint | 説明 |
