@@ -1,6 +1,5 @@
 "use client"
 
-import { HelpPopover } from "@/components/HelpPopover"
 import type { AuthUser } from "@/lib/auth/server"
 import { useClockDialogs } from "../hooks/useClockDialogs"
 import { type DashboardInitialData, useDashboardAttendance } from "../hooks/useDashboardAttendance"
@@ -8,6 +7,7 @@ import { BreakDialog } from "./BreakDialog"
 import { ClockCard } from "./ClockCard"
 import { ClockInDialog } from "./ClockInDialog"
 import { ClockOutDialog } from "./ClockOutDialog"
+import { DashboardHelpPopover } from "./DashboardHelpPopover"
 import { PunchButtons } from "./PunchButtons"
 import { SessionList } from "./SessionList"
 import { SummaryCard } from "./SummaryCard"
@@ -49,29 +49,7 @@ export function DashboardClient({ user, initialData }: DashboardClientProps) {
           <h2 className="text-xl font-semibold">ダッシュボード</h2>
           <p className="text-muted-foreground">本日の勤怠を管理できます。</p>
         </div>
-        <HelpPopover>
-          <div className="space-y-3">
-            <h4 className="font-semibold">ダッシュボードの使い方</h4>
-            <div className="space-y-2 text-muted-foreground">
-              <p>
-                <strong className="text-foreground">出勤/退勤ボタン：</strong>
-                勤務の開始・終了時に押してください。
-              </p>
-              <p>
-                <strong className="text-foreground">休憩ボタン：</strong>
-                休憩開始・終了を記録できます。
-              </p>
-              <p>
-                <strong className="text-foreground">本日の勤務状況：</strong>
-                勤務時間・休憩時間・セッション数が表示されます。
-              </p>
-              <p>
-                <strong className="text-foreground">本日のセッション履歴：</strong>
-                本日の勤務時間が表示されます。複数回の出勤・退勤も可能です。
-              </p>
-            </div>
-          </div>
-        </HelpPopover>
+        <DashboardHelpPopover />
       </div>
       <ClockCard />
 
