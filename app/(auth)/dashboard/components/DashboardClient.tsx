@@ -44,7 +44,11 @@ export function DashboardClient({ user, initialData }: DashboardClientProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-semibold">ダッシュボード</h2>
+          <p className="text-muted-foreground">本日の勤怠を管理できます。</p>
+        </div>
         <HelpPopover>
           <div className="space-y-3">
             <h4 className="font-semibold">ダッシュボードの使い方</h4>
