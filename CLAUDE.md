@@ -27,18 +27,20 @@ pnpm tsc --noEmit     # Type check
 - `lib/` - Utilities (client-side + domain logic: schemas, time, calculation, constants, swr-keys, task-form, exportCsv, utils)
 - `types/` - TypeScript type definitions (Attendance, DailyReport, ApiResponse)
 - `server/` - Hono API (routes, middleware, repositories)
-- `supabase/` - Supabase config, migrations, seed data
+- `supabase/` - Supabase config, migrations, seed data, email templates
 
 ### Integrated API (Hono on Next.js API Routes)
 - Entry: `server/app.ts` - Hono app with `.basePath("/api")`
 - Catch-all: `app/api/[...route]/route.ts` - mounts Hono via `hono/vercel`
 - Routes (all under `/api`):
-  - `/api/auth` - Authentication (login, logout, me, first-login)
+  - `/api/auth` - Authentication (login, logout, me, set-password)
+  - `/api/admin/users/{userId}/resend-invite` - Resend invite email
+  - `/api/admin/users/{userId}/password-reset` - Send password reset email
   - `/api/attendance` - Attendance CRUD (clock-in/out, breaks, queries, close-month)
   - `/api/admin` - Admin operations (user management, attendance editing)
   - `/api/daily-reports` - Daily report management
 - Database: Drizzle ORM + postgres.js (direct TCP connection to PostgreSQL, connection pool: max 10, idle timeout 20s)
-- Auth: JWT verification via jose (local, no HTTP roundtrip) + GoTrue REST API via fetch (login, user creation, password update)
+- Auth: JWT verification via jose (local, no HTTP roundtrip) + GoTrue REST API via fetch (login, invite, password update, recovery)
 - Auth middleware reads token from Authorization header or Cookie fallback
 - OpenAPI: `@hono/zod-openapi` for schema validation + API docs
 - Swagger UI: `/api/ui` (dev only, dynamic import), OpenAPI spec: `/api/doc` (dev only)
@@ -50,7 +52,7 @@ server/
 ├── app.ts                    ← Hono app with basePath("/api")
 ├── middleware/auth.ts         ← JWT auth + cookie fallback
 ├── routes/
-│   ├── auth/{index,login,logout,me,first-login,constants}.ts
+│   ├── auth/{index,login,logout,me,set-password,constants}.ts
 │   ├── attendance/{index,clock,queries,breaks,sessions,close-month}.ts
 │   ├── admin/{index,users}.ts
 │   └── daily-reports.ts
@@ -58,7 +60,7 @@ server/
 │   ├── schema.ts                 ← Drizzle table + relation definitions
 │   └── index.ts                  ← DB client singleton (postgres.js + drizzle, connection pool)
 ├── lib/
-│   ├── auth-helpers.ts           ← jose JWT verification + GoTrue REST API helpers (login, create, update) + extractBearerToken
+│   ├── auth-helpers.ts           ← jose JWT verification + GoTrue REST API helpers (login, invite, update, listUsers, recovery) + extractBearerToken
 │   ├── errors.ts, formatters.ts (getFormattedSessions, formatAttendanceRecord), openapi-hono.ts
 │   ├── openapi-schemas.ts, openapi-responses.ts, sessions.ts
 │   ├── slack.ts                     ← Clock-in/out Slack notifications
@@ -89,6 +91,17 @@ See `docs/slack-setup-guide.md` for setup details.
 - Monthly attendance CSV upload to Slack via v2 file upload API
 - Server libs: `server/lib/slack.ts`, `server/lib/slack-csv.ts`, `server/lib/csv.ts`
 
+#### Email Invitation & Recovery
+See `docs/email-setup-guide.md` for setup details.
+
+- Admin creates user → Supabase sends invite email via GoTrue `/invite` endpoint
+- User clicks link → redirected to `/set-password` with access token in URL hash
+- Token verified server-side → password set → auto-login
+- Admin can resend invite (for pending users) or send password reset (for active users)
+- Password reset uses GoTrue `/recover` endpoint → recovery email → `/set-password` with `type=recovery`
+- Email templates: `supabase/templates/invite.html`, `supabase/templates/recovery.html`
+- Rate limit: 2 emails/hour (built-in SMTP), configurable with custom SMTP
+
 #### Performance Optimizations
 See `docs/performance.md` for details.
 
@@ -113,19 +126,20 @@ See `docs/authentication.md` for details.
 - `lib/auth/with-retry.ts` - Client-side 401 error handling (redirect to login)
 - `lib/api-client.ts` - Client-side API client via `/api/*` (Cookie sent automatically by browser)
 - `lib/api-services/` - Domain-specific API service modules (admin, attendance, daily-reports)
-- First-login flow: new users must change their initial password before accessing the app
+- Email invitation flow: new users receive an invite email and set their password via a token-based link
+  - Admin can resend invite emails for pending users or send password reset emails for active users
 - Route Groups for access control:
-  - `(public)/` - Public pages (login, first-login)
+  - `(public)/` - Public pages (login, set-password)
   - `(auth)/` - Authenticated pages (dashboard, edit-attendance, report-list)
   - `(auth)/(admin)/` - Admin-only pages (admin)
 
 #### Key Pages
 - `/dashboard` - Main employee view (clock-in/out, break management, session list)
-- `/admin` - Admin view (user management, user registration, attendance editing, CSV export, monthly close)
+- `/admin` - Admin view (user management, user registration, invite resend, password reset, attendance editing, CSV export, monthly close)
 - `/edit-attendance` - Edit attendance sessions for a specific date (with close-month button)
 - `/report-list` - Daily reports list (all authenticated users)
 - `/login` - Authentication page
-- `/first-login` - First-time password change (required for new users)
+- `/set-password` - Token-based password setup (from invite email link) or password reset (from recovery email link)
 
 #### Component Organization
 - `components/` - Shared components (Header, Footer, Loader, SuccessDialog, SWRProvider, TimeInput, DialogWrapper, EditAttendanceDialog, MonthNavigator)
