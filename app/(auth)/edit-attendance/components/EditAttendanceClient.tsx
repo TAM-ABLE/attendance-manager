@@ -62,7 +62,7 @@ export function EditAttendanceClient({ user, initialData }: EditAttendanceClient
 
       {/* 月移動 */}
       <Card>
-        <CardContent className="flex items-center justify-between">
+        <CardContent className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <MonthNavigator
             currentMonth={currentMonth}
             onPrevMonth={handlePrevMonth}
