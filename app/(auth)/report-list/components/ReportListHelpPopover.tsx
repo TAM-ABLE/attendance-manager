@@ -6,7 +6,7 @@ export function ReportListHelpPopover() {
   return (
     <HelpPopover>
       <div className="space-y-3">
-        <h4 className="font-semibold">日報一覧の使い方</h4>
+        <h4 className="font-semibold">日報履歴の使い方</h4>
         <div className="space-y-2 text-muted-foreground">
           <p>
             <strong className="text-foreground">月の移動：</strong>

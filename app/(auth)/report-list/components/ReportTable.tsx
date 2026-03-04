@@ -56,7 +56,7 @@ export function ReportTable({ reports, isLoading, onViewDetail }: ReportTablePro
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base sm:text-lg">日報一覧</CardTitle>
+        <CardTitle className="text-base sm:text-lg">日報履歴</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">

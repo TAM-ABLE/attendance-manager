@@ -49,7 +49,7 @@ export function ReportListView({ initialUsers }: ReportListViewProps) {
     <div className="space-y-4 sm:space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold">日報一覧</h2>
+          <h2 className="text-xl font-semibold">日報履歴</h2>
           <p className="text-muted-foreground">自分や他のユーザーの日報を閲覧できます。</p>
         </div>
         <ReportListHelpPopover />
@@ -78,7 +78,7 @@ export function ReportListView({ initialUsers }: ReportListViewProps) {
         </CardContent>
       </Card>
 
-      {/* 日報一覧 */}
+      {/* 日報履歴 */}
       {selectedUser && (
         <ReportTable reports={reports} isLoading={reportsLoading} onViewDetail={handleViewDetail} />
       )}
