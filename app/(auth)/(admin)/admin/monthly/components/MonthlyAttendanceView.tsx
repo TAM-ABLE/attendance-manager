@@ -10,9 +10,9 @@ import { Card, CardContent } from "@/components/ui/card"
 import { useMonthNavigation } from "@/hooks/useMonthNavigation"
 import { exportMonthlyAttendanceCSV } from "@/lib/exportCsv"
 import type { User } from "@/types/Attendance"
+import { useUsers } from "../../users/hooks/useUsers"
 import { useEditDialog } from "../hooks/useEditDialog"
 import { useMonthlyAttendance } from "../hooks/useMonthlyAttendance"
-import { useUsers } from "../hooks/useUsers"
 
 const EditAttendanceDialog = dynamic(
   () => import("@/components/EditAttendanceDialog").then((mod) => mod.EditAttendanceDialog),
