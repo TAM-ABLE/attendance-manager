@@ -83,17 +83,14 @@ clockRouter.openapi(clockInRoute, async (c) => {
 
     const slackConfig = getSlackConfig(c.env)
     if (slackConfig) {
-      sendClockInNotification(slackConfig, userName, plannedTasks)
-        .then((slackResult) => {
-          if (slackResult.ts) {
-            repos.workSession.updateSlackTs(session.id, slackResult.ts).catch((e) => {
-              console.error("Failed to save slack_clock_in_ts:", e)
-            })
-          }
-        })
-        .catch((e) => {
-          console.error("Failed to send clock-in Slack notification:", e)
-        })
+      try {
+        const slackResult = await sendClockInNotification(slackConfig, userName, plannedTasks)
+        if (slackResult.ts) {
+          await repos.workSession.updateSlackTs(session.id, slackResult.ts)
+        }
+      } catch (e) {
+        console.error("Failed to send clock-in Slack notification:", e)
+      }
     }
 
     return successResponse(c, {})
