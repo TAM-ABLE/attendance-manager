@@ -152,22 +152,6 @@ export async function adminUpdateUser(
   )
 }
 
-export async function inviteUserByEmail(
-  supabaseUrl: string,
-  serviceRoleKey: string,
-  email: string,
-  data: Record<string, unknown>,
-): Promise<GoTrueUser> {
-  return goTrueAdminRequest<GoTrueUser>(
-    supabaseUrl,
-    serviceRoleKey,
-    "/invite",
-    "POST",
-    { email, data },
-    "User invitation failed",
-  )
-}
-
 interface GoTrueAdminUser {
   id: string
   email: string
@@ -198,22 +182,29 @@ export async function goTrueAdminListUsers(
   return data.users
 }
 
-export async function sendRecoveryEmail(
-  supabaseUrl: string,
-  apiKey: string,
-  email: string,
-): Promise<void> {
-  const res = await fetch(`${supabaseUrl}/auth/v1/recover`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: apiKey,
-    },
-    body: JSON.stringify({ email }),
-  })
+interface GenerateLinkResponse {
+  action_link: string
+  id: string
+  email: string
+  user_metadata: Record<string, unknown>
+}
 
-  if (!res.ok) {
-    const error = (await res.json()) as { msg?: string; message?: string }
-    throw new GoTrueError(error.msg || error.message || "Recovery email failed", res.status)
-  }
+export async function generateLink(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  params: {
+    type: "invite" | "recovery"
+    email: string
+    data?: Record<string, unknown>
+    redirect_to?: string
+  },
+): Promise<GenerateLinkResponse> {
+  return goTrueAdminRequest<GenerateLinkResponse>(
+    supabaseUrl,
+    serviceRoleKey,
+    "/admin/generate_link",
+    "POST",
+    params,
+    "Failed to generate link",
+  )
 }

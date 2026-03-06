@@ -195,13 +195,7 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-[auth.email.template.invite]
-subject = "勤怠管理システムへの招待"
-content_path = "./supabase/templates/invite.html"
-
-[auth.email.template.recovery]
-subject = "パスワードリセット"
-content_path = "./supabase/templates/recovery.html"
+# メールテンプレートは Resend API 経由で送信 (server/lib/resend.ts)
 
 # Uncomment to customize notification email template
 # [auth.email.notification.password_changed]

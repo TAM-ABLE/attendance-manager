@@ -3,9 +3,8 @@ import { parseYearMonthWithRange } from "@/lib/time"
 import {
   adminUpdateUser,
   GoTrueError,
+  generateLink,
   goTrueAdminListUsers,
-  inviteUserByEmail,
-  sendRecoveryEmail,
 } from "../../lib/auth-helpers"
 import {
   databaseError,
@@ -39,6 +38,12 @@ import {
   yearMonthSchema,
 } from "../../lib/openapi-schemas"
 import { createRepos, DatabaseError } from "../../lib/repositories"
+import {
+  buildInviteEmailHtml,
+  buildRecoveryEmailHtml,
+  ResendError,
+  sendEmail,
+} from "../../lib/resend"
 import { replaceSessions } from "../../lib/sessions"
 import type { AuthVariables } from "../../middleware/auth"
 import type { Env } from "../../types/env"
@@ -133,31 +138,50 @@ usersRouter.openapi(createUserRoute, async (c) => {
   const name = `${lastName} ${firstName}`
   const { profile } = createRepos(c.env)
 
+  const resendApiKey = c.env.RESEND_API_KEY
+  const resendFromEmail = c.env.RESEND_FROM_EMAIL
+  const appUrl = c.env.APP_URL
+
+  if (!resendApiKey || !resendFromEmail || !appUrl) {
+    return internalError(
+      c,
+      "メール送信の環境変数が未設定です (RESEND_API_KEY, RESEND_FROM_EMAIL, APP_URL)",
+    )
+  }
+
   try {
     const maxNumber = await profile.findMaxEmployeeNumber()
     const employeeNumber = generateNextEmployeeNumber(maxNumber)
 
-    const user = await inviteUserByEmail(
-      c.env.SUPABASE_URL,
-      c.env.SUPABASE_SERVICE_ROLE_KEY,
+    const result = await generateLink(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY, {
+      type: "invite",
       email,
-      {
+      data: {
         name,
         role: "user",
         employee_number: employeeNumber,
         password_changed: false,
       },
-    )
+      redirect_to: `${appUrl}/set-password`,
+    })
+
+    await sendEmail(resendApiKey, {
+      from: resendFromEmail,
+      to: email,
+      subject: "勤怠管理システムへの招待",
+      html: buildInviteEmailHtml(result.action_link),
+    })
 
     return successResponse(c, {
-      id: user.id,
+      id: result.id,
       name,
-      email: user.email ?? email,
+      email: result.email ?? email,
       employeeNumber,
       role: "user" as const,
     })
   } catch (e) {
     if (e instanceof DatabaseError) return databaseError(c, e.message)
+    if (e instanceof ResendError) return internalError(c, `Email送信エラー: ${e.message}`)
     return internalError(c, e instanceof Error ? e.message : "Unknown error")
   }
 })
@@ -304,20 +328,44 @@ usersRouter.openapi(resendInviteRoute, async (c) => {
   const { userId } = c.req.valid("param")
   const { profile } = createRepos(c.env)
 
+  const resendApiKey = c.env.RESEND_API_KEY
+  const resendFromEmail = c.env.RESEND_FROM_EMAIL
+  const appUrl = c.env.APP_URL
+
+  if (!resendApiKey || !resendFromEmail || !appUrl) {
+    return internalError(
+      c,
+      "メール送信の環境変数が未設定です (RESEND_API_KEY, RESEND_FROM_EMAIL, APP_URL)",
+    )
+  }
+
   try {
     const user = await profile.findById(userId)
 
-    await inviteUserByEmail(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY, user.email, {
-      name: user.name,
-      role: user.role,
-      employee_number: user.employeeNumber,
-      password_changed: false,
+    const result = await generateLink(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY, {
+      type: "invite",
+      email: user.email,
+      data: {
+        name: user.name,
+        role: user.role,
+        employee_number: user.employeeNumber,
+        password_changed: false,
+      },
+      redirect_to: `${appUrl}/set-password`,
+    })
+
+    await sendEmail(resendApiKey, {
+      from: resendFromEmail,
+      to: user.email,
+      subject: "勤怠管理システムへの招待",
+      html: buildInviteEmailHtml(result.action_link),
     })
 
     return successResponse(c, { message: "招待メールを再送しました" })
   } catch (e) {
     if (e instanceof DatabaseError) return notFoundError(c, "User")
     if (e instanceof GoTrueError) return internalError(c, e.message)
+    if (e instanceof ResendError) return internalError(c, `Email送信エラー: ${e.message}`)
     return internalError(c, e instanceof Error ? e.message : "Unknown error")
   }
 })
@@ -354,15 +402,38 @@ usersRouter.openapi(passwordResetRoute, async (c) => {
   const { userId } = c.req.valid("param")
   const { profile } = createRepos(c.env)
 
+  const resendApiKey = c.env.RESEND_API_KEY
+  const resendFromEmail = c.env.RESEND_FROM_EMAIL
+  const appUrl = c.env.APP_URL
+
+  if (!resendApiKey || !resendFromEmail || !appUrl) {
+    return internalError(
+      c,
+      "メール送信の環境変数が未設定です (RESEND_API_KEY, RESEND_FROM_EMAIL, APP_URL)",
+    )
+  }
+
   try {
     const user = await profile.findById(userId)
 
-    await sendRecoveryEmail(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY, user.email)
+    const result = await generateLink(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY, {
+      type: "recovery",
+      email: user.email,
+      redirect_to: `${appUrl}/set-password`,
+    })
+
+    await sendEmail(resendApiKey, {
+      from: resendFromEmail,
+      to: user.email,
+      subject: "パスワードリセット - 勤怠管理システム",
+      html: buildRecoveryEmailHtml(result.action_link),
+    })
 
     return successResponse(c, { message: "パスワードリセットメールを送信しました" })
   } catch (e) {
     if (e instanceof DatabaseError) return notFoundError(c, "User")
     if (e instanceof GoTrueError) return internalError(c, e.message)
+    if (e instanceof ResendError) return internalError(c, `Email送信エラー: ${e.message}`)
     return internalError(c, e instanceof Error ? e.message : "Unknown error")
   }
 })

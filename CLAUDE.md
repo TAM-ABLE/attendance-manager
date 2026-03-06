@@ -44,7 +44,7 @@ pnpm tsc --noEmit     # Type check
 - Auth middleware reads token from Authorization header or Cookie fallback
 - OpenAPI: `@hono/zod-openapi` for schema validation + API docs
 - Swagger UI: `/api/ui` (dev only, dynamic import), OpenAPI spec: `/api/doc` (dev only)
-- Environment variables: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `SLACK_BOT_TOKEN`, `SLACK_CHANNEL_ID`, `SLACK_CSV_CHANNEL_ID`, `SLACK_ICON_CLOCK_IN`, `SLACK_ICON_CLOCK_OUT`, `SLACK_ICON_ATTENDANCE_CLOSE`
+- Environment variables: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `SLACK_BOT_TOKEN`, `SLACK_CHANNEL_ID`, `SLACK_CSV_CHANNEL_ID`, `SLACK_ICON_CLOCK_IN`, `SLACK_ICON_CLOCK_OUT`, `SLACK_ICON_ATTENDANCE_CLOSE`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `APP_URL`
 
 #### Server Code Structure
 ```
@@ -67,6 +67,7 @@ server/
 │   ├── swagger.ts                     ← OpenAPI doc + Swagger UI registration (dev only)
 │   ├── slack-csv.ts                 ← Slack v2 file upload (monthly CSV)
 │   ├── csv.ts                       ← Monthly attendance CSV generation
+│   ├── resend.ts                    ← Resend API email sending + templates
 │   └── repositories/{index,errors,attendance,profile,daily-report}.ts
 └── types/env.ts
 ```
@@ -94,13 +95,12 @@ See `docs/slack-setup-guide.md` for setup details.
 #### Email Invitation & Recovery
 See `docs/email-setup-guide.md` for setup details.
 
-- Admin creates user → Supabase sends invite email via GoTrue `/invite` endpoint
+- Admin creates user → GoTrue `/admin/generate_link` でリンク生成 → Resend API でメール送信
 - User clicks link → redirected to `/set-password` with access token in URL hash
 - Token verified server-side → password set → auto-login
 - Admin can resend invite (for pending users) or send password reset (for active users)
-- Password reset uses GoTrue `/recover` endpoint → recovery email → `/set-password` with `type=recovery`
-- Email templates: `supabase/templates/invite.html`, `supabase/templates/recovery.html`
-- Rate limit: 2 emails/hour (built-in SMTP), configurable with custom SMTP
+- Email templates: `server/lib/resend.ts` (HTML inline)
+- Environment variables: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `APP_URL`
 
 #### Performance Optimizations
 See `docs/performance.md` for details.

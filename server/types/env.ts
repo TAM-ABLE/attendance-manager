@@ -10,4 +10,7 @@ export type Env = {
   JWT_SECRET: string
   NODE_ENV?: string
   SLACK_CSV_CHANNEL_ID?: string
+  RESEND_API_KEY?: string
+  RESEND_FROM_EMAIL?: string
+  APP_URL?: string
 }
