@@ -124,7 +124,6 @@ attendance-manager/
 │   └── types/                 # サーバー型定義
 ├── supabase/                  # Supabase 設定
 │   ├── config.toml            # Supabase 設定
-│   ├── templates/             # メールテンプレート（invite.html, recovery.html）
 │   ├── migrations/            # DB マイグレーション
 │   └── seed.sql               # シードデータ
 ├── public/                    # 静的アセット

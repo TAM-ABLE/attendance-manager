@@ -81,18 +81,67 @@
 
 ## 招待メールによるパスワード設定フロー
 
-管理者がユーザーを登録すると、Supabase GoTrueの `/invite` エンドポイント経由で招待メールが自動送信されます。
+管理者がユーザーを登録すると、GoTrueの `/admin/generate_link` でリンクを生成し、Resend API 経由で招待メールを送信します。
 新規ユーザーはメール内のリンクからパスワードを設定します。
 
-### フロー
+### フロー図
 
 ```
-1. 管理者がユーザー作成 → GoTrue /invite でメール送信（password_changed: false）
-2. ユーザーが招待メールのリンクをクリック
-3. Supabase がトークンを検証し /set-password#access_token=xxx&type=invite へリダイレクト
-4. /set-password ページがURLハッシュからアクセストークンを抽出
-5. POST /api/auth/set-password → トークン検証 + パスワード設定 + password_changed: true + Cookie発行
-6. /dashboard へリダイレクト
+┌──────────┐    ┌──────────────────────┐    ┌───────────────┐    ┌────────────┐
+│ 管理者    │    │ Hono API             │    │ GoTrue API    │    │ Resend API │
+│ ブラウザ  │    │ /api/admin/users     │    │ (Supabase)    │    │            │
+└────┬─────┘    └──────────┬───────────┘    └──────┬────────┘    └─────┬──────┘
+     │                     │                       │                   │
+     │ POST /api/admin/users                       │                   │
+     │ {lastName,firstName,│                       │                   │
+     │  email}             │                       │                   │
+     │────────────────────>│                       │                   │
+     │                     │                       │                   │
+     │                     │ /admin/generate_link   │                   │
+     │                     │ type: "invite"         │                   │
+     │                     │──────────────────────>│                   │
+     │                     │                       │                   │
+     │                     │  action_link 返却      │                   │
+     │                     │<──────────────────────│                   │
+     │                     │                       │                   │
+     │                     │ POST /emails                              │
+     │                     │ {to, subject, html(action_link)}          │
+     │                     │──────────────────────────────────────────>│
+     │                     │                                           │
+     │                     │              送信完了                      │
+     │                     │<──────────────────────────────────────────│
+     │                     │                       │                   │
+     │  作成成功            │                       │                   │
+     │<────────────────────│                       │                   │
+     │                     │                       │                   │
+```
+
+```
+┌──────────┐    ┌──────────────────────┐    ┌───────────────┐
+│ ユーザー  │    │ Hono API             │    │ GoTrue API    │
+│ ブラウザ  │    │ /api/auth/set-password│    │ (Supabase)    │
+└────┬─────┘    └──────────┬───────────┘    └──────┬────────┘
+     │                     │                       │
+     │ メール内リンクをクリック                       │
+     │ → GoTrue がトークン検証                       │
+     │ → /set-password#access_token=xxx&type=invite │
+     │                     │                       │
+     │ POST /api/auth/     │                       │
+     │ set-password        │                       │
+     │ {password, token}   │                       │
+     │────────────────────>│                       │
+     │                     │                       │
+     │                     │ PUT /admin/users/{id}  │
+     │                     │ {password,             │
+     │                     │  password_changed:true} │
+     │                     │──────────────────────>│
+     │                     │                       │
+     │ Set-Cookie:         │                       │
+     │ accessToken=xxx     │                       │
+     │<────────────────────│                       │
+     │                     │                       │
+     │ → /dashboard        │                       │
+     │                     │                       │
 ```
 
 ### 未設定ユーザーのログイン制御
@@ -109,24 +158,62 @@
 招待リンクの期限切れ（24時間）やメール紛失時に、管理者が再送できます。
 
 ```
-1. 管理者が /admin のユーザー一覧で「再送」ボタンをクリック
-2. POST /api/admin/users/{userId}/resend-invite → GoTrue /invite でメール再送
-3. ユーザーが新しい招待メールのリンクからパスワード設定
+┌──────────┐    ┌──────────────────────────┐    ┌───────────┐    ┌────────────┐
+│ 管理者    │    │ Hono API                 │    │ GoTrue    │    │ Resend API │
+│ ブラウザ  │    │ /api/admin/users/        │    │           │    │            │
+│          │    │  {userId}/resend-invite   │    │           │    │            │
+└────┬─────┘    └────────────┬─────────────┘    └─────┬─────┘    └─────┬──────┘
+     │                       │                        │                │
+     │ POST resend-invite    │                        │                │
+     │──────────────────────>│                        │                │
+     │                       │                        │                │
+     │                       │ /admin/generate_link   │                │
+     │                       │ type: "invite"         │                │
+     │                       │───────────────────────>│                │
+     │                       │                        │                │
+     │                       │  action_link            │                │
+     │                       │<───────────────────────│                │
+     │                       │                        │                │
+     │                       │ Resend API で招待メール送信              │
+     │                       │────────────────────────────────────────>│
+     │                       │                                         │
+     │  再送成功              │                        │                │
+     │<──────────────────────│                        │                │
+     │                       │                        │                │
 ```
+
+→ 以降のフローは招待メールと同じ（ユーザーがリンクをクリック → パスワード設定）
 
 ### パスワードリセット（設定済みユーザー向け）
 
 パスワードを忘れたユーザーに対し、管理者がリセットメールを送信できます。
 
 ```
-1. 管理者が /admin のユーザー一覧で「リセット」ボタンをクリック
-2. POST /api/admin/users/{userId}/password-reset → GoTrue /recover でリカバリーメール送信
-3. ユーザーがメール内のリンクをクリック
-4. Supabase がトークンを検証し /set-password#access_token=xxx&type=recovery へリダイレクト
-5. /set-password ページが type=recovery を検出し「パスワードリセット」UIを表示
-6. POST /api/auth/set-password → 新パスワード設定 + Cookie発行
-7. /dashboard へリダイレクト
+┌──────────┐    ┌──────────────────────────┐    ┌───────────┐    ┌────────────┐
+│ 管理者    │    │ Hono API                 │    │ GoTrue    │    │ Resend API │
+│ ブラウザ  │    │ /api/admin/users/        │    │           │    │            │
+│          │    │  {userId}/password-reset  │    │           │    │            │
+└────┬─────┘    └────────────┬─────────────┘    └─────┬─────┘    └─────┬──────┘
+     │                       │                        │                │
+     │ POST password-reset   │                        │                │
+     │──────────────────────>│                        │                │
+     │                       │                        │                │
+     │                       │ /admin/generate_link   │                │
+     │                       │ type: "recovery"       │                │
+     │                       │───────────────────────>│                │
+     │                       │                        │                │
+     │                       │  action_link            │                │
+     │                       │<───────────────────────│                │
+     │                       │                        │                │
+     │                       │ Resend API でリセットメール送信          │
+     │                       │────────────────────────────────────────>│
+     │                       │                                         │
+     │  送信成功              │                        │                │
+     │<──────────────────────│                        │                │
+     │                       │                        │                │
 ```
+
+→ ユーザーがリンクをクリック → `/set-password#access_token=xxx&type=recovery` → パスワード再設定 → 自動ログイン
 
 ### ユーザーステータス
 
@@ -145,9 +232,10 @@
 
 ### メール配信
 
-- デフォルト: Supabase組み込みメール（1時間あたり2通まで）
-- 推奨: カスタムSMTP設定（レートリミット緩和）
-- 詳細: `docs/email-setup-guide.md`
+- Resend API（`server/lib/resend.ts`）経由でメール送信
+- GoTrue `/admin/generate_link` でリンク生成（メール送信なし）→ Resend API で送信
+- 環境変数: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `APP_URL`
+- 無料枠: 月3,000通（Resend）
 
 ### 主要ファイル
 
@@ -156,10 +244,9 @@
 | `server/routes/auth/set-password.ts` | パスワード設定API（トークンベース、invite/recovery 両対応） |
 | `server/routes/admin/users.ts` | 招待メール再送・パスワードリセットAPI |
 | `app/(public)/set-password/page.tsx` | パスワード設定ページ（invite/recovery で UI出し分け） |
-| `supabase/templates/invite.html` | 招待メールテンプレート |
-| `supabase/templates/recovery.html` | パスワードリセットメールテンプレート |
+| `server/lib/resend.ts` | Resend API メール送信 + HTMLテンプレート |
 | `hooks/usePasswordStrength.ts` | パスワード強度バリデーション |
-| `server/lib/auth-helpers.ts` | `inviteUserByEmail()` - 招待メール送信、`sendRecoveryEmail()` - リカバリーメール送信、`goTrueAdminListUsers()` - ユーザーメタデータ取得 |
+| `server/lib/auth-helpers.ts` | `generateLink()` - リンク生成、`goTrueAdminListUsers()` - ユーザーメタデータ取得 |
 
 ## Route Groups によるアクセス制御
 
@@ -210,7 +297,8 @@ export default async function AdminLayout({ children }) {
 | `server/routes/auth/logout.ts` | ログアウト処理、Cookie 削除 |
 | `server/routes/auth/set-password.ts` | 招待トークンによるパスワード設定処理 |
 | `server/middleware/auth.ts` | JWT 認証ミドルウェア（jose でローカル検証、Cookie or Authorization ヘッダー） |
-| `server/lib/auth-helpers.ts` | jose JWT 検証 + GoTrue REST API ヘルパー（login, invite, password update, listUsers, recovery） |
+| `server/lib/auth-helpers.ts` | jose JWT 検証 + GoTrue REST API ヘルパー（login, generate_link, password update, listUsers） |
+| `server/lib/resend.ts` | Resend API メール送信 + HTMLテンプレート |
 | `app/api/[...route]/route.ts` | Hono アプリを Next.js API Routes にマウント |
 | `lib/auth/server.ts` | SSC 用認証ユーティリティ（`app.fetch()` で直接呼び出し） |
 | `lib/auth/with-retry.ts` | 401 エラー時のリダイレクト処理 |

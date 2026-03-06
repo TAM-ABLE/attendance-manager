@@ -1,147 +1,77 @@
 # メール配信セットアップガイド（管理者向け）
 
-Supabaseのメール配信に関する設定とトラブルシューティングガイドです。
-招待メール・パスワードリセットメールが届かない場合の対処方法をまとめています。
+招待メール・パスワードリセットメールの配信設定ガイドです。
 
 ---
 
-## 目次
+## メール配信の仕組み
 
-1. [メール配信の仕組み](#1-メール配信の仕組み)
-2. [レートリミットについて](#2-レートリミットについて)
-3. [カスタムSMTPの設定（推奨）](#3-カスタムsmtpの設定推奨)
-4. [ローカル開発時のメール確認（Inbucket）](#4-ローカル開発時のメール確認inbucket)
-5. [トラブルシューティング](#5-トラブルシューティング)
+本システムでは **Resend API** を使用してメールを送信します。
 
----
-
-## 1. メール配信の仕組み
-
-Supabaseでは、ユーザー登録時の招待メールやパスワードリセットメールが自動送信されます。メール配信には2つの方式があります。
-
-| 方式 | 説明 | レートリミット |
-|------|------|---------------|
-| **組み込みメール（デフォルト）** | Supabaseが提供する共有メールサーバーを使用 | 1時間あたり2通 |
-| **カスタムSMTP** | 自前のSMTPサーバーを設定して使用 | SMTPプロバイダーの制限に準拠 |
-
-> **注意**: 本番環境ではカスタムSMTPの設定を強く推奨します。組み込みメールはレートリミットが厳しく、複数ユーザーの連続登録には不向きです。
+- ユーザー登録時: GoTrue `/admin/generate_link` でリンク生成 → Resend API で招待メール送信
+- パスワードリセット時: GoTrue `/admin/generate_link` でリンク生成 → Resend API でリセットメール送信
+- メールテンプレート: `server/lib/resend.ts` にインライン定義
 
 ---
 
-## 2. レートリミットについて
+## 必要な環境変数
 
-### 組み込みメール（デフォルト）の制限
-
-Supabaseの組み込みメールサーバーには以下のレートリミットがあります。
-
-- **1時間あたり2通まで**（招待メール・パスワードリセット等すべて含む）
-- 制限を超えた場合、メールは送信されず、エラーも返らない場合があります
-
-### 対処方法
-
-- ユーザー登録は **1時間に2名まで** に抑える
-- 複数ユーザーを一度に登録する場合は、カスタムSMTPを設定する（次セクション参照）
+| 環境変数 | 説明 | 例 |
+|---------|------|-----|
+| `RESEND_API_KEY` | Resend の API キー | `re_xxxxxxxxxx` |
+| `RESEND_FROM_EMAIL` | 送信元メールアドレス | `noreply@tamable.co.jp` |
+| `APP_URL` | アプリケーションの本番 URL | `https://attendance.tamable.co.jp` |
 
 ---
 
-## 3. カスタムSMTPの設定（推奨）
+## セットアップ手順
 
-### 推奨SMTPプロバイダー
+### 1. Resend アカウント作成
 
-| プロバイダー | 無料枠 | 特徴 |
-|-------------|--------|------|
-| [Resend](https://resend.com/) | 月3,000通 | シンプルなAPI、Supabase公式で紹介 |
-| [SendGrid](https://sendgrid.com/) | 月100通/日 | 実績豊富、詳細な配信レポート |
-| [AWS SES](https://aws.amazon.com/ses/) | 月62,000通（EC2利用時） | 低コスト、大量配信向け |
+1. [Resend](https://resend.com/) でアカウント作成
+2. 無料プラン（月3,000通）で十分
 
-### 設定手順（Supabase Dashboard）
+### 2. ドメイン認証
 
-1. [Supabase Dashboard](https://supabase.com/dashboard) にログイン
-2. プロジェクトを選択
-3. 左メニュー **「Project Settings」** → **「Authentication」** を開く
-4. **「SMTP Settings」** セクションで **「Enable Custom SMTP」** をオンにする
-5. SMTPプロバイダーの情報を入力：
-   - **Sender email**: 送信元メールアドレス
-   - **Sender name**: 送信者名（例: `勤怠管理システム`）
-   - **Host**: SMTPサーバーのホスト
-   - **Port**: ポート番号（通常 `587` または `465`）
-   - **Username**: SMTP認証ユーザー名
-   - **Password**: SMTP認証パスワード
-6. **「Save」** をクリック
+Resend から `tamable.co.jp` ドメインでメールを送信するには、DNS レコードの追加が必要です。
 
-### ローカル開発でのカスタムSMTP設定
+1. Resend 管理画面で `tamable.co.jp` を登録
+2. 表示される DNS レコード（TXT, MX 等）をドメインの DNS 管理画面で追加
+3. Resend 側でドメイン認証の完了を確認
 
-`supabase/config.toml` で設定可能です。
+### 3. API キー発行
 
-```toml
-[auth.email]
-enable_signup = true
-double_confirm_changes = true
-enable_confirmations = false
+1. Resend 管理画面 → API Keys → Create API Key
+2. 発行されたキーを本番環境の環境変数 `RESEND_API_KEY` に設定
 
-[auth.email.smtp]
-host = "smtp.example.com"
-port = 587
-user = "your-smtp-user"
-pass = "your-smtp-password"
-admin_email = "admin@example.com"
-sender_name = "勤怠管理システム"
+### 4. 環境変数の設定
+
+本番環境（Vercel 等）に以下の環境変数を設定：
+
+```
+RESEND_API_KEY=re_xxxxxxxxxx
+RESEND_FROM_EMAIL=noreply@tamable.co.jp
+APP_URL=https://attendance.tamable.co.jp
 ```
 
 ---
 
-## 4. ローカル開発時のメール確認（Inbucket）
+## ローカル開発
 
-ローカル開発環境では、Supabase CLIに組み込まれた **Inbucket** でメールを確認できます。実際のメール送信は行われず、すべてInbucketにキャプチャされます。
-
-### アクセス方法
-
-Supabaseローカル環境を起動後、ブラウザで以下にアクセス：
-
-```
-http://localhost:54324
-```
-
-### 使い方
-
-1. `supabase start` でローカル環境を起動
-2. 管理画面からユーザーを登録（または招待メール再送・パスワードリセットを実行）
-3. Inbucket（`http://localhost:54324`）を開く
-4. 送信先メールアドレスのメールボックスを確認
-5. メール内のリンクをクリックしてパスワード設定・リセットをテスト
-
-> **ヒント**: ローカル環境ではレートリミットはありません。メール関連の動作確認はローカルで行うのが効率的です。
+ローカル開発では `RESEND_API_KEY` が未設定のため、メール送信時にエラーが返ります。
+メールのリンク生成自体は GoTrue が行うため、ローカルでのメール動作確認が必要な場合は Resend のテスト用 API キーを `.env.local` に設定してください。
 
 ---
 
-## 5. トラブルシューティング
+## トラブルシューティング
 
-招待メールが届かない場合、以下のチェックリストを上から順に確認してください。
-
-### チェックリスト
+### メールが届かない場合
 
 | # | 確認項目 | 確認方法 |
 |---|---------|---------|
 | 1 | **迷惑メールフォルダ** | 受信者のメールクライアントで迷惑メールフォルダを確認 |
 | 2 | **メールアドレスの入力ミス** | 管理画面のユーザー一覧で登録メールアドレスを確認 |
-| 3 | **レートリミット超過** | 直近1時間以内に2通以上送信していないか確認 |
-| 4 | **Supabase Dashboardのログ** | Dashboard → Logs → Auth で送信エラーがないか確認 |
-| 5 | **SMTP設定の不備** | カスタムSMTP利用時、認証情報・ポート番号を再確認 |
-| 6 | **メールテンプレート** | Dashboard → Authentication → Email Templates でテンプレートが正しいか確認 |
-
-### レートリミットに引っかかった場合
-
-1. **1時間待つ**: 組み込みメールの場合、1時間後にリミットがリセットされます
-2. **カスタムSMTPを設定する**: 恒久的な解決策として推奨
-3. **管理画面から再送**: `/admin` のユーザー一覧から「再送」ボタンで招待メールを再送
-
-### メールテンプレートのカスタマイズ
-
-Supabase Dashboardの **Authentication → Email Templates** で、メールの内容をカスタマイズできます。
-
-ローカル開発では `supabase/config.toml` で設定するか、`supabase/templates/` ディレクトリにHTMLテンプレートを配置します。
-
-| テンプレート | 設定キー | ファイル | 用途 |
-|-------------|---------|---------|------|
-| 招待メール | `[auth.email.template.invite]` | `supabase/templates/invite.html` | 新規ユーザーへの招待 |
-| リカバリーメール | `[auth.email.template.recovery]` | `supabase/templates/recovery.html` | パスワードリセット |
+| 3 | **環境変数の設定** | `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `APP_URL` が正しく設定されているか確認 |
+| 4 | **ドメイン認証** | Resend 管理画面でドメインが認証済みか確認 |
+| 5 | **Resend ダッシュボード** | Resend の Logs でメール送信状況・エラーを確認 |
+| 6 | **Supabase ログ** | Supabase Dashboard → Logs → Auth で GoTrue エラーがないか確認 |
