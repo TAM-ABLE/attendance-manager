@@ -35,6 +35,34 @@ export class AttendanceRepository {
     return result
   }
 
+  async getSlackTs(
+    recordId: string,
+  ): Promise<{ slackClockInTs: string | null; slackClockOutTs: string | null }> {
+    const result = await this.db
+      .select({
+        slackClockInTs: attendanceRecords.slackClockInTs,
+        slackClockOutTs: attendanceRecords.slackClockOutTs,
+      })
+      .from(attendanceRecords)
+      .where(eq(attendanceRecords.id, recordId))
+      .limit(1)
+    return result[0] ?? { slackClockInTs: null, slackClockOutTs: null }
+  }
+
+  async updateSlackClockInTs(recordId: string, slackTs: string): Promise<void> {
+    await this.db
+      .update(attendanceRecords)
+      .set({ slackClockInTs: slackTs })
+      .where(eq(attendanceRecords.id, recordId))
+  }
+
+  async updateSlackClockOutTs(recordId: string, slackTs: string): Promise<void> {
+    await this.db
+      .update(attendanceRecords)
+      .set({ slackClockOutTs: slackTs })
+      .where(eq(attendanceRecords.id, recordId))
+  }
+
   async findRecordWithSessions(userId: string, date: string): Promise<DbAttendanceRecord | null> {
     const result = await this.db.query.attendanceRecords.findFirst({
       where: and(eq(attendanceRecords.userId, userId), eq(attendanceRecords.date, date)),
@@ -136,28 +164,6 @@ export class WorkSessionRepository {
 
   async updateClockOut(sessionId: string, clockOut: string): Promise<void> {
     await this.db.update(workSessions).set({ clockOut }).where(eq(workSessions.id, sessionId))
-  }
-
-  async findActiveSessionWithSlackTs(
-    attendanceId: string,
-  ): Promise<{ id: string; slackClockInTs: string | null } | null> {
-    const result = await this.db
-      .select({
-        id: workSessions.id,
-        slackClockInTs: workSessions.slackClockInTs,
-      })
-      .from(workSessions)
-      .where(and(eq(workSessions.attendanceId, attendanceId), isNull(workSessions.clockOut)))
-      .orderBy(desc(workSessions.clockIn))
-      .limit(1)
-    return result[0] ?? null
-  }
-
-  async updateSlackTs(sessionId: string, slackTs: string): Promise<void> {
-    await this.db
-      .update(workSessions)
-      .set({ slackClockInTs: slackTs })
-      .where(eq(workSessions.id, sessionId))
   }
 
   async getSessionIdsByAttendanceId(attendanceId: string): Promise<string[]> {

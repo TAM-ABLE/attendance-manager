@@ -6,6 +6,8 @@ export const SWR_KEYS = {
   ATTENDANCE_TODAY: "attendance-today",
   ATTENDANCE_WEEK_TOTAL: "attendance-week-total",
   PLANNED_TASKS_TODAY: "planned-tasks-today",
+  PREVIOUS_ACTUALS_TODAY: "previous-actuals-today",
+  REPORT_SUMMARY_TODAY: "report-summary-today",
 
   // 勤怠履歴
   attendanceMonth: (yearMonth: string) => ["attendance-month", yearMonth] as const,
