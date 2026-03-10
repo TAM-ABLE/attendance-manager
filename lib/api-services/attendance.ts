@@ -45,6 +45,16 @@ export function getTodayPlannedTasks() {
   return apiClient<Task[]>("/attendance/today/planned-tasks")
 }
 
+export function getTodayPreviousActuals() {
+  return apiClient<Task[]>("/attendance/today/previous-actuals")
+}
+
+export function getTodayReportSummary() {
+  return apiClient<{ summary: string | null; issues: string | null; notes: string | null } | null>(
+    "/attendance/today/report-summary",
+  )
+}
+
 export function getWeekTotal() {
   return apiClient<{ netWorkMs: number } | null>("/attendance/week/total")
 }

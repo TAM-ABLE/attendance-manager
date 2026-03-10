@@ -21,6 +21,8 @@ export const attendanceRecords = pgTable(
       .notNull()
       .references(() => profiles.id, { onDelete: "cascade" }),
     date: date("date").notNull(),
+    slackClockInTs: text("slack_clock_in_ts"),
+    slackClockOutTs: text("slack_clock_out_ts"),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -36,7 +38,6 @@ export const workSessions = pgTable("work_sessions", {
     .references(() => attendanceRecords.id, { onDelete: "cascade" }),
   clockIn: timestamp("clock_in", { withTimezone: true, mode: "string" }).notNull(),
   clockOut: timestamp("clock_out", { withTimezone: true, mode: "string" }),
-  slackClockInTs: text("slack_clock_in_ts"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
 })
 
@@ -52,19 +53,27 @@ export const breaks = pgTable("breaks", {
 })
 
 // ===== daily_reports =====
-export const dailyReports = pgTable("daily_reports", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => profiles.id, { onDelete: "cascade" }),
-  date: date("date").notNull(),
-  summary: text("summary"),
-  issues: text("issues"),
-  notes: text("notes"),
-  submittedAt: timestamp("submitted_at", { withTimezone: true, mode: "string" }),
-  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
-})
+export const dailyReports = pgTable(
+  "daily_reports",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => profiles.id, { onDelete: "cascade" }),
+    date: date("date").notNull(),
+    summary: text("summary"),
+    issues: text("issues"),
+    notes: text("notes"),
+    submittedAt: timestamp("submitted_at", { withTimezone: true, mode: "string" }),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [unique("daily_reports_user_date_unique").on(table.userId, table.date)],
+)
 
 // ===== daily_report_tasks =====
 export const dailyReportTasks = pgTable("daily_report_tasks", {
@@ -72,6 +81,9 @@ export const dailyReportTasks = pgTable("daily_report_tasks", {
   dailyReportId: uuid("daily_report_id")
     .notNull()
     .references(() => dailyReports.id, { onDelete: "cascade" }),
+  workSessionId: uuid("work_session_id").references(() => workSessions.id, {
+    onDelete: "set null",
+  }),
   taskType: text("task_type").notNull(),
   taskName: text("task_name").notNull(),
   hours: numeric("hours", { precision: 4, scale: 2 }),
@@ -121,5 +133,9 @@ export const dailyReportTasksRelations = relations(dailyReportTasks, ({ one }) =
   dailyReport: one(dailyReports, {
     fields: [dailyReportTasks.dailyReportId],
     references: [dailyReports.id],
+  }),
+  workSession: one(workSessions, {
+    fields: [dailyReportTasks.workSessionId],
+    references: [workSessions.id],
   }),
 }))

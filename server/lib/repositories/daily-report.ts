@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, isNull, lte } from "drizzle-orm"
+import { and, asc, eq, gte, isNotNull, lte, ne } from "drizzle-orm"
 import type { Db } from "../../db"
 import { dailyReports, dailyReportTasks } from "../../db/schema"
 import { DatabaseError } from "./errors"
@@ -6,7 +6,15 @@ import { DatabaseError } from "./errors"
 export class DailyReportRepository {
   constructor(private db: Db) {}
 
-  async createReport(userId: string, date: string): Promise<{ id: string }> {
+  async findOrCreateReport(userId: string, date: string): Promise<{ id: string }> {
+    const existing = await this.db
+      .select({ id: dailyReports.id })
+      .from(dailyReports)
+      .where(and(eq(dailyReports.userId, userId), eq(dailyReports.date, date)))
+      .limit(1)
+
+    if (existing[0]) return existing[0]
+
     const [result] = await this.db
       .insert(dailyReports)
       .values({ userId, date })
@@ -16,12 +24,19 @@ export class DailyReportRepository {
 
   async insertTasks(
     reportId: string,
-    tasks: { taskType: string; taskName: string; hours: number | null; sortOrder: number }[],
+    tasks: {
+      taskType: string
+      taskName: string
+      hours: number | null
+      sortOrder: number
+      workSessionId?: string | null
+    }[],
   ): Promise<void> {
     if (tasks.length === 0) return
     await this.db.insert(dailyReportTasks).values(
       tasks.map((t) => ({
         dailyReportId: reportId,
+        workSessionId: t.workSessionId ?? null,
         taskType: t.taskType,
         taskName: t.taskName,
         hours: t.hours != null ? String(t.hours) : null,
@@ -30,18 +45,33 @@ export class DailyReportRepository {
     )
   }
 
-  async findUnsubmittedReport(userId: string, date: string): Promise<{ id: string } | null> {
+  async findReportByUserAndDate(userId: string, date: string): Promise<{ id: string } | null> {
     const result = await this.db
       .select({ id: dailyReports.id })
+      .from(dailyReports)
+      .where(and(eq(dailyReports.userId, userId), eq(dailyReports.date, date)))
+      .limit(1)
+    return result[0] ?? null
+  }
+
+  async findReportSummary(
+    userId: string,
+    date: string,
+  ): Promise<{ summary: string | null; issues: string | null; notes: string | null } | null> {
+    const result = await this.db
+      .select({
+        summary: dailyReports.summary,
+        issues: dailyReports.issues,
+        notes: dailyReports.notes,
+      })
       .from(dailyReports)
       .where(
         and(
           eq(dailyReports.userId, userId),
           eq(dailyReports.date, date),
-          isNull(dailyReports.submittedAt),
+          isNotNull(dailyReports.submittedAt),
         ),
       )
-      .orderBy(desc(dailyReports.createdAt))
       .limit(1)
     return result[0] ?? null
   }
@@ -66,36 +96,52 @@ export class DailyReportRepository {
     await this.db.update(dailyReports).set(updateData).where(eq(dailyReports.id, reportId))
   }
 
-  async findUnsubmittedReportWithTasks(userId: string, date: string) {
-    const result = await this.db.query.dailyReports.findFirst({
-      where: and(
-        eq(dailyReports.userId, userId),
-        eq(dailyReports.date, date),
-        isNull(dailyReports.submittedAt),
-      ),
-      orderBy: [desc(dailyReports.createdAt)],
-      with: {
-        tasks: {
-          columns: {
-            id: true,
-            taskType: true,
-            taskName: true,
-            hours: true,
-            sortOrder: true,
-          },
-        },
-      },
-    })
+  async findTasksBySession(reportId: string, workSessionId: string, taskType: string) {
+    const result = await this.db
+      .select({
+        id: dailyReportTasks.id,
+        taskType: dailyReportTasks.taskType,
+        taskName: dailyReportTasks.taskName,
+        hours: dailyReportTasks.hours,
+        sortOrder: dailyReportTasks.sortOrder,
+      })
+      .from(dailyReportTasks)
+      .where(
+        and(
+          eq(dailyReportTasks.dailyReportId, reportId),
+          eq(dailyReportTasks.workSessionId, workSessionId),
+          eq(dailyReportTasks.taskType, taskType),
+        ),
+      )
+      .orderBy(asc(dailyReportTasks.sortOrder))
 
-    if (!result) return null
+    return result.map((t) => ({
+      ...t,
+      hours: t.hours != null ? Number(t.hours) : null,
+    }))
+  }
 
-    return {
-      ...result,
-      tasks: result.tasks.map((t) => ({
-        ...t,
-        hours: t.hours != null ? Number(t.hours) : null,
-      })),
-    }
+  async findPreviousSessionActualTasks(reportId: string, currentSessionId: string) {
+    const result = await this.db
+      .select({
+        taskName: dailyReportTasks.taskName,
+        hours: dailyReportTasks.hours,
+        workSessionId: dailyReportTasks.workSessionId,
+      })
+      .from(dailyReportTasks)
+      .where(
+        and(
+          eq(dailyReportTasks.dailyReportId, reportId),
+          eq(dailyReportTasks.taskType, "actual"),
+          ne(dailyReportTasks.workSessionId, currentSessionId),
+        ),
+      )
+      .orderBy(asc(dailyReportTasks.sortOrder))
+
+    return result.map((t) => ({
+      ...t,
+      hours: t.hours != null ? Number(t.hours) : null,
+    }))
   }
 
   async findReportsByDateRange(userId: string, startDate: string, endDate: string) {
@@ -151,5 +197,23 @@ export class DailyReportRepository {
         hours: t.hours != null ? Number(t.hours) : null,
       })),
     }
+  }
+
+  async findAllTasksByReportAndType(reportId: string, taskType: string) {
+    const result = await this.db
+      .select({
+        taskName: dailyReportTasks.taskName,
+        hours: dailyReportTasks.hours,
+      })
+      .from(dailyReportTasks)
+      .where(
+        and(eq(dailyReportTasks.dailyReportId, reportId), eq(dailyReportTasks.taskType, taskType)),
+      )
+      .orderBy(asc(dailyReportTasks.sortOrder))
+
+    return result.map((t) => ({
+      taskName: t.taskName,
+      hours: t.hours != null ? Number(t.hours) : null,
+    }))
   }
 }

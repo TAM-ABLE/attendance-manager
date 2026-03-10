@@ -22,6 +22,7 @@ import {
   yearMonthSchema,
 } from "../lib/openapi-schemas"
 import { createRepos } from "../lib/repositories"
+import { mergeTasks } from "../lib/task-merge"
 import type { AuthVariables } from "../middleware/auth"
 import type { Env } from "../types/env"
 
@@ -178,27 +179,16 @@ dailyReportsRouter.openapi(getReportDetailRoute, async (c) => {
     }
 
     const tasks = report.tasks || []
-    const plannedTasks: DailyReportTask[] = tasks
+
+    const rawPlanned = tasks
       .filter((t) => t.taskType === "planned")
       .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map((t) => ({
-        id: t.id,
-        taskType: t.taskType as "planned",
-        taskName: t.taskName,
-        hours: t.hours,
-        sortOrder: t.sortOrder,
-      }))
-
-    const actualTasks: DailyReportTask[] = tasks
+    const rawActual = tasks
       .filter((t) => t.taskType === "actual")
       .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map((t) => ({
-        id: t.id,
-        taskType: t.taskType as "actual",
-        taskName: t.taskName,
-        hours: t.hours,
-        sortOrder: t.sortOrder,
-      }))
+
+    const plannedTasks: DailyReportTask[] = mergeTasks(rawPlanned, "planned")
+    const actualTasks: DailyReportTask[] = mergeTasks(rawActual, "actual")
 
     const dailyReport: DailyReport = {
       id: report.id,

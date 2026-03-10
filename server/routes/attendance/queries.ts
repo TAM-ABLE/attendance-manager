@@ -12,6 +12,7 @@ import {
   yearMonthSchema,
 } from "../../lib/openapi-schemas"
 import { createRepos } from "../../lib/repositories"
+import { mergeTasksByName } from "../../lib/task-merge"
 import type { AuthVariables } from "../../middleware/auth"
 import type { Env } from "../../types/env"
 
@@ -144,7 +145,7 @@ const todayPlannedTasksRoute = createRoute({
   path: "/today/planned-tasks",
   tags: ["勤怠"],
   summary: "本日の予定タスク取得",
-  description: "本日の出勤時に入力した予定タスクを取得します。",
+  description: "現在のセッションで入力した予定タスクを取得します。",
   security: [{ Bearer: [] }],
   responses: {
     200: {
@@ -161,17 +162,110 @@ queriesRouter.openapi(todayPlannedTasksRoute, async (c) => {
   const repos = createRepos(c.env)
 
   try {
-    const report = await repos.dailyReport.findUnsubmittedReportWithTasks(userId, date)
-    if (!report) {
-      return successResponse(c, [])
+    // 現在のアクティブセッションの予定タスクのみ返す
+    const record = await repos.attendance.findRecordIdByUserAndDate(userId, date)
+    if (!record) return successResponse(c, [])
+
+    const session = await repos.workSession.findActiveSession(record.id)
+    if (!session) return successResponse(c, [])
+
+    const report = await repos.dailyReport.findReportByUserAndDate(userId, date)
+    if (!report) return successResponse(c, [])
+
+    const tasks = await repos.dailyReport.findTasksBySession(report.id, session.id, "planned")
+    return successResponse(
+      c,
+      tasks.map((t) => ({ taskName: t.taskName, hours: t.hours })),
+    )
+  } catch (e) {
+    return handleRouteError(c, e)
+  }
+})
+
+// 過去セッションの実績タスク取得（退勤ダイアログの読み取り専用表示用）
+const todayPreviousActualsRoute = createRoute({
+  method: "get",
+  path: "/today/previous-actuals",
+  tags: ["勤怠"],
+  summary: "過去セッションの実績タスク取得",
+  description: "本日の過去セッションで入力した実績タスクを取得します。",
+  security: [{ Bearer: [] }],
+  responses: {
+    200: {
+      content: { "application/json": { schema: successResponseSchema(z.array(taskSchema)) } },
+      description: "取得成功",
+    },
+    500: serverErrorResponse,
+  },
+})
+
+queriesRouter.openapi(todayPreviousActualsRoute, async (c) => {
+  const { sub: userId } = c.get("jwtPayload")
+  const date = todayJSTString()
+  const repos = createRepos(c.env)
+
+  try {
+    const record = await repos.attendance.findRecordIdByUserAndDate(userId, date)
+    if (!record) return successResponse(c, [])
+
+    const report = await repos.dailyReport.findReportByUserAndDate(userId, date)
+    if (!report) return successResponse(c, [])
+
+    const session = await repos.workSession.findActiveSession(record.id)
+
+    let tasks: { taskName: string; hours: number | null }[]
+    if (session) {
+      // アクティブセッションあり（退勤ダイアログ用）: 現在セッション以外の実績
+      tasks = await repos.dailyReport.findPreviousSessionActualTasks(report.id, session.id)
+    } else {
+      // アクティブセッションなし（出勤ダイアログ用）: 全実績タスク
+      tasks = await repos.dailyReport.findAllTasksByReportAndType(report.id, "actual")
     }
 
-    const plannedTasks = report.tasks
-      .filter((t) => t.taskType === "planned")
-      .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map((t) => ({ taskName: t.taskName, hours: t.hours }))
+    const merged = mergeTasksByName(tasks)
+    return successResponse(c, merged)
+  } catch (e) {
+    return handleRouteError(c, e)
+  }
+})
 
-    return successResponse(c, plannedTasks)
+// 前回退勤時のサマリー・所感を取得（退勤ダイアログの引き継ぎ表示用）
+const todayReportSummaryRoute = createRoute({
+  method: "get",
+  path: "/today/report-summary",
+  tags: ["勤怠"],
+  summary: "前回退勤時のサマリー取得",
+  description: "本日の前回退勤時に入力したサマリー・所感を取得します。",
+  security: [{ Bearer: [] }],
+  responses: {
+    200: {
+      content: {
+        "application/json": {
+          schema: successResponseSchema(
+            z
+              .object({
+                summary: z.string().nullable(),
+                issues: z.string().nullable(),
+                notes: z.string().nullable(),
+              })
+              .nullable(),
+          ),
+        },
+      },
+      description: "取得成功",
+    },
+    500: serverErrorResponse,
+  },
+})
+
+queriesRouter.openapi(todayReportSummaryRoute, async (c) => {
+  const { sub: userId } = c.get("jwtPayload")
+  const date = todayJSTString()
+  const repos = createRepos(c.env)
+
+  try {
+    const result = await repos.dailyReport.findReportSummary(userId, date)
+    return successResponse(c, result)
   } catch (e) {
     return handleRouteError(c, e)
   }
