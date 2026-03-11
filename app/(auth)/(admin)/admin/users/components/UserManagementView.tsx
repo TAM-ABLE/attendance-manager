@@ -35,7 +35,12 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
         </CardContent>
       </Card>
 
-      <EditUserDialog target={editTarget} onClose={() => setEditTarget(null)} onUpdated={refetch} />
+      <EditUserDialog
+        target={editTarget}
+        onClose={() => setEditTarget(null)}
+        onUpdated={refetch}
+        onDeleted={refetch}
+      />
 
       <EmailActionConfirmDialog
         action={emailAction}
