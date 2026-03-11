@@ -189,6 +189,26 @@ interface GenerateLinkResponse {
   user_metadata: Record<string, unknown>
 }
 
+export async function adminDeleteUser(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  userId: string,
+): Promise<void> {
+  const res = await fetch(`${supabaseUrl}/auth/v1/admin/users/${userId}`, {
+    method: "DELETE",
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: `Bearer ${serviceRoleKey}`,
+    },
+  })
+
+  if (!res.ok) {
+    const error = (await res.json()) as { msg?: string; message?: string }
+    const msg = error.msg || error.message || "Failed to delete user"
+    throw new GoTrueError(msg, res.status)
+  }
+}
+
 export async function generateLink(
   supabaseUrl: string,
   serviceRoleKey: string,

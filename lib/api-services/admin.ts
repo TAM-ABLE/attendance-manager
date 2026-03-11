@@ -51,6 +51,12 @@ export function createUser(data: { lastName: string; firstName: string; email: s
   })
 }
 
+export function deleteUser(userId: string) {
+  return apiClient<null>(`/admin/users/${userId}`, {
+    method: "DELETE",
+  })
+}
+
 export function resendInvite(userId: string) {
   return apiClient<{ message: string }>(`/admin/users/${userId}/resend-invite`, {
     method: "POST",

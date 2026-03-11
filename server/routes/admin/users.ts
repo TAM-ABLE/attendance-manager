@@ -1,6 +1,7 @@
 import { createRoute, z } from "@hono/zod-openapi"
 import { parseYearMonthWithRange } from "@/lib/time"
 import {
+  adminDeleteUser,
   adminUpdateUser,
   GoTrueError,
   generateLink,
@@ -434,6 +435,59 @@ usersRouter.openapi(passwordResetRoute, async (c) => {
     if (e instanceof DatabaseError) return notFoundError(c, "User")
     if (e instanceof GoTrueError) return internalError(c, e.message)
     if (e instanceof ResendError) return internalError(c, `Email送信エラー: ${e.message}`)
+    return internalError(c, e instanceof Error ? e.message : "Unknown error")
+  }
+})
+
+// ===== DELETE /admin/users/:userId - ユーザー削除 =====
+
+const deleteUserRoute = createRoute({
+  method: "delete",
+  path: "/{userId}",
+  tags: ["管理者"],
+  summary: "ユーザー削除",
+  description:
+    "指定ユーザーを削除します。GoTrueとDBの両方から削除されます。管理者ユーザーは削除できません。",
+  security: [{ Bearer: [] }],
+  request: {
+    params: z.object({
+      userId: uuidSchema,
+    }),
+  },
+  responses: {
+    200: {
+      content: {
+        "application/json": { schema: successResponseSchema(nullResponseSchema) },
+      },
+      description: "削除成功",
+    },
+    400: validationErrorResponse,
+    404: notFoundResponse("ユーザーが見つからない"),
+    500: serverErrorResponse,
+  },
+})
+
+usersRouter.openapi(deleteUserRoute, async (c) => {
+  const { userId } = c.req.valid("param")
+  const { profile } = createRepos(c.env)
+
+  try {
+    // 管理者ユーザーの削除を防止
+    const user = await profile.findById(userId)
+    if (user.role === "admin") {
+      return validationError(c, "管理者ユーザーは削除できません")
+    }
+
+    // 1. GoTrue からユーザー削除
+    await adminDeleteUser(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY, userId)
+
+    // 2. DB から削除 (CASCADE で関連データも削除)
+    await profile.deleteUser(userId)
+
+    return successResponse(c, null)
+  } catch (e) {
+    if (e instanceof DatabaseError) return notFoundError(c, "User")
+    if (e instanceof GoTrueError) return internalError(c, e.message)
     return internalError(c, e instanceof Error ? e.message : "Unknown error")
   }
 })

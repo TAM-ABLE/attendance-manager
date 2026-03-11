@@ -86,6 +86,19 @@ export class ProfileRepository {
     return result[0]
   }
 
+  async deleteUser(userId: string) {
+    const result = await this.db
+      .delete(profiles)
+      .where(eq(profiles.id, userId))
+      .returning({ id: profiles.id })
+
+    if (!result[0]) {
+      throw new DatabaseError("Profile not found")
+    }
+
+    return result[0]
+  }
+
   async findMaxEmployeeNumber(): Promise<string | null> {
     const result = await this.db
       .select({ employeeNumber: profiles.employeeNumber })
