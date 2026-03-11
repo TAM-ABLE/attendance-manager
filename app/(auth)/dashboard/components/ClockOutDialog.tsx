@@ -18,7 +18,11 @@ import {
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { useDialogState } from "@/hooks/useDialogState"
-import { getTodayPlannedTasks } from "@/lib/api-services/attendance"
+import {
+  getTodayPlannedTasks,
+  getTodayPreviousActuals,
+  getTodayReportSummary,
+} from "@/lib/api-services/attendance"
 import { withRetryFetcher } from "@/lib/auth/with-retry"
 import { SWR_KEYS } from "@/lib/swr-keys"
 import { fromPlannedTask, toTasks } from "@/lib/task-form"
@@ -48,7 +52,7 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
   const { mode, error, handleSubmit, reset: resetDialog } = useDialogState()
   const taskList = useTaskList()
 
-  // ダイアログが開いたとき、出勤時の予定タスクをSWRで取得
+  // ダイアログが開いたとき、現在セッションの予定タスクをSWRで取得
   const { isLoading: isFetching, error: fetchError } = useSWR(
     open ? SWR_KEYS.PLANNED_TASKS_TODAY : null,
     () => withRetryFetcher(getTodayPlannedTasks),
@@ -56,6 +60,31 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
       onSuccess: (data) => {
         if (data.length > 0) {
           taskList.setTasks(data.map(fromPlannedTask))
+        }
+      },
+      revalidateOnFocus: false,
+    },
+  )
+
+  // 過去セッションの実績タスクを取得（読み取り専用表示用）
+  const { data: previousActuals } = useSWR(
+    open ? SWR_KEYS.PREVIOUS_ACTUALS_TODAY : null,
+    () => withRetryFetcher(getTodayPreviousActuals),
+    { revalidateOnFocus: false },
+  )
+
+  const hasPreviousActuals = previousActuals && previousActuals.length > 0
+
+  // 前回退勤時のサマリー・所感を取得して引き継ぎ表示
+  useSWR(
+    open ? SWR_KEYS.REPORT_SUMMARY_TODAY : null,
+    () => withRetryFetcher(getTodayReportSummary),
+    {
+      onSuccess: (data) => {
+        if (data) {
+          setSummary(data.summary ?? "")
+          setIssues(data.issues ?? "")
+          setNotes(data.notes ?? "")
         }
       },
       revalidateOnFocus: false,
@@ -123,6 +152,27 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
                     <TaskListInput taskList={taskList} />
                   </div>
                 </div>
+
+                {hasPreviousActuals && (
+                  <>
+                    <div className="border-t" />
+                    <div className="rounded-md border border-muted bg-muted/30 p-3">
+                      <Label className="text-sm text-muted-foreground">
+                        本日登録済みのタスク実績
+                      </Label>
+                      <ul className="mt-2 space-y-1 text-sm">
+                        {previousActuals.map((task, i) => (
+                          <li key={`prev-${task.taskName}-${i}`} className="flex justify-between">
+                            <span>{task.taskName}</span>
+                            <span className="text-muted-foreground">
+                              {task.hours != null ? `${task.hours}h` : "-"}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </>
+                )}
 
                 <div>
                   <Label htmlFor="summary">本日のまとめ（感想・気づき）</Label>

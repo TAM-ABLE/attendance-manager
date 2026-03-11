@@ -82,6 +82,39 @@ async function postMessage(
   }
 }
 
+async function chatUpdate(
+  config: SlackConfig,
+  ts: string,
+  text: string,
+): Promise<SlackMessageResult> {
+  try {
+    const response = await fetch("https://slack.com/api/chat.update", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${config.botToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        channel: config.channelId,
+        ts,
+        text,
+      }),
+    })
+
+    const result = (await response.json()) as SlackPostMessageResponse
+
+    if (!result.ok) {
+      console.error("Slack chat.update error:", result.error)
+      return { success: false, error: result.error }
+    }
+
+    return { success: true, ts: result.ts }
+  } catch (error) {
+    console.error("Failed to update Slack message:", error)
+    return { success: false, error: String(error) }
+  }
+}
+
 export async function sendClockInNotification(
   config: SlackConfig,
   userName: string,
@@ -141,6 +174,41 @@ export async function sendClockOutNotification(
     iconEmoji: ":night_with_stars:",
     threadTs: options?.threadTs,
   })
+}
+
+export async function updateSlackMessage(
+  config: SlackConfig,
+  ts: string,
+  userName: string,
+  tasks: Task[],
+  type: "clock-in" | "clock-out",
+  reportFields?: {
+    summary?: string
+    issues?: string
+    notes?: string
+  },
+): Promise<SlackMessageResult> {
+  const tasksText = formatTasksForSlack(tasks)
+
+  const messageParts: string[] = []
+
+  if (type === "clock-in") {
+    messageParts.push(`*${userName} さんが出勤しました！*`, "", "*本日の予定*", tasksText)
+  } else {
+    messageParts.push(`*${userName} さんが退勤しました！*`, "", "*本日の業務*", tasksText)
+
+    if (reportFields?.summary) {
+      messageParts.push("", "*まとめ*", reportFields.summary)
+    }
+    if (reportFields?.issues) {
+      messageParts.push("", "*困っていること*", reportFields.issues)
+    }
+    if (reportFields?.notes) {
+      messageParts.push("", "*連絡事項*", reportFields.notes)
+    }
+  }
+
+  return chatUpdate(config, ts, messageParts.join("\n"))
 }
 
 export async function sendAttendanceCloseNotification(
