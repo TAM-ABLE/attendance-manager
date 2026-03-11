@@ -161,8 +161,8 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
                         本日登録済みのタスク実績
                       </Label>
                       <ul className="mt-2 space-y-1 text-sm">
-                        {previousActuals.map((task, i) => (
-                          <li key={`prev-${task.taskName}-${i}`} className="flex justify-between">
+                        {previousActuals.map((task) => (
+                          <li key={`prev-${task.taskName}`} className="flex justify-between">
                             <span>{task.taskName}</span>
                             <span className="text-muted-foreground">
                               {task.hours != null ? `${task.hours}h` : "-"}
