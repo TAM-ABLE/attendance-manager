@@ -30,7 +30,7 @@ export const getUser = cache(async (): Promise<AuthUser | null> => {
   try {
     const req = new Request("http://localhost/api/auth/me", {
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Cookie: `accessToken=${accessToken}`,
       },
     })
     const res = await app.fetch(req, process.env)
@@ -108,7 +108,7 @@ export async function fetchWithAuth<T>(endpoint: string): Promise<T | null> {
   try {
     const req = new Request(`http://localhost/api${endpoint}`, {
       headers: {
-        Authorization: `Bearer ${accessToken}`,
+        Cookie: `accessToken=${accessToken}`,
       },
     })
     const res = await app.fetch(req, process.env)

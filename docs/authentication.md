@@ -70,8 +70,7 @@
         │                     │
         │ app.fetch() で      │
         │ 直接呼び出し          │
-        │ Authorization:      │
-        │ Bearer token        │
+        │ Cookie: accessToken │
         │────────────────────>│
         │                     │
         │   レスポンス          │
@@ -296,7 +295,7 @@ export default async function AdminLayout({ children }) {
 | `server/routes/auth/login.ts` | ログイン処理、Cookie にトークン保存 |
 | `server/routes/auth/logout.ts` | ログアウト処理、Cookie 削除 |
 | `server/routes/auth/set-password.ts` | 招待トークンによるパスワード設定処理 |
-| `server/middleware/auth.ts` | JWT 認証ミドルウェア（jose でローカル検証、Cookie or Authorization ヘッダー） |
+| `server/middleware/auth.ts` | JWT 認証ミドルウェア（jose でローカル検証、Cookie から取得） |
 | `server/lib/auth-helpers.ts` | jose JWT 検証 + GoTrue REST API ヘルパー（login, generate_link, password update, listUsers） |
 | `server/lib/resend.ts` | Resend API メール送信 + HTMLテンプレート |
 | `app/api/[...route]/route.ts` | Hono アプリを Next.js API Routes にマウント |
@@ -340,7 +339,7 @@ export const getUser = cache(async (): Promise<AuthUser | null> => {
   if (!accessToken) return null
 
   const req = new Request("http://localhost/api/auth/me", {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: { Cookie: `accessToken=${accessToken}` },
   })
   const res = await app.fetch(req, process.env)
   // ...
@@ -370,7 +369,7 @@ export async function fetchWithAuth<T>(endpoint: string): Promise<T | null> {
   if (!accessToken) return null
 
   const req = new Request(`http://localhost/api${endpoint}`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
+    headers: { Cookie: `accessToken=${accessToken}` },
   })
   const res = await app.fetch(req, process.env)
   // ...

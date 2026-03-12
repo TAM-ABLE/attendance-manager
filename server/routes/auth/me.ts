@@ -21,10 +21,9 @@ const meRoute = createRoute({
   method: "get",
   path: "/",
   tags: ["認証"],
-  security: [{ Bearer: [] }],
+  security: [{ Cookie: [] }],
   summary: "現在のユーザー情報を取得",
-  description:
-    "Authorization ヘッダーの Bearer トークンまたは Cookie を検証し、ユーザー情報を返します。",
+  description: "Cookie の accessToken を検証し、ユーザー情報を返します。",
   responses: {
     200: {
       content: { "application/json": { schema: successResponseSchema(meResponseSchema) } },

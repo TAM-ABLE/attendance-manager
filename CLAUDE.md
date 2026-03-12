@@ -41,7 +41,7 @@ pnpm tsc --noEmit     # Type check
   - `/api/daily-reports` - Daily report management (including admin by-date view)
 - Database: Drizzle ORM + postgres.js (direct TCP connection to PostgreSQL, connection pool: max 10, idle timeout 20s)
 - Auth: JWT verification via jose (HS256, local, no HTTP roundtrip) + GoTrue REST API via fetch (login, invite, password update, recovery)
-- Auth middleware reads token from Authorization header or Cookie fallback
+- Auth middleware reads token from Cookie (accessToken)
 - OpenAPI: `@hono/zod-openapi` for schema validation + API docs
 - Swagger UI: `/api/ui` (dev only, dynamic import), OpenAPI spec: `/api/doc` (dev only)
 - Environment variables: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `SLACK_BOT_TOKEN`, `SLACK_CHANNEL_ID`, `SLACK_CSV_CHANNEL_ID`, `SLACK_ICON_CLOCK_IN`, `SLACK_ICON_CLOCK_OUT`, `SLACK_ICON_ATTENDANCE_CLOSE`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `APP_URL`
@@ -60,7 +60,7 @@ server/
 │   ├── schema.ts                 ← Drizzle table + relation definitions
 │   └── index.ts                  ← DB client singleton (postgres.js + drizzle, connection pool)
 ├── lib/
-│   ├── auth-helpers.ts           ← jose JWT verification (HS256) + GoTrue REST API helpers (login, invite, update, listUsers, recovery, delete) via shared goTrueAdminRequest + extractBearerToken
+│   ├── auth-helpers.ts           ← jose JWT verification (HS256) + GoTrue REST API helpers (login, invite, update, listUsers, recovery, delete) via shared goTrueAdminRequest
 │   ├── errors.ts                    ← Unified error responses + handleRouteError + handleAdminRouteError (DB/GoTrue/Resend)
 │   ├── formatters.ts                ← getFormattedSessions, formatAttendanceRecord, toReportListItem
 │   ├── openapi-hono.ts, openapi-schemas.ts, openapi-responses.ts
@@ -82,7 +82,7 @@ server/
 
 ### Frontend (Next.js App Router)
 - Uses `app/` directory structure
-- Auth: Server Components + HttpOnly Cookie (Route Groups for access control)
+- Auth: Server Components + Cookie (Route Groups for access control)
 - State: SWR for data fetching with SSC initial data, global config via `SWRProvider` (`revalidateOnFocus: false`, `dedupingInterval: 5000`)
 - UI: Tailwind CSS 4 + shadcn/ui components (Radix UI based)
 - Path alias: `@/*` maps to root

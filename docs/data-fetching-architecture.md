@@ -90,7 +90,7 @@ useSWR(key, fetcher, {
 | ファイル | 役割 |
 |----------|------|
 | `lib/api-client.ts` | Client 用 API 呼び出し（`/api/*` に直接リクエスト） |
-| `server/middleware/auth.ts` | Cookie or Authorization ヘッダーからトークン読み取り |
+| `server/middleware/auth.ts` | Cookie からトークン読み取り |
 | `hooks/use*.ts` | SWR でデータ管理、`mutate()` で再取得 |
 
 ### コード例
