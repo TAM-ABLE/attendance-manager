@@ -1,5 +1,7 @@
 import { calculateSessionsTotals } from "@/lib/calculation"
+import { TASK_TYPE_ACTUAL, TASK_TYPE_PLANNED } from "@/lib/constants"
 import type { WorkSession } from "@/types/Attendance"
+import type { DailyReportListItem } from "@/types/DailyReport"
 
 export type DbAttendanceRecord = {
   id: string
@@ -63,5 +65,30 @@ export function formatAttendanceRecord(record: DbAttendanceRecord): FormattedAtt
     sessions,
     workTotalMs,
     breakTotalMs,
+  }
+}
+
+export function toReportListItem(
+  report: {
+    id: string
+    userId: string
+    date: string
+    issues: string | null
+    submittedAt: string | null
+    tasks: { taskType: string }[]
+  },
+  user: { name: string; employeeNumber: string },
+): DailyReportListItem {
+  const tasks = report.tasks || []
+  return {
+    id: report.id,
+    userId: report.userId,
+    userName: user.name,
+    employeeNumber: user.employeeNumber,
+    date: report.date,
+    submittedAt: report.submittedAt ? new Date(report.submittedAt).getTime() : null,
+    plannedTaskCount: tasks.filter((t) => t.taskType === TASK_TYPE_PLANNED).length,
+    actualTaskCount: tasks.filter((t) => t.taskType === TASK_TYPE_ACTUAL).length,
+    hasIssues: report.issues != null && report.issues.trim() !== "",
   }
 }

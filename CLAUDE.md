@@ -54,16 +54,18 @@ server/
 ├── routes/
 │   ├── auth/{index,login,logout,me,set-password,constants}.ts
 │   ├── attendance/{index,clock,queries,breaks,sessions,close-month}.ts
-│   ├── admin/{index,users}.ts
+│   ├── admin/{index,user-crud,user-emails,user-attendance}.ts
 │   └── daily-reports.ts
 ├── db/
 │   ├── schema.ts                 ← Drizzle table + relation definitions
 │   └── index.ts                  ← DB client singleton (postgres.js + drizzle, connection pool)
 ├── lib/
-│   ├── auth-helpers.ts           ← jose JWT verification (HS256) + GoTrue REST API helpers (login, invite, update, listUsers, recovery) + extractBearerToken
-│   ├── errors.ts, formatters.ts (getFormattedSessions, formatAttendanceRecord), openapi-hono.ts
-│   ├── openapi-schemas.ts, openapi-responses.ts, sessions.ts
-│   ├── slack.ts                     ← Clock-in/out Slack notifications
+│   ├── auth-helpers.ts           ← jose JWT verification (HS256) + GoTrue REST API helpers (login, invite, update, listUsers, recovery, delete) via shared goTrueAdminRequest + extractBearerToken
+│   ├── errors.ts                    ← Unified error responses + handleRouteError + handleAdminRouteError (DB/GoTrue/Resend)
+│   ├── formatters.ts                ← getFormattedSessions, formatAttendanceRecord, toReportListItem
+│   ├── openapi-hono.ts, openapi-schemas.ts, openapi-responses.ts
+│   ├── sessions.ts                  ← replaceSessions (DB transaction for atomic session replacement)
+│   ├── slack.ts                     ← Clock-in/out Slack notifications + getSlackConfig/getSlackCsvConfig
 │   ├── swagger.ts                     ← OpenAPI doc + Swagger UI registration (dev only)
 │   ├── slack-csv.ts                 ← Slack v2 file upload (monthly CSV)
 │   ├── csv.ts                       ← Monthly attendance CSV generation
@@ -107,7 +109,7 @@ See `docs/performance.md` for details.
 
 - Bundle size: framer-motion removed (CSS animate-spin), Swagger UI dev-only dynamic import
 - Network: Cache-Control on monthly endpoints, Slack notifications fire-and-forget
-- Database: performance indexes, SQL-level weekly aggregation, upsert for findOrCreateRecord, connection pool config
+- Database: performance indexes, SQL-level weekly aggregation, upsert for findOrCreateRecord/findOrCreateReport, DB transaction for replaceSessions, connection pool config
 - Rendering: React.memo on dashboard components, SWR global config via SWRProvider
 
 #### Data Fetching Architecture
@@ -153,9 +155,9 @@ See `docs/authentication.md` for details.
 - `types/DailyReport.ts` - Daily report types
 - `types/ApiResponse.ts` - API response types
 - `lib/schemas.ts` - Zod schemas (Single Source of Truth for types)
-- `lib/time.ts` - Time formatting and calculation utilities
+- `lib/time.ts` - Time formatting, calculation utilities, JST week range (`getJSTWeekRange`)
 - `lib/calculation.ts` - Working hours calculation
-- `lib/constants.ts` - Application constants
+- `lib/constants.ts` - Application constants (task types: `TASK_TYPE_PLANNED`/`TASK_TYPE_ACTUAL`, employee number format, validation limits)
 - `lib/swr-keys.ts` - SWR cache key definitions (Single Source of Truth)
 - `lib/task-form.ts` - Task form utilities (generateTaskId, createEmptyTask, toTasks)
 - `lib/exportCsv.ts` - Client-side CSV export for admin

@@ -1,23 +1,29 @@
 import { and, asc, eq, gte, isNotNull, lte, ne } from "drizzle-orm"
+import { TASK_TYPE_ACTUAL } from "@/lib/constants"
 import type { Db } from "../../db"
 import { dailyReports, dailyReportTasks } from "../../db/schema"
 import { DatabaseError } from "./errors"
+
+function convertHours<T extends { hours: string | null }>(
+  rows: T[],
+): (Omit<T, "hours"> & { hours: number | null })[] {
+  return rows.map(({ hours, ...rest }) => ({
+    ...(rest as Omit<T, "hours">),
+    hours: hours != null ? Number(hours) : null,
+  }))
+}
 
 export class DailyReportRepository {
   constructor(private db: Db) {}
 
   async findOrCreateReport(userId: string, date: string): Promise<{ id: string }> {
-    const existing = await this.db
-      .select({ id: dailyReports.id })
-      .from(dailyReports)
-      .where(and(eq(dailyReports.userId, userId), eq(dailyReports.date, date)))
-      .limit(1)
-
-    if (existing[0]) return existing[0]
-
     const [result] = await this.db
       .insert(dailyReports)
       .values({ userId, date })
+      .onConflictDoUpdate({
+        target: [dailyReports.userId, dailyReports.date],
+        set: { updatedAt: new Date().toISOString() },
+      })
       .returning({ id: dailyReports.id })
     return result
   }
@@ -115,10 +121,7 @@ export class DailyReportRepository {
       )
       .orderBy(asc(dailyReportTasks.sortOrder))
 
-    return result.map((t) => ({
-      ...t,
-      hours: t.hours != null ? Number(t.hours) : null,
-    }))
+    return convertHours(result)
   }
 
   async findPreviousSessionActualTasks(reportId: string, currentSessionId: string) {
@@ -132,16 +135,13 @@ export class DailyReportRepository {
       .where(
         and(
           eq(dailyReportTasks.dailyReportId, reportId),
-          eq(dailyReportTasks.taskType, "actual"),
+          eq(dailyReportTasks.taskType, TASK_TYPE_ACTUAL),
           ne(dailyReportTasks.workSessionId, currentSessionId),
         ),
       )
       .orderBy(asc(dailyReportTasks.sortOrder))
 
-    return result.map((t) => ({
-      ...t,
-      hours: t.hours != null ? Number(t.hours) : null,
-    }))
+    return convertHours(result)
   }
 
   async findReportsByDateRange(userId: string, startDate: string, endDate: string) {
@@ -192,10 +192,7 @@ export class DailyReportRepository {
 
     return {
       ...result,
-      tasks: result.tasks.map((t) => ({
-        ...t,
-        hours: t.hours != null ? Number(t.hours) : null,
-      })),
+      tasks: convertHours(result.tasks),
     }
   }
 
@@ -239,9 +236,6 @@ export class DailyReportRepository {
       )
       .orderBy(asc(dailyReportTasks.sortOrder))
 
-    return result.map((t) => ({
-      taskName: t.taskName,
-      hours: t.hours != null ? Number(t.hours) : null,
-    }))
+    return convertHours(result)
   }
 }

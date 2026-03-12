@@ -177,6 +177,26 @@ export function parseYearMonthWithRange(
 }
 
 /**
+ * 今週（JST基準、月曜〜日曜）の日付範囲をYYYY-MM-DD形式で返す
+ */
+export function getJSTWeekRange(): { start: string; end: string } {
+  const jst = nowJST()
+  const day = jst.getUTCDay()
+  const mondayOffset = day === 0 ? -6 : 1 - day
+
+  const monday = new Date(jst)
+  monday.setUTCDate(jst.getUTCDate() + mondayOffset)
+
+  const sunday = new Date(monday)
+  sunday.setUTCDate(monday.getUTCDate() + 6)
+
+  return {
+    start: monday.toISOString().split("T")[0],
+    end: sunday.toISOString().split("T")[0],
+  }
+}
+
+/**
  * 指定月の全日をYYYY-MM-DD形式の配列で返す
  * @param year 年（4桁）
  * @param month 月（1-12）

@@ -6,6 +6,7 @@ import { ProfileRepository } from "./profile"
 export function createRepos(env: { DATABASE_URL: string }) {
   const db = getDb(env.DATABASE_URL)
   return {
+    db,
     attendance: new AttendanceRepository(db),
     workSession: new WorkSessionRepository(db),
     break: new BreakRepository(db),

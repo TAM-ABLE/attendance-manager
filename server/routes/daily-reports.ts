@@ -1,11 +1,7 @@
 import { createRoute, z } from "@hono/zod-openapi"
+import { TASK_TYPE_ACTUAL, TASK_TYPE_PLANNED } from "@/lib/constants"
 import { parseYearMonthWithRange, todayJSTString } from "@/lib/time"
-import type {
-  DailyReport,
-  DailyReportListItem,
-  DailyReportTask,
-  UserForSelect,
-} from "@/types/DailyReport"
+import type { DailyReport, DailyReportTask, UserForSelect } from "@/types/DailyReport"
 import {
   forbiddenError,
   handleRouteError,
@@ -13,6 +9,7 @@ import {
   successResponse,
   validationError,
 } from "../lib/errors"
+import { toReportListItem } from "../lib/formatters"
 import { createOpenAPIHono } from "../lib/openapi-hono"
 import {
   forbiddenResponse,
@@ -35,31 +32,6 @@ import type { AuthVariables } from "../middleware/auth"
 import type { Env } from "../types/env"
 
 const dailyReportsRouter = createOpenAPIHono<{ Bindings: Env; Variables: AuthVariables }>()
-
-function toReportListItem(
-  report: {
-    id: string
-    userId: string
-    date: string
-    issues: string | null
-    submittedAt: string | null
-    tasks: { taskType: string }[]
-  },
-  user: { name: string; employeeNumber: string },
-): DailyReportListItem {
-  const tasks = report.tasks || []
-  return {
-    id: report.id,
-    userId: report.userId,
-    userName: user.name,
-    employeeNumber: user.employeeNumber,
-    date: report.date,
-    submittedAt: report.submittedAt ? new Date(report.submittedAt).getTime() : null,
-    plannedTaskCount: tasks.filter((t) => t.taskType === "planned").length,
-    actualTaskCount: tasks.filter((t) => t.taskType === "actual").length,
-    hasIssues: report.issues != null && report.issues.trim() !== "",
-  }
-}
 
 // ===== 指定日の日報取得 =====
 
@@ -253,14 +225,14 @@ dailyReportsRouter.openapi(getReportDetailRoute, async (c) => {
     const tasks = report.tasks || []
 
     const rawPlanned = tasks
-      .filter((t) => t.taskType === "planned")
+      .filter((t) => t.taskType === TASK_TYPE_PLANNED)
       .sort((a, b) => a.sortOrder - b.sortOrder)
     const rawActual = tasks
-      .filter((t) => t.taskType === "actual")
+      .filter((t) => t.taskType === TASK_TYPE_ACTUAL)
       .sort((a, b) => a.sortOrder - b.sortOrder)
 
-    const plannedTasks: DailyReportTask[] = mergeTasks(rawPlanned, "planned")
-    const actualTasks: DailyReportTask[] = mergeTasks(rawActual, "actual")
+    const plannedTasks: DailyReportTask[] = mergeTasks(rawPlanned, TASK_TYPE_PLANNED)
+    const actualTasks: DailyReportTask[] = mergeTasks(rawActual, TASK_TYPE_ACTUAL)
 
     const dailyReport: DailyReport = {
       id: report.id,

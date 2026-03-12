@@ -1,3 +1,4 @@
+import type { TaskType } from "@/lib/constants"
 import type { Task } from "@/types/Attendance"
 import type { DailyReportTask } from "@/types/DailyReport"
 
@@ -19,7 +20,7 @@ export function mergeTasksByName(tasks: { taskName: string; hours: number | null
 
 export function mergeTasks(
   tasks: { id: string; taskName: string; hours: number | null; sortOrder: number }[],
-  taskType: "planned" | "actual",
+  taskType: TaskType,
 ): DailyReportTask[] {
   const merged = new Map<string, { id: string; hours: number | null; sortOrder: number }>()
 

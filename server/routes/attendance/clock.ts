@@ -1,5 +1,7 @@
 import { createRoute } from "@hono/zod-openapi"
+import { TASK_TYPE_ACTUAL, TASK_TYPE_PLANNED } from "@/lib/constants"
 import { todayJSTString } from "@/lib/time"
+import type { Task } from "@/types/Attendance"
 import { databaseError, handleRouteError, successResponse, validationError } from "../../lib/errors"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
 import { serverErrorResponse, validationErrorResponse } from "../../lib/openapi-responses"
@@ -7,12 +9,13 @@ import {
   clockInRequestSchema,
   clockOutRequestSchema,
   clockResponseSchema,
+  type Task as SchemaTask,
   successResponseSchema,
-  type Task,
 } from "../../lib/openapi-schemas"
 import { createRepos, DatabaseError } from "../../lib/repositories"
 import {
   getSlackConfig,
+  type SlackConfig,
   sendClockInNotification,
   sendClockOutNotification,
   updateSlackMessage,
@@ -21,7 +24,91 @@ import { mergeTasksByName } from "../../lib/task-merge"
 import type { AuthVariables } from "../../middleware/auth"
 import type { Env } from "../../types/env"
 
+type Repos = ReturnType<typeof createRepos>
+
 const clockRouter = createOpenAPIHono<{ Bindings: Env; Variables: AuthVariables }>()
+
+// ===== Slack通知ヘルパー（fire-and-forget） =====
+
+function fireClockInSlack(
+  slackConfig: SlackConfig,
+  repos: Repos,
+  userId: string,
+  date: string,
+  attendanceId: string,
+  userName: string,
+  plannedTasks: Task[],
+): void {
+  ;(async () => {
+    const { slackClockInTs: existingTs } = await repos.attendance.getSlackTs(attendanceId)
+
+    if (existingTs) {
+      // 2回目以降: 累積予定タスクでメッセージを編集
+      const report = await repos.dailyReport.findReportByUserAndDate(userId, date)
+      if (report) {
+        const allPlannedTasks = await repos.dailyReport.findAllTasksByReportAndType(
+          report.id,
+          TASK_TYPE_PLANNED,
+        )
+        const mergedTasks = mergeTasksByName(allPlannedTasks)
+        await updateSlackMessage(slackConfig, existingTs, userName, mergedTasks, "clock-in")
+      }
+    } else {
+      // 1回目: 新規メッセージ投稿
+      const slackResult = await sendClockInNotification(slackConfig, userName, plannedTasks)
+      if (slackResult.ts) {
+        await repos.attendance.updateSlackClockInTs(attendanceId, slackResult.ts)
+      }
+    }
+  })().catch((e) => {
+    console.error("Slack clock-in notification error:", e)
+  })
+}
+
+function fireClockOutSlack(
+  slackConfig: SlackConfig,
+  repos: Repos,
+  dailyReportId: string,
+  recordId: string,
+  userName: string,
+  reportFields: { summary?: string; issues?: string; notes?: string },
+): void {
+  ;(async () => {
+    const { slackClockInTs, slackClockOutTs } = await repos.attendance.getSlackTs(recordId)
+
+    // 累積実績タスクを取得（同名合算）
+    const allActualTasks = await repos.dailyReport.findAllTasksByReportAndType(
+      dailyReportId,
+      TASK_TYPE_ACTUAL,
+    )
+    const mergedTasks = mergeTasksByName(allActualTasks)
+
+    if (slackClockOutTs) {
+      // 2回目以降: 既存の退勤メッセージを編集
+      await updateSlackMessage(
+        slackConfig,
+        slackClockOutTs,
+        userName,
+        mergedTasks,
+        "clock-out",
+        reportFields,
+      )
+    } else {
+      // 1回目: スレッド返信で新規投稿
+      const slackResult = await sendClockOutNotification(slackConfig, userName, mergedTasks, {
+        ...reportFields,
+        threadTs: slackClockInTs ?? undefined,
+      })
+      if (slackResult.ts) {
+        await repos.attendance.updateSlackClockOutTs(recordId, slackResult.ts)
+      }
+    }
+  })().catch((e) => {
+    console.error("Slack clock-out notification error:", e)
+  })
+}
+
+// ===== Routes =====
 
 const clockInRoute = createRoute({
   method: "post",
@@ -71,8 +158,8 @@ clockRouter.openapi(clockInRoute, async (c) => {
         try {
           await repos.dailyReport.insertTasks(
             dailyReport.id,
-            plannedTasks.map((task: Task, index: number) => ({
-              taskType: "planned",
+            plannedTasks.map((task: SchemaTask, index: number) => ({
+              taskType: TASK_TYPE_PLANNED,
               taskName: task.taskName,
               hours: task.hours,
               sortOrder: index,
@@ -88,40 +175,9 @@ clockRouter.openapi(clockInRoute, async (c) => {
       throw e
     }
 
-    // Slack通知
     const slackConfig = getSlackConfig(c.env)
     if (slackConfig) {
-      const { slackClockInTs: existingTs } = await repos.attendance.getSlackTs(attendanceId)
-
-      if (existingTs) {
-        // 2回目以降: 累積予定タスクでメッセージを編集
-        const report = await repos.dailyReport.findReportByUserAndDate(userId, date)
-        if (report) {
-          const allPlannedTasks = await repos.dailyReport.findAllTasksByReportAndType(
-            report.id,
-            "planned",
-          )
-          const mergedTasks = mergeTasksByName(allPlannedTasks)
-          updateSlackMessage(slackConfig, existingTs, userName, mergedTasks, "clock-in").catch(
-            (e) => {
-              console.error("Failed to update clock-in Slack message:", e)
-            },
-          )
-        }
-      } else {
-        // 1回目: 新規メッセージ投稿
-        sendClockInNotification(slackConfig, userName, plannedTasks)
-          .then((slackResult) => {
-            if (slackResult.ts) {
-              repos.attendance.updateSlackClockInTs(attendanceId, slackResult.ts).catch((e) => {
-                console.error("Failed to save slack_clock_in_ts:", e)
-              })
-            }
-          })
-          .catch((e) => {
-            console.error("Failed to send clock-in Slack notification:", e)
-          })
-      }
+      fireClockInSlack(slackConfig, repos, userId, date, attendanceId, userName, plannedTasks)
     }
 
     return successResponse(c, {})
@@ -196,8 +252,8 @@ clockRouter.openapi(clockOutRoute, async (c) => {
           try {
             await repos.dailyReport.insertTasks(
               dailyReport.id,
-              actualTasks.map((task: Task, index: number) => ({
-                taskType: "actual",
+              actualTasks.map((task: SchemaTask, index: number) => ({
+                taskType: TASK_TYPE_ACTUAL,
                 taskName: task.taskName,
                 hours: task.hours,
                 sortOrder: index,
@@ -209,46 +265,13 @@ clockRouter.openapi(clockOutRoute, async (c) => {
           }
         }
 
-        // Slack通知
         const slackConfig = getSlackConfig(c.env)
         if (slackConfig) {
-          const { slackClockInTs, slackClockOutTs } = await repos.attendance.getSlackTs(record.id)
-
-          // 累積実績タスクを取得（同名合算）
-          const allActualTasks = await repos.dailyReport.findAllTasksByReportAndType(
-            dailyReport.id,
-            "actual",
-          )
-          const mergedTasks = mergeTasksByName(allActualTasks)
-
-          if (slackClockOutTs) {
-            // 2回目以降: 既存の退勤メッセージを編集
-            updateSlackMessage(slackConfig, slackClockOutTs, userName, mergedTasks, "clock-out", {
-              summary,
-              issues,
-              notes,
-            }).catch((e) => {
-              console.error("Failed to update clock-out Slack message:", e)
-            })
-          } else {
-            // 1回目: スレッド返信で新規投稿
-            sendClockOutNotification(slackConfig, userName, mergedTasks, {
-              summary,
-              issues,
-              notes,
-              threadTs: slackClockInTs ?? undefined,
-            })
-              .then((slackResult) => {
-                if (slackResult.ts) {
-                  repos.attendance.updateSlackClockOutTs(record.id, slackResult.ts).catch((e) => {
-                    console.error("Failed to save slack_clock_out_ts:", e)
-                  })
-                }
-              })
-              .catch((e) => {
-                console.error("Failed to send clock-out Slack notification:", e)
-              })
-          }
+          fireClockOutSlack(slackConfig, repos, dailyReport.id, record.id, userName, {
+            summary,
+            issues,
+            notes,
+          })
         }
       }
     } catch (e) {
