@@ -1,10 +1,9 @@
 "use client"
 
-import { FileText } from "lucide-react"
 import { useMemo, useState } from "react"
 import useSWR from "swr"
 import { ReportDetailDialog } from "@/components/ReportDetailDialog"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { getReportsByDate } from "@/lib/api-services/daily-reports"
 import { withRetry } from "@/lib/auth/with-retry"
@@ -63,15 +62,6 @@ export function TodayReportsView({ initialReports }: TodayReportsViewProps) {
   return (
     <>
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            日報提出状況
-          </CardTitle>
-          <CardDescription className="text-xs sm:text-sm">
-            本日・前日の提出状況を確認
-          </CardDescription>
-        </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "today" | "yesterday")}>
             <TabsList className="mb-4">

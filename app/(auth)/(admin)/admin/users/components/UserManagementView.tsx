@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { SuccessDialog } from "@/components/SuccessDialog"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import type { User } from "@/types/Attendance"
 import { useUsers } from "../hooks/useUsers"
 import { CreateUserDialog } from "./CreateUserDialog"
@@ -23,11 +23,7 @@ export function UserManagementView({ initialUsers }: UserManagementViewProps) {
   return (
     <div className="space-y-4 sm:space-y-6">
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-base sm:text-lg">ユーザー一覧</CardTitle>
-            <CardDescription className="text-xs sm:text-sm">登録済みユーザーの管理</CardDescription>
-          </div>
+        <CardHeader className="flex flex-row items-center justify-end">
           <CreateUserDialog onCreated={refetch} />
         </CardHeader>
         <CardContent>

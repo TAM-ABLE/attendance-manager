@@ -9,7 +9,10 @@ export default async function ReportsPage() {
   return (
     <div className="space-y-4 sm:space-y-6 p-3 sm:p-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg sm:text-xl font-semibold">日報提出状況</h2>
+        <div>
+          <h2 className="text-lg sm:text-xl font-semibold">日報提出状況</h2>
+          <p className="text-muted-foreground text-sm">本日・前日の提出状況を確認</p>
+        </div>
         <ReportsHelpPopover />
       </div>
       <TodayReportsView initialReports={todayReports ?? undefined} />

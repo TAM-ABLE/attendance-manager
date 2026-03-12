@@ -1,11 +1,10 @@
 "use client"
 
-import { FileText } from "lucide-react"
 import dynamic from "next/dynamic"
 import { useState } from "react"
 import { MonthNavigator } from "@/components/MonthNavigator"
 import { UserSelect } from "@/components/UserSelect"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { useMonthNavigation } from "@/hooks/useMonthNavigation"
 import type { UserForSelect } from "@/types/DailyReport"
 import { useMonthlyReports } from "../hooks/useMonthlyReports"
@@ -49,15 +48,6 @@ export function ReportListView({ initialUsers }: ReportListViewProps) {
     <div className="space-y-4 sm:space-y-6">
       {/* 月移動＆ユーザー選択 */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            日報履歴
-          </CardTitle>
-          <CardDescription className="text-xs sm:text-sm">
-            自分や他のユーザーの日報を閲覧できます
-          </CardDescription>
-        </CardHeader>
         <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           {/* 月移動 */}
           <MonthNavigator
