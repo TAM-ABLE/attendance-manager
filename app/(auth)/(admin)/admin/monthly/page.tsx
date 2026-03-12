@@ -10,7 +10,10 @@ export default async function MonthlyPage() {
   return (
     <div className="space-y-4 sm:space-y-6 p-3 sm:p-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg sm:text-xl font-semibold">月別詳細</h2>
+        <div>
+          <h2 className="text-lg sm:text-xl font-semibold">月別詳細</h2>
+          <p className="text-muted-foreground text-sm">ユーザーごとの月別勤怠を確認・編集</p>
+        </div>
         <MonthlyHelpPopover />
       </div>
       <MonthlyAttendanceView initialUsers={regularUsers ?? undefined} />
