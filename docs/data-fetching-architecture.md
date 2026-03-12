@@ -151,20 +151,6 @@ export async function apiClient<T>(endpoint: string, options = {}) {
 
 個別の SWR hook で同じ設定を繰り返す必要がなくなり、設定の一元管理が可能です。
 
-### 自動ポーリング（refreshInterval）
-
-管理者向け日報一覧（`TodayReportsView`）では、SWR の `refreshInterval: 60_000` を設定し、60秒ごとに自動で最新データを取得します。
-
-```typescript
-// app/(auth)/(admin)/admin/components/TodayReportsView.tsx
-useSWR(key, fetcher, {
-  refreshInterval: 60_000,  // 60秒ごとに自動更新
-})
-```
-
-- 手動更新ボタンも併用可能
-- 非アクティブなタブ（SWR キーが `null`）ではポーリングされない
-
 ## 4. HTTP キャッシュ（Cache-Control）
 
 読み取り頻度の高い月次データエンドポイントに `Cache-Control` ヘッダーを設定しています。
@@ -177,6 +163,7 @@ useSWR(key, fetcher, {
 
 - `private`: ブラウザキャッシュのみ（CDN キャッシュ不可）
 - `max-age=60`: 60秒間はブラウザキャッシュから返す
+- 勤怠編集後のリフェッチでは `apiClient` の `noCache` オプション（`cache: 'no-store'`）でブラウザキャッシュをバイパスし、最新データを `mutate(data, false)` で SWR キャッシュに直接反映
 
 ## 対象ページ
 
@@ -237,7 +224,7 @@ app/(auth)/
             │   ├── EmailActionConfirmDialog.tsx
             │   ├── UserFormFields.tsx       # 作成・編集共通フォーム
             │   ├── MonthlyAttendanceView.tsx
-            │   ├── TodayReportsView.tsx     # 本日・前日の日報一覧（自動ポーリング）
+            │   ├── TodayReportsView.tsx     # 本日・前日の日報一覧
             │   ├── ReportsTable.tsx          # 日報テーブル表示
             │   └── NotificationSettingsView.tsx
             └── hooks/

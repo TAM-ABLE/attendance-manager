@@ -29,7 +29,7 @@ export const PunchButtons = memo(function PunchButtons({
   return (
     <div className="space-y-4">
       {/* 状態バッジ - 上部に配置 */}
-      <div className="flex justify-center">
+      <output className="flex justify-center" aria-live="polite">
         {!isWorking && !onBreak && (
           <Badge variant="outline" className="px-4 py-2 text-sm">
             <Clock className="h-4 w-4 mr-2" />
@@ -48,7 +48,7 @@ export const PunchButtons = memo(function PunchButtons({
             休憩中
           </Badge>
         )}
-      </div>
+      </output>
 
       {/* ボタンエリア */}
       <div className="space-y-4">

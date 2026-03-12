@@ -2,6 +2,7 @@
 
 import { Trash2 } from "lucide-react"
 import { useEffect, useState } from "react"
+import { FormError } from "@/components/FormError"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -111,8 +112,8 @@ export function EditUserDialog({ target, onClose, onUpdated, onDeleted }: EditUs
                 onEmailChange={setEmail}
               />
 
-              {error && <p className="text-red-500 text-sm">{error}</p>}
-              {deleteError && <p className="text-red-500 text-sm">{deleteError}</p>}
+              {error && <FormError message={error} />}
+              {deleteError && <FormError message={deleteError} />}
 
               <DialogFooter className="flex-row justify-between sm:justify-between">
                 {canDelete && (

@@ -119,8 +119,7 @@ See `docs/data-fetching-architecture.md` for details.
 - **Client updates (SWR)**: After user actions, SWR `mutate()` refetches via `/api/*` → Hono API
 - **No loading on initial render**: `fallbackData` in SWR prevents loading spinners
 - **SWR global config**: `SWRProvider` in auth layout sets `revalidateOnFocus: false` and `dedupingInterval: 5000`
-- **Auto-polling**: Admin today reports view uses `refreshInterval: 60_000` (60s) for automatic updates
-- **Cache-Control**: Monthly attendance and daily reports endpoints return `Cache-Control: private, max-age=60`
+- **Cache-Control**: Monthly attendance and daily reports endpoints return `Cache-Control: private, max-age=60` (bypassed with `noCache` option after mutations)
 
 #### Authentication Architecture
 See `docs/authentication.md` for details.

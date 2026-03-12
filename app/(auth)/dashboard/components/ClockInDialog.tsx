@@ -3,6 +3,7 @@
 
 import { useState } from "react"
 import { DialogWrapper } from "@/components/DialogWrapper"
+import { FormError } from "@/components/FormError"
 import { TimeInput } from "@/components/TimeInput"
 import { Button } from "@/components/ui/button"
 import {
@@ -26,7 +27,7 @@ import { TaskListInput } from "./TaskListInput"
 interface ClockInDialogProps {
   open: boolean
   onClose: () => void
-  onSubmit: (tasks: Task[], clockInTime?: string) => Promise<ApiResult<unknown>>
+  onSubmit: (tasks: Task[], clockInTime?: string) => Promise<ApiResult<{ slackTs?: string }>>
 }
 
 export const ClockInDialog = ({ open, onClose, onSubmit }: ClockInDialogProps) => {
@@ -55,13 +56,15 @@ export const ClockInDialog = ({ open, onClose, onSubmit }: ClockInDialogProps) =
             <DialogDescription>本日の予定を入力してください</DialogDescription>
           </DialogHeader>
 
-          {error && <div className="text-red-500 text-sm p-2 bg-red-50 rounded">{error}</div>}
+          {error && <FormError message={error} />}
           {taskList.hasValidated && taskList.hasTaskError && (
-            <div className="text-red-500 text-sm p-2 bg-red-50 rounded">
-              {taskList.tasks.length === 0
-                ? "タスクを1つ以上追加してください"
-                : "タスク名を入力するか、不要な行を削除してください"}
-            </div>
+            <FormError
+              message={
+                taskList.tasks.length === 0
+                  ? "タスクを1つ以上追加してください"
+                  : "タスク名を入力するか、不要な行を削除してください"
+              }
+            />
           )}
 
           <div className="space-y-4 py-4">

@@ -13,23 +13,29 @@ export function ClockCard() {
     return () => clearInterval(timer)
   }, [])
 
-  if (!currentTime) {
-    // SSR時は null → 何も描画しない（Hydrationエラー防止）
-    return null
-  }
-
   return (
     <Card>
       <CardContent className="pt-6 text-center px-4">
-        <div className="text-3xl sm:text-4xl mb-2">{currentTime.toLocaleTimeString("ja-JP")}</div>
-        <p className="text-sm sm:text-base text-muted-foreground">
-          {currentTime.toLocaleDateString("ja-JP", {
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-            weekday: "long",
-          })}
-        </p>
+        {currentTime ? (
+          <>
+            <div className="text-3xl sm:text-4xl mb-2">
+              {currentTime.toLocaleTimeString("ja-JP")}
+            </div>
+            <p className="text-sm sm:text-base text-muted-foreground">
+              {currentTime.toLocaleDateString("ja-JP", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+                weekday: "long",
+              })}
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="h-9 sm:h-10 mb-2 mx-auto w-40 animate-pulse rounded bg-muted" />
+            <div className="h-5 sm:h-6 mx-auto w-56 animate-pulse rounded bg-muted" />
+          </>
+        )}
       </CardContent>
     </Card>
   )

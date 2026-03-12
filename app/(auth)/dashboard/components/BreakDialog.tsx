@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { DialogWrapper } from "@/components/DialogWrapper"
+import { FormError } from "@/components/FormError"
 import { TimeInput } from "@/components/TimeInput"
 import { Button } from "@/components/ui/button"
 import {
@@ -19,8 +20,8 @@ interface BreakDialogProps {
   open: boolean
   mode: "start" | "end"
   onClose: () => void
-  onStart: (breakStartTime?: string) => Promise<ApiResult<unknown>>
-  onEnd: (breakEndTime?: string) => Promise<ApiResult<unknown>>
+  onStart: (breakStartTime?: string) => Promise<ApiResult<null>>
+  onEnd: (breakEndTime?: string) => Promise<ApiResult<null>>
 }
 
 export const BreakDialog = ({ open, mode, onClose, onStart, onEnd }: BreakDialogProps) => {
@@ -46,7 +47,7 @@ export const BreakDialog = ({ open, mode, onClose, onStart, onEnd }: BreakDialog
             <DialogTitle>{mode === "start" ? "休憩開始" : "休憩終了"}</DialogTitle>
           </DialogHeader>
 
-          {error && <div className="text-red-500 text-sm p-2 bg-red-50 rounded">{error}</div>}
+          {error && <FormError message={error} />}
 
           <div className="space-y-4 py-4">
             <TimeInput

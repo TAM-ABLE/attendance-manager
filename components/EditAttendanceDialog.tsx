@@ -1,6 +1,7 @@
 "use client"
 
 import { DialogWrapper } from "@/components/DialogWrapper"
+import { FormError } from "@/components/FormError"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -128,14 +129,19 @@ export function EditAttendanceDialog({
             <DialogDescription>出勤・退勤・休憩時間を編集できます。</DialogDescription>
           </DialogHeader>
 
-          {error && <div className="text-red-500 text-sm p-2 bg-red-50 rounded">{error}</div>}
+          {error && <FormError message={error} />}
 
           <div className="space-y-4 py-4">
             {sessions.map((session, idx) => (
               <div key={session.id} className="border p-4 rounded-md space-y-4">
                 <h3 className="font-semibold flex justify-between items-center">
                   セッション {idx + 1}
-                  <Button size="sm" variant="ghost" onClick={() => removeSession(session.id)}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    aria-label={`セッション ${idx + 1} を削除`}
+                    onClick={() => removeSession(session.id)}
+                  >
                     ✕
                   </Button>
                 </h3>
@@ -171,6 +177,7 @@ export function EditAttendanceDialog({
                         <Button
                           size="sm"
                           variant="ghost"
+                          aria-label="休憩を削除"
                           onClick={() => removeBreak(session.id, br.id)}
                         >
                           ✕

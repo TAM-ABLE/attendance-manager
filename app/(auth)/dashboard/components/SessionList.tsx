@@ -100,12 +100,12 @@ export function SessionList({
                 </div>
 
                 {s.breaks.length > 0 && (
-                  <div className="bg-lime-50 border border-lime-200 rounded-md p-3">
+                  <div className="bg-secondary border border-border rounded-md p-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <Coffee className="h-4 w-4 text-lime-600" />
-                      <p className="text-xs text-lime-600">休憩時間</p>
+                      <Coffee className="h-4 w-4 text-muted-foreground" />
+                      <p className="text-xs text-muted-foreground">休憩時間</p>
                     </div>
-                    <p className="text-base sm:text-lg text-lime-900">
+                    <p className="text-base sm:text-lg text-secondary-foreground">
                       {formatDurationMs(breakMs)}
                     </p>
                   </div>

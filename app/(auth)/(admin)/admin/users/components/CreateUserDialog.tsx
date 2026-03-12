@@ -2,6 +2,7 @@
 
 import { Mail, Plus } from "lucide-react"
 import { useState } from "react"
+import { FormError } from "@/components/FormError"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -75,7 +76,7 @@ export function CreateUserDialog({ onCreated }: CreateUserDialogProps) {
               onEmailChange={setEmail}
             />
 
-            {error && <p className="text-red-500 text-sm">{error}</p>}
+            {error && <FormError message={error} />}
 
             <DialogFooter>
               <Button type="submit" disabled={loading}>

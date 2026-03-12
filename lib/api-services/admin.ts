@@ -6,9 +6,16 @@ export function getUsers() {
   return apiClient<User[]>("/admin/users")
 }
 
-export function getUserMonthlyAttendance(userId: string, year: number, month: number) {
+export function getUserMonthlyAttendance(
+  userId: string,
+  year: number,
+  month: number,
+  options?: { noCache?: boolean },
+) {
   const yearMonth = formatYearMonth(year, month)
-  return apiClient<AttendanceRecord[]>(`/admin/users/${userId}/attendance/month/${yearMonth}`)
+  return apiClient<AttendanceRecord[]>(`/admin/users/${userId}/attendance/month/${yearMonth}`, {
+    ...(options?.noCache && { noCache: true }),
+  })
 }
 
 export function getUserDateSessions(userId: string, date: string) {

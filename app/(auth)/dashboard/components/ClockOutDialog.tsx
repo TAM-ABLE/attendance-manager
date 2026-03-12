@@ -1,9 +1,9 @@
 // ClockOutDialog.tsx
 "use client"
 
-import { useState } from "react"
 import useSWR from "swr"
 import { DialogWrapper } from "@/components/DialogWrapper"
+import { FormError } from "@/components/FormError"
 import { Loader } from "@/components/Loader"
 import { TimeInput } from "@/components/TimeInput"
 import { Button } from "@/components/ui/button"
@@ -26,9 +26,10 @@ import {
 import { withRetryFetcher } from "@/lib/auth/with-retry"
 import { SWR_KEYS } from "@/lib/swr-keys"
 import { fromPlannedTask, toTasks } from "@/lib/task-form"
-import { getCurrentTimeString, timeToISOString } from "@/lib/time"
+import { timeToISOString } from "@/lib/time"
 import type { ApiResult } from "@/types/ApiResponse"
 import type { Task } from "@/types/Attendance"
+import { useClockOutForm } from "../hooks/useClockOutForm"
 import { useTaskList } from "../hooks/useTaskList"
 import { TaskListInput } from "./TaskListInput"
 
@@ -41,14 +42,11 @@ interface ClockOutDialogProps {
     issues: string,
     notes: string,
     clockOutTime?: string,
-  ) => Promise<ApiResult<unknown>>
+  ) => Promise<ApiResult<{ slackTs?: string }>>
 }
 
 export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps) => {
-  const [summary, setSummary] = useState<string>("")
-  const [issues, setIssues] = useState<string>("")
-  const [notes, setNotes] = useState<string>("")
-  const [clockOutTime, setClockOutTime] = useState(getCurrentTimeString())
+  const form = useClockOutForm()
   const { mode, error, handleSubmit, reset: resetDialog } = useDialogState()
   const taskList = useTaskList()
 
@@ -82,9 +80,9 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
     {
       onSuccess: (data) => {
         if (data) {
-          setSummary(data.summary ?? "")
-          setIssues(data.issues ?? "")
-          setNotes(data.notes ?? "")
+          form.setSummary(data.summary ?? "")
+          form.setIssues(data.issues ?? "")
+          form.setNotes(data.notes ?? "")
         }
       },
       revalidateOnFocus: false,
@@ -95,17 +93,14 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
     if (!taskList.validate()) return
     const allTasks: Task[] = toTasks(taskList.tasks)
     await handleSubmit(() =>
-      onSubmit(allTasks, summary, issues, notes, timeToISOString(clockOutTime)),
+      onSubmit(allTasks, form.summary, form.issues, form.notes, timeToISOString(form.clockOutTime)),
     )
   }
 
   const handleClose = () => {
     resetDialog()
     taskList.reset()
-    setSummary("")
-    setIssues("")
-    setNotes("")
-    setClockOutTime(getCurrentTimeString())
+    form.reset()
     onClose()
   }
 
@@ -118,19 +113,17 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
             <DialogDescription>本日の業務報告を入力してください</DialogDescription>
           </DialogHeader>
 
-          {error && <div className="text-red-500 text-sm p-2 bg-red-50 rounded">{error}</div>}
+          {error && <FormError message={error} />}
           {taskList.hasValidated && taskList.hasTaskError && (
-            <div className="text-red-500 text-sm p-2 bg-red-50 rounded">
-              {taskList.tasks.length === 0
-                ? "タスクを1つ以上追加してください"
-                : "タスク名を入力するか、不要な行を削除してください"}
-            </div>
+            <FormError
+              message={
+                taskList.tasks.length === 0
+                  ? "タスクを1つ以上追加してください"
+                  : "タスク名を入力するか、不要な行を削除してください"
+              }
+            />
           )}
-          {fetchError && (
-            <div className="text-red-500 text-sm p-2 bg-red-50 rounded">
-              予定タスクの取得に失敗しました
-            </div>
-          )}
+          {fetchError && <FormError message="予定タスクの取得に失敗しました" />}
 
           {isFetching ? (
             <div className="flex items-center justify-center py-12">
@@ -142,8 +135,8 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
                 <TimeInput
                   id="clockOutTime"
                   label="退勤時間"
-                  value={clockOutTime}
-                  onChange={setClockOutTime}
+                  value={form.clockOutTime}
+                  onChange={form.setClockOutTime}
                 />
 
                 <div>
@@ -162,7 +155,10 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
                       </Label>
                       <ul className="mt-2 space-y-1 text-sm">
                         {previousActuals.map((task) => (
-                          <li key={`prev-${task.taskName}`} className="flex justify-between">
+                          <li
+                            key={`prev-${task.taskName}-${task.hours}`}
+                            className="flex justify-between"
+                          >
                             <span>{task.taskName}</span>
                             <span className="text-muted-foreground">
                               {task.hours != null ? `${task.hours}h` : "-"}
@@ -179,8 +175,8 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
                   <Textarea
                     id="summary"
                     placeholder="本日の業務についての感想や気づきを入力..."
-                    value={summary}
-                    onChange={(e) => setSummary(e.target.value)}
+                    value={form.summary}
+                    onChange={(e) => form.setSummary(e.target.value)}
                     className="mt-2 min-h-24"
                   />
                 </div>
@@ -190,8 +186,8 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
                   <Textarea
                     id="issues"
                     placeholder="困っていることや相談したいことがあれば入力..."
-                    value={issues}
-                    onChange={(e) => setIssues(e.target.value)}
+                    value={form.issues}
+                    onChange={(e) => form.setIssues(e.target.value)}
                     className="mt-2 min-h-24"
                   />
                 </div>
@@ -201,8 +197,8 @@ export const ClockOutDialog = ({ open, onClose, onSubmit }: ClockOutDialogProps)
                   <Textarea
                     id="notes"
                     placeholder="連絡事項があれば入力..."
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
+                    value={form.notes}
+                    onChange={(e) => form.setNotes(e.target.value)}
                     className="mt-2 min-h-24"
                   />
                 </div>

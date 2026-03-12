@@ -8,16 +8,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { formatSubmittedAtShort } from "@/lib/report-format"
 import type { DailyReportListItem } from "@/types/DailyReport"
-
-function formatSubmittedAt(timestamp: number | null): string {
-  if (!timestamp) return "-"
-  const date = new Date(timestamp)
-  return date.toLocaleString("ja-JP", {
-    hour: "2-digit",
-    minute: "2-digit",
-  })
-}
 
 type ReportsTableProps = {
   reports: DailyReportListItem[]
@@ -62,7 +54,7 @@ export function ReportsTable({
                 </TableCell>
                 <TableCell className="font-medium text-xs sm:text-sm">{report.userName}</TableCell>
                 <TableCell className="text-xs sm:text-sm">
-                  {formatSubmittedAt(report.submittedAt)}
+                  {formatSubmittedAtShort(report.submittedAt)}
                 </TableCell>
                 <TableCell className="text-center text-xs sm:text-sm">
                   {report.plannedTaskCount}件
@@ -71,7 +63,12 @@ export function ReportsTable({
                   {report.actualTaskCount}件
                 </TableCell>
                 <TableCell className="text-center">
-                  <Button variant="ghost" size="sm" onClick={() => onViewDetail(report.id)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onViewDetail(report.id)}
+                    aria-label="詳細を表示"
+                  >
                     <Eye className="h-4 w-4" />
                   </Button>
                 </TableCell>

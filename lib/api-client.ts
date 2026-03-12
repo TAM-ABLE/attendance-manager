@@ -12,6 +12,8 @@ interface FetchOptions {
   body?: unknown
   /** リクエストタイムアウト（ミリ秒） */
   timeout?: number
+  /** ブラウザキャッシュをバイパスする（更新後のリフェッチ用） */
+  noCache?: boolean
 }
 
 /**
@@ -22,7 +24,7 @@ export async function apiClient<T>(
   endpoint: string,
   options: FetchOptions = {},
 ): Promise<ApiResult<T>> {
-  const { method = "GET", body, timeout = DEFAULT_TIMEOUT } = options
+  const { method = "GET", body, timeout = DEFAULT_TIMEOUT, noCache = false } = options
 
   // タイムアウト用のAbortController
   const controller = new AbortController()
@@ -38,6 +40,7 @@ export async function apiClient<T>(
       method,
       headers,
       signal: controller.signal,
+      ...(noCache && { cache: "no-store" as RequestCache }),
     }
 
     if (body) {
