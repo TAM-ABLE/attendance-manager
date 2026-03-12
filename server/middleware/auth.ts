@@ -1,6 +1,6 @@
 import type { Context, Next } from "hono"
 import { getCookie } from "hono/cookie"
-import { extractBearerToken, verifyJwt } from "../lib/auth-helpers"
+import { verifyJwt } from "../lib/auth-helpers"
 import { forbiddenError, unauthorizedError } from "../lib/errors"
 import type { Env } from "../types/env"
 
@@ -18,8 +18,7 @@ export type AuthVariables = {
 export function extractToken(
   c: Context<{ Bindings: Env; Variables: AuthVariables }>,
 ): string | null {
-  const authHeader = c.req.header("Authorization")
-  return extractBearerToken(authHeader) ?? getCookie(c, "accessToken") ?? null
+  return getCookie(c, "accessToken") ?? null
 }
 
 export const authMiddleware = async (
