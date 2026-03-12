@@ -22,10 +22,15 @@ CREATE TABLE IF NOT EXISTS public.attendance_records (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id uuid NOT NULL REFERENCES public.profiles (id) ON DELETE CASCADE,
     date date NOT NULL,
+    slack_clock_in_ts text,
+    slack_clock_out_ts text,
     created_at timestamptz NOT NULL DEFAULT now(),
 
     CONSTRAINT attendance_records_user_date_unique UNIQUE (user_id, date)
 );
+
+COMMENT ON COLUMN public.attendance_records.slack_clock_in_ts IS '出勤Slackメッセージのタイムスタンプ（chat.update用）';
+COMMENT ON COLUMN public.attendance_records.slack_clock_out_ts IS '退勤Slackメッセージのタイムスタンプ（chat.update用）';
 
 -- ============================
 -- work_sessions
@@ -35,11 +40,8 @@ CREATE TABLE IF NOT EXISTS public.work_sessions (
     attendance_id uuid NOT NULL REFERENCES public.attendance_records (id) ON DELETE CASCADE,
     clock_in timestamptz NOT NULL,
     clock_out timestamptz,
-    slack_clock_in_ts text,
     created_at timestamptz NOT NULL DEFAULT now()
 );
-
-COMMENT ON COLUMN public.work_sessions.slack_clock_in_ts IS '出勤時のSlackメッセージタイムスタンプ（スレッド返信用）';
 
 -- ============================
 -- breaks
@@ -64,10 +66,11 @@ CREATE TABLE IF NOT EXISTS public.daily_reports (
     notes text,
     submitted_at timestamptz,
     created_at timestamptz NOT NULL DEFAULT now(),
-    updated_at timestamptz NOT NULL DEFAULT now()
+    updated_at timestamptz NOT NULL DEFAULT now(),
+
+    CONSTRAINT daily_reports_user_date_unique UNIQUE (user_id, date)
 );
 
-CREATE INDEX IF NOT EXISTS idx_daily_reports_user_id ON public.daily_reports (user_id);
 CREATE INDEX IF NOT EXISTS idx_daily_reports_date ON public.daily_reports (date);
 
 -- ============================
@@ -76,6 +79,7 @@ CREATE INDEX IF NOT EXISTS idx_daily_reports_date ON public.daily_reports (date)
 CREATE TABLE IF NOT EXISTS public.daily_report_tasks (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     daily_report_id uuid NOT NULL REFERENCES public.daily_reports (id) ON DELETE CASCADE,
+    work_session_id uuid REFERENCES public.work_sessions (id) ON DELETE SET NULL,
     task_type text NOT NULL,
     task_name text NOT NULL,
     hours numeric(4,2),
@@ -84,6 +88,8 @@ CREATE TABLE IF NOT EXISTS public.daily_report_tasks (
 );
 
 CREATE INDEX IF NOT EXISTS idx_daily_report_tasks_report_id ON public.daily_report_tasks (daily_report_id);
+
+COMMENT ON COLUMN public.daily_report_tasks.work_session_id IS 'タスクを入力したセッションのID（退勤ダイアログで当該セッションのタスクのみ表示するため）';
 
 -- ============================
 -- Supabase Auth トリガー
