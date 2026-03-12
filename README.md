@@ -27,7 +27,7 @@
 - 勤怠データの確認・編集
 - ユーザーの月次勤怠データをCSV形式でエクスポート
 - 月次勤怠締め（CSVをSlackに送信）
-- 本日・前日の提出済み日報一覧（60秒間隔で自動更新）
+- 本日・前日の提出済み日報一覧
 
 ### 認証
 - 招待メールによるパスワード設定フロー（パスワード強度バリデーション付き）
@@ -182,8 +182,7 @@ SSC（Server Component）での初期データ取得 + SWR でのクライアン
 - **初回表示**: SSC で `fetchWithAuth()` → `initialData` として Client Component に渡す → ローディングなし
 - **操作後**: SWR `mutate()` で `/api/*` 経由で再取得 → 画面更新
 - **SWR グローバル設定**: `SWRProvider` で `revalidateOnFocus: false`、`dedupingInterval: 5000` を一括設定
-- **自動ポーリング**: 管理者日報一覧で `refreshInterval: 60_000`（60秒間隔）による自動更新
-- **HTTPキャッシュ**: 月次勤怠・日報エンドポイントに `Cache-Control: private, max-age=60` を設定
+- **HTTPキャッシュ**: 月次勤怠・日報エンドポイントに `Cache-Control: private, max-age=60` を設定（更新後は `noCache` でバイパス）
 
 ---
 

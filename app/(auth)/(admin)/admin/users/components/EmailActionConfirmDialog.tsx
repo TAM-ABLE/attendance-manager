@@ -1,5 +1,6 @@
 "use client"
 
+import { FormError } from "@/components/FormError"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,7 +58,7 @@ export function EmailActionConfirmDialog({
               : `${action?.userName} にパスワードリセットメールを送信します。よろしいですか？`}
           </AlertDialogDescription>
         </AlertDialogHeader>
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {error && <FormError message={error} />}
         <AlertDialogFooter>
           <AlertDialogCancel disabled={loading}>キャンセル</AlertDialogCancel>
           <AlertDialogAction onClick={handleConfirm} disabled={loading}>

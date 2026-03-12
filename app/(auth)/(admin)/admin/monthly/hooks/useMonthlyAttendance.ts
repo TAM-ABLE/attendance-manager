@@ -18,9 +18,17 @@ export function useMonthlyAttendance(user: User | null, date: Date) {
     () => withRetryFetcher(() => getUserMonthlyAttendance(user!.id, year, month)),
   )
 
+  const refetch = async () => {
+    if (!hasValidUser) return
+    const res = await getUserMonthlyAttendance(user!.id, year, month, { noCache: true })
+    if (res.success) {
+      await mutate(res.data, false)
+    }
+  }
+
   return {
     monthData: data ?? null,
     error: error?.message ?? null,
-    refetch: () => mutate(),
+    refetch,
   }
 }

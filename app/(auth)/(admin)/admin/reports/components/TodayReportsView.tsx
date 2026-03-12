@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import useSWR from "swr"
 import { ReportDetailDialog } from "@/components/ReportDetailDialog"
 import { Card, CardContent } from "@/components/ui/card"
@@ -32,21 +32,19 @@ export function TodayReportsView({ initialReports }: TodayReportsViewProps) {
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<"today" | "yesterday">("today")
 
-  const yesterday = useMemo(() => yesterdayJSTString(), [])
+  const yesterday = yesterdayJSTString()
 
   const { data: todayReports = [], isValidating: isValidatingToday } = useSWR(
     SWR_KEYS.reportsByDate(),
     () => fetchReportsByDate(),
     {
       fallbackData: initialReports,
-      refreshInterval: 60_000,
     },
   )
 
   const { data: yesterdayReports = [], isValidating: isValidatingYesterday } = useSWR(
     activeTab === "yesterday" ? SWR_KEYS.reportsByDate(yesterday) : null,
     () => fetchReportsByDate(yesterday),
-    { refreshInterval: 60_000 },
   )
 
   const handleViewDetail = (reportId: string) => {

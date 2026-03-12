@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { DialogWrapper } from "@/components/DialogWrapper"
+import { FormError } from "@/components/FormError"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -55,7 +56,7 @@ export function CloseMonthButton({ yearMonth, year, month }: CloseMonthButtonPro
               </DialogDescription>
             </DialogHeader>
 
-            {error && <div className="text-red-500 text-sm p-2 bg-red-50 rounded">{error}</div>}
+            {error && <FormError message={error} />}
 
             <DialogFooter>
               <Button variant="outline" onClick={handleClose}>

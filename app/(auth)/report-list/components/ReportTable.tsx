@@ -12,24 +12,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { formatReportDate, getStatusDisplay } from "@/lib/report-format"
+import { formatReportDate, formatSubmittedAt, getStatusDisplay } from "@/lib/report-format"
 import type { DailyReportListItem } from "@/types/DailyReport"
 
 interface ReportTableProps {
   reports: DailyReportListItem[]
   isLoading: boolean
   onViewDetail: (reportId: string) => void
-}
-
-function formatSubmittedAt(timestamp: number | null): string {
-  if (!timestamp) return "-"
-  const date = new Date(timestamp)
-  return date.toLocaleString("ja-JP", {
-    month: "numeric",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  })
 }
 
 export function ReportTable({ reports, isLoading, onViewDetail }: ReportTableProps) {
@@ -101,7 +90,12 @@ export function ReportTable({ reports, isLoading, onViewDetail }: ReportTablePro
                       {report.actualTaskCount}件
                     </TableCell>
                     <TableCell className="text-center">
-                      <Button variant="ghost" size="sm" onClick={() => onViewDetail(report.id)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onViewDetail(report.id)}
+                        aria-label="詳細を表示"
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
                     </TableCell>

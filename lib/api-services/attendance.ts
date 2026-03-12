@@ -59,9 +59,11 @@ export function getWeekTotal() {
   return apiClient<{ netWorkMs: number } | null>("/attendance/week/total")
 }
 
-export function getMonth(year: number, month: number) {
+export function getMonth(year: number, month: number, options?: { noCache?: boolean }) {
   const yearMonth = formatYearMonth(year, month)
-  return apiClient<AttendanceRecord[]>(`/attendance/month/${yearMonth}`)
+  return apiClient<AttendanceRecord[]>(`/attendance/month/${yearMonth}`, {
+    ...(options?.noCache && { noCache: true }),
+  })
 }
 
 export function getDateSessions(date: string) {

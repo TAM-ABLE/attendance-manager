@@ -48,7 +48,12 @@ export function EditAttendanceClient({ user, initialData }: EditAttendanceClient
     },
   )
 
-  const editDialog = useEditDialog(() => mutate())
+  const editDialog = useEditDialog(async () => {
+    const res = await getMonth(year, month, { noCache: true })
+    if (res.success) {
+      await mutate(res.data, false)
+    }
+  })
 
   return (
     <div className="space-y-4 sm:space-y-6">
