@@ -1,6 +1,16 @@
 // shared/lib/constants.ts
 // フロントエンド・バックエンド共通の定数
 
+// タスクタイプ
+export const TASK_TYPE_PLANNED = "planned" as const
+export const TASK_TYPE_ACTUAL = "actual" as const
+export type TaskType = typeof TASK_TYPE_PLANNED | typeof TASK_TYPE_ACTUAL
+
+// 社員番号
+export const EMPLOYEE_NUMBER_PREFIX = "A-"
+export const EMPLOYEE_NUMBER_PAD = 4
+export const EMPLOYEE_NUMBER_DEFAULT = "A-0001"
+
 // バリデーション制限
 export const MAX_TASK_HOURS = 24
 export const MIN_TASK_HOURS = 0

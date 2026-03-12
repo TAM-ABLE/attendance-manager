@@ -1,5 +1,6 @@
 import { createRoute, z } from "@hono/zod-openapi"
-import { parseYearMonthWithRange, todayJSTString } from "@/lib/time"
+import { TASK_TYPE_ACTUAL, TASK_TYPE_PLANNED } from "@/lib/constants"
+import { getJSTWeekRange, parseYearMonthWithRange, todayJSTString } from "@/lib/time"
 import { handleRouteError, successResponse, validationError } from "../../lib/errors"
 import { formatAttendanceRecord } from "../../lib/formatters"
 import { createOpenAPIHono } from "../../lib/openapi-hono"
@@ -116,18 +117,7 @@ const weekTotalRoute = createRoute({
 queriesRouter.openapi(weekTotalRoute, async (c) => {
   const { sub: userId } = c.get("jwtPayload")
 
-  const date = new Date()
-  const dayOfWeek = date.getDay()
-  const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek
-
-  const monday = new Date(date)
-  monday.setDate(date.getDate() + mondayOffset)
-
-  const sunday = new Date(monday)
-  sunday.setDate(monday.getDate() + 6)
-
-  const startDate = monday.toISOString().split("T")[0]
-  const endDate = sunday.toISOString().split("T")[0]
+  const { start: startDate, end: endDate } = getJSTWeekRange()
 
   const { attendance } = createRepos(c.env)
 
@@ -172,7 +162,11 @@ queriesRouter.openapi(todayPlannedTasksRoute, async (c) => {
     const report = await repos.dailyReport.findReportByUserAndDate(userId, date)
     if (!report) return successResponse(c, [])
 
-    const tasks = await repos.dailyReport.findTasksBySession(report.id, session.id, "planned")
+    const tasks = await repos.dailyReport.findTasksBySession(
+      report.id,
+      session.id,
+      TASK_TYPE_PLANNED,
+    )
     return successResponse(
       c,
       tasks.map((t) => ({ taskName: t.taskName, hours: t.hours })),
@@ -219,7 +213,7 @@ queriesRouter.openapi(todayPreviousActualsRoute, async (c) => {
       tasks = await repos.dailyReport.findPreviousSessionActualTasks(report.id, session.id)
     } else {
       // アクティブセッションなし（出勤ダイアログ用）: 全実績タスク
-      tasks = await repos.dailyReport.findAllTasksByReportAndType(report.id, "actual")
+      tasks = await repos.dailyReport.findAllTasksByReportAndType(report.id, TASK_TYPE_ACTUAL)
     }
 
     const merged = mergeTasksByName(tasks)

@@ -1,4 +1,6 @@
 import type { z } from "@hono/zod-openapi"
+import { eq } from "drizzle-orm"
+import { breaks, workSessions } from "../db/schema"
 import type { sessionUpdateSchema } from "./openapi-schemas"
 import type { createRepos } from "./repositories"
 
@@ -33,7 +35,7 @@ export function validateSessions(sessions: SessionInput[]): string | null {
 
 /**
  * 指定ユーザー・日付のセッションを全置換する
- * 旧セッション削除 → バリデーション → 新セッション挿入
+ * バリデーション → findOrCreate → トランザクション内で旧セッション削除＋新セッション挿入
  */
 export async function replaceSessions(
   repos: Repos,
@@ -41,14 +43,6 @@ export async function replaceSessions(
   date: string,
   sessions: SessionInput[],
 ): Promise<{ error: string | null }> {
-  const { id: attendanceId } = await repos.attendance.findOrCreateRecord(userId, date)
-
-  const oldSessionIds = await repos.workSession.getSessionIdsByAttendanceId(attendanceId)
-  if (oldSessionIds.length > 0) {
-    await repos.break.deleteBySessionIds(oldSessionIds)
-    await repos.workSession.deleteByIds(oldSessionIds)
-  }
-
   const validSessions = sessions.filter((s) => s.clockIn != null)
 
   const validationError = validateSessions(validSessions)
@@ -56,14 +50,24 @@ export async function replaceSessions(
     return { error: validationError }
   }
 
-  if (validSessions.length > 0) {
-    const insertedSessions = await repos.workSession.insertMultiple(
-      attendanceId,
-      validSessions.map((s) => ({
-        clockIn: new Date(s.clockIn!).toISOString(),
-        clockOut: s.clockOut ? new Date(s.clockOut).toISOString() : null,
-      })),
-    )
+  const { id: attendanceId } = await repos.attendance.findOrCreateRecord(userId, date)
+
+  await repos.db.transaction(async (tx) => {
+    // 旧セッション削除（breaks は ON DELETE CASCADE で自動削除）
+    await tx.delete(workSessions).where(eq(workSessions.attendanceId, attendanceId))
+
+    if (validSessions.length === 0) return
+
+    const insertedSessions = await tx
+      .insert(workSessions)
+      .values(
+        validSessions.map((s) => ({
+          attendanceId,
+          clockIn: new Date(s.clockIn!).toISOString(),
+          clockOut: s.clockOut ? new Date(s.clockOut).toISOString() : null,
+        })),
+      )
+      .returning({ id: workSessions.id })
 
     const breakInserts: { sessionId: string; breakStart: string; breakEnd: string | null }[] = []
     for (let i = 0; i < validSessions.length; i++) {
@@ -79,9 +83,9 @@ export async function replaceSessions(
     }
 
     if (breakInserts.length > 0) {
-      await repos.break.insertMultiple(breakInserts)
+      await tx.insert(breaks).values(breakInserts)
     }
-  }
+  })
 
   return { error: null }
 }

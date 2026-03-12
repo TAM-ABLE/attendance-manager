@@ -119,8 +119,8 @@ attendance-manager/
 │   ├── app.ts                 # エントリーポイント
 │   ├── db/                    # Drizzle ORM スキーマ・クライアント
 │   ├── middleware/auth.ts     # JWT 認証ミドルウェア (jose)
-│   ├── routes/                # API ルート
-│   ├── lib/                   # サーバーユーティリティ（slack, csv, auth-helpers, openapi-responses, swagger）
+│   ├── routes/                # API ルート（admin: user-crud/user-emails/user-attendance に分割）
+│   ├── lib/                   # サーバーユーティリティ（slack, csv, auth-helpers, errors, formatters, sessions, openapi-*, swagger）
 │   └── types/                 # サーバー型定義
 ├── supabase/                  # Supabase 設定
 │   ├── config.toml            # Supabase 設定
@@ -260,6 +260,7 @@ pnpm tsc --noEmit     # 型チェック
 | GET | `/api/admin/users` | ユーザー一覧取得 |
 | POST | `/api/admin/users` | ユーザー作成 |
 | PATCH | `/api/admin/users/{userId}` | ユーザー情報更新 |
+| DELETE | `/api/admin/users/{userId}` | ユーザー削除 |
 | GET | `/api/admin/users/{userId}/attendance/month/{yearMonth}` | ユーザーの月別勤怠取得 |
 | GET | `/api/admin/users/{userId}/attendance/{date}/sessions` | ユーザーの特定日セッション取得 |
 | PUT | `/api/admin/users/{userId}/attendance/{date}/sessions` | ユーザーの特定日セッション更新 |

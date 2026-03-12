@@ -1,6 +1,6 @@
 import type { Task } from "@/types/Attendance"
 
-interface SlackConfig {
+export interface SlackConfig {
   botToken: string
   channelId: string
   clockInIconUrl?: string
@@ -240,6 +240,21 @@ export function getSlackConfig(env: {
     channelId: env.SLACK_CHANNEL_ID,
     clockInIconUrl: env.SLACK_ICON_CLOCK_IN,
     clockOutIconUrl: env.SLACK_ICON_CLOCK_OUT,
+    attendanceCloseIconUrl: env.SLACK_ICON_ATTENDANCE_CLOSE,
+  }
+}
+
+export function getSlackCsvConfig(env: {
+  SLACK_BOT_TOKEN?: string
+  SLACK_CSV_CHANNEL_ID?: string
+  SLACK_ICON_ATTENDANCE_CLOSE?: string
+}): SlackConfig | null {
+  if (!env.SLACK_BOT_TOKEN || !env.SLACK_CSV_CHANNEL_ID) {
+    return null
+  }
+  return {
+    botToken: env.SLACK_BOT_TOKEN,
+    channelId: env.SLACK_CSV_CHANNEL_ID,
     attendanceCloseIconUrl: env.SLACK_ICON_ATTENDANCE_CLOSE,
   }
 }

@@ -1,6 +1,8 @@
 import type { Context } from "hono"
 import { ErrorCodes } from "@/types/ApiResponse"
+import { GoTrueError } from "./auth-helpers"
 import { DatabaseError } from "./repositories/errors"
+import { ResendError } from "./resend"
 
 // ===== 成功レスポンス =====
 
@@ -66,4 +68,23 @@ export function internalError(c: Context, internalMessage?: string) {
 export function handleRouteError(c: Context, e: unknown) {
   if (e instanceof DatabaseError) return databaseError(c, e.message)
   throw e
+}
+
+/**
+ * 管理者ルート用の共通エラーハンドリング
+ * dbErrorAsNotFound を指定すると、DatabaseError を 404 として返す（ユーザーIDで検索する操作向け）
+ */
+export function handleAdminRouteError(
+  c: Context,
+  e: unknown,
+  opts?: { dbErrorAsNotFound?: string },
+) {
+  if (e instanceof DatabaseError) {
+    return opts?.dbErrorAsNotFound
+      ? notFoundError(c, opts.dbErrorAsNotFound)
+      : databaseError(c, e.message)
+  }
+  if (e instanceof GoTrueError) return internalError(c, e.message)
+  if (e instanceof ResendError) return internalError(c, `Email送信エラー: ${e.message}`)
+  return internalError(c, e instanceof Error ? e.message : "Unknown error")
 }

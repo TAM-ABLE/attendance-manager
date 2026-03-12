@@ -73,6 +73,8 @@ setPasswordRouter.openapi(setPasswordRoute, async (c) => {
   }
 
   // 3. Re-authenticate with new password to get session
+  // Note: パスワード変更(step2)成功後にここで失敗した場合、パスワードは既に変更済み。
+  // ユーザーはログインページから手動でログイン可能。
   let newAuth: Awaited<ReturnType<typeof signInWithPassword>>
   try {
     newAuth = await signInWithPassword(

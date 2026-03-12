@@ -7,7 +7,7 @@ import { createOpenAPIHono } from "../../lib/openapi-hono"
 import { serverErrorResponse, validationErrorResponse } from "../../lib/openapi-responses"
 import { successResponseSchema, yearMonthSchema } from "../../lib/openapi-schemas"
 import { createRepos } from "../../lib/repositories"
-import { sendAttendanceCloseNotification } from "../../lib/slack"
+import { getSlackCsvConfig, sendAttendanceCloseNotification } from "../../lib/slack"
 import { uploadCsvToSlack } from "../../lib/slack-csv"
 import type { AuthVariables } from "../../middleware/auth"
 import type { Env } from "../../types/env"
@@ -48,9 +48,8 @@ closeMonthRouter.openapi(closeMonthRoute, async (c) => {
   if (!parsed) return validationError(c, "Invalid year-month format")
   const { year, month, start: startDate, end: endDate } = parsed
 
-  const botToken = c.env.SLACK_BOT_TOKEN
-  const channelId = c.env.SLACK_CSV_CHANNEL_ID
-  if (!botToken || !channelId) {
+  const slackConfig = getSlackCsvConfig(c.env)
+  if (!slackConfig) {
     return internalError(c, "SLACK_BOT_TOKEN or SLACK_CSV_CHANNEL_ID not configured")
   }
 
@@ -69,17 +68,12 @@ closeMonthRouter.openapi(closeMonthRoute, async (c) => {
     const csvBuffer = generateMonthlyAttendanceCsv(monthDates, records, user.name)
 
     // アイコン付き通知メッセージを送信
-    const slackConfig = {
-      botToken,
-      channelId,
-      attendanceCloseIconUrl: c.env.SLACK_ICON_ATTENDANCE_CLOSE,
-    }
     const notification = await sendAttendanceCloseNotification(slackConfig, user.name, year, month)
 
     // CSVをスレッドに添付（通知が成功した場合はスレッド返信）
     const result = await uploadCsvToSlack(
-      botToken,
-      channelId,
+      slackConfig.botToken,
+      slackConfig.channelId,
       fileName,
       csvBuffer,
       undefined,

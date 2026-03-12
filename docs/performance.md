@@ -61,7 +61,7 @@ if (process.env.NODE_ENV !== "production") {
 - `private`: ブラウザキャッシュのみ（CDN キャッシュ不可、認証データのため）
 - `max-age=60`: 60秒間はネットワークリクエストなしでキャッシュから返す
 
-**対象ファイル**: `server/routes/attendance/queries.ts`, `server/routes/admin/users.ts`, `server/routes/daily-reports.ts`
+**対象ファイル**: `server/routes/attendance/queries.ts`, `server/routes/admin/user-attendance.ts`, `server/routes/daily-reports.ts`
 
 ### Slack 通知の非同期化（fire-and-forget）
 
@@ -69,11 +69,12 @@ if (process.env.NODE_ENV !== "production") {
 
 ```
 変更前: const slackResult = await sendClockInNotification(...)   // レスポンスを待つ
-変更後: sendClockInNotification(...).then(...).catch(...)        // fire-and-forget
+変更後: fireClockInSlack(...)  // fire-and-forget（内部で async/await + 単一 .catch()）
 ```
 
 - 出勤・退勤 API のレスポンス時間から Slack API の待ち時間（数百ms〜数秒）を排除
 - Slack 通知の失敗はコンソールログで記録し、ユーザー操作には影響しない
+- `fireClockInSlack` / `fireClockOutSlack` ヘルパーに Slack ロジックを分離し、ルートハンドラの可読性を向上
 
 **対象ファイル**: `server/routes/attendance/clock.ts`
 
@@ -107,16 +108,29 @@ if (process.env.NODE_ENV !== "production") {
 
 **対象ファイル**: `server/lib/repositories/attendance.ts` (`calculateNetWorkMsByDateRange`), `server/routes/attendance/queries.ts`
 
-### findOrCreateRecord の upsert 化
+### findOrCreateRecord / findOrCreateReport の upsert 化
 
-勤怠レコードの取得・作成を SELECT + INSERT の2クエリから、`INSERT ... ON CONFLICT DO UPDATE` の1クエリに統合しました。
+勤怠レコード・日報レコードの取得・作成を SELECT + INSERT の2クエリから、`INSERT ... ON CONFLICT DO UPDATE` の1クエリに統合しました。
 
 ```
 変更前: SELECT で存在確認 → なければ INSERT（2クエリ、レースコンディションのリスク）
 変更後: INSERT ON CONFLICT DO UPDATE（1クエリ、アトミック）
 ```
 
-**対象ファイル**: `server/lib/repositories/attendance.ts` (`findOrCreateRecord`)
+**対象ファイル**: `server/lib/repositories/attendance.ts` (`findOrCreateRecord`), `server/lib/repositories/daily-report.ts` (`findOrCreateReport`)
+
+### replaceSessions のトランザクション化
+
+セッション全置換時の削除→挿入を DB トランザクション内で実行し、途中失敗時のデータ不整合を防止しました。
+
+```
+変更前: repos.break.deleteBySessionIds → repos.workSession.deleteByIds → insertMultiple（トランザクションなし）
+変更後: db.transaction(async (tx) => { delete → insert })（アトミック、breaks は ON DELETE CASCADE で自動削除）
+```
+
+- バリデーションをトランザクション前に実行し、無駄な削除を防止
+
+**対象ファイル**: `server/lib/sessions.ts` (`replaceSessions`)
 
 ### コネクションプール設定
 
