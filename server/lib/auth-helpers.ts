@@ -173,10 +173,36 @@ export async function goTrueAdminListUsers(
 }
 
 interface GenerateLinkResponse {
-  action_link: string
+  hashed_token: string
   id: string
   email: string
   user_metadata: Record<string, unknown>
+}
+
+interface VerifyOtpResponse {
+  access_token: string
+  token_type: string
+  expires_in: number
+  refresh_token: string
+  user: GoTrueUser
+}
+
+/**
+ * GoTrue の OTP (token_hash) を検証してアクセストークンを取得する
+ */
+export async function verifyOtp(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  params: { token_hash: string; type: "invite" | "recovery" },
+): Promise<VerifyOtpResponse> {
+  return goTrueAdminRequest<VerifyOtpResponse>(
+    supabaseUrl,
+    serviceRoleKey,
+    "/verify",
+    "POST",
+    "Failed to verify token",
+    params,
+  )
 }
 
 export async function adminDeleteUser(
@@ -200,7 +226,6 @@ export async function generateLink(
     type: "invite" | "recovery"
     email: string
     data?: Record<string, unknown>
-    redirect_to?: string
   },
 ): Promise<GenerateLinkResponse> {
   return goTrueAdminRequest<GenerateLinkResponse>(

@@ -111,6 +111,36 @@ export async function login(email: string, password: string): Promise<LoginResul
 }
 
 /**
+ * メールリンクのトークンハッシュを検証してアクセストークンを取得
+ */
+export async function verifyOtp(
+  tokenHash: string,
+  type: "invite" | "recovery",
+): Promise<{ success: true; accessToken: string } | { success: false; error: string }> {
+  try {
+    const res = await fetch("/api/auth/verify-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tokenHash, type }),
+    })
+
+    const json = await res.json()
+
+    if (!res.ok || !json.success) {
+      return {
+        success: false,
+        error: json.error?.message ?? "トークンの検証に失敗しました",
+      }
+    }
+
+    return { success: true, accessToken: json.data.accessToken }
+  } catch (err) {
+    console.error("Verify OTP error:", err)
+    return { success: false, error: "トークンの検証に失敗しました" }
+  }
+}
+
+/**
  * パスワード設定（招待メールのトークンを使用）
  * トークンで認証後、新パスワードを設定してログイン
  */

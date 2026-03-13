@@ -4,11 +4,13 @@ import loginRouter from "./login"
 import logoutRouter from "./logout"
 import meRouter from "./me"
 import setPasswordRouter from "./set-password"
+import verifyOtpRouter from "./verify-otp"
 
 const auth = createOpenAPIHono<{ Bindings: Env }>()
 
 auth.route("/login", loginRouter)
 auth.route("/set-password", setPasswordRouter)
+auth.route("/verify-otp", verifyOtpRouter)
 auth.route("/logout", logoutRouter)
 auth.route("/me", meRouter)
 

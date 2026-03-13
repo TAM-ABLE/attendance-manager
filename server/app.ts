@@ -28,7 +28,6 @@ app.use("*", async (c, next) => {
     SLACK_CSV_CHANNEL_ID: process.env.SLACK_CSV_CHANNEL_ID,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
-    APP_URL: process.env.APP_URL,
   } as Env
   await next()
 })

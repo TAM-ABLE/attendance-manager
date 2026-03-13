@@ -42,9 +42,9 @@ const userEmailsRouter = createOpenAPIHono<{ Bindings: Env; Variables: AuthVaria
  * 未設定の場合は null を返す
  */
 function getEmailEnv(env: Env) {
-  const { RESEND_API_KEY, RESEND_FROM_EMAIL, APP_URL } = env
-  if (!RESEND_API_KEY || !RESEND_FROM_EMAIL || !APP_URL) return null
-  return { resendApiKey: RESEND_API_KEY, resendFromEmail: RESEND_FROM_EMAIL, appUrl: APP_URL }
+  const { RESEND_API_KEY, RESEND_FROM_EMAIL } = env
+  if (!RESEND_API_KEY || !RESEND_FROM_EMAIL) return null
+  return { resendApiKey: RESEND_API_KEY, resendFromEmail: RESEND_FROM_EMAIL }
 }
 
 // ===== POST /admin/users - 管理者によるユーザー作成 =====
@@ -94,10 +94,7 @@ userEmailsRouter.openapi(createUserRoute, async (c) => {
 
   const emailEnv = getEmailEnv(c.env)
   if (!emailEnv) {
-    return internalError(
-      c,
-      "メール送信の環境変数が未設定です (RESEND_API_KEY, RESEND_FROM_EMAIL, APP_URL)",
-    )
+    return internalError(c, "メール送信の環境変数が未設定です (RESEND_API_KEY, RESEND_FROM_EMAIL)")
   }
 
   try {
@@ -113,14 +110,15 @@ userEmailsRouter.openapi(createUserRoute, async (c) => {
         employee_number: employeeNumber,
         password_changed: false,
       },
-      redirect_to: `${emailEnv.appUrl}/set-password`,
     })
 
+    const origin = new URL(c.req.url).origin
+    const setPasswordUrl = `${origin}/set-password?token_hash=${encodeURIComponent(result.hashed_token)}&type=invite`
     await sendEmail(emailEnv.resendApiKey, {
       from: emailEnv.resendFromEmail,
       to: email,
       subject: "勤怠管理システムへの招待",
-      html: buildInviteEmailHtml(result.action_link),
+      html: buildInviteEmailHtml(setPasswordUrl),
     })
 
     return successResponse(c, {
@@ -171,10 +169,7 @@ userEmailsRouter.openapi(resendInviteRoute, async (c) => {
 
   const emailEnv = getEmailEnv(c.env)
   if (!emailEnv) {
-    return internalError(
-      c,
-      "メール送信の環境変数が未設定です (RESEND_API_KEY, RESEND_FROM_EMAIL, APP_URL)",
-    )
+    return internalError(c, "メール送信の環境変数が未設定です (RESEND_API_KEY, RESEND_FROM_EMAIL)")
   }
 
   try {
@@ -189,14 +184,15 @@ userEmailsRouter.openapi(resendInviteRoute, async (c) => {
         employee_number: user.employeeNumber,
         password_changed: false,
       },
-      redirect_to: `${emailEnv.appUrl}/set-password`,
     })
 
+    const origin = new URL(c.req.url).origin
+    const setPasswordUrl = `${origin}/set-password?token_hash=${encodeURIComponent(result.hashed_token)}&type=invite`
     await sendEmail(emailEnv.resendApiKey, {
       from: emailEnv.resendFromEmail,
       to: user.email,
       subject: "勤怠管理システムへの招待",
-      html: buildInviteEmailHtml(result.action_link),
+      html: buildInviteEmailHtml(setPasswordUrl),
     })
 
     return successResponse(c, { message: "招待メールを再送しました" })
@@ -239,10 +235,7 @@ userEmailsRouter.openapi(passwordResetRoute, async (c) => {
 
   const emailEnv = getEmailEnv(c.env)
   if (!emailEnv) {
-    return internalError(
-      c,
-      "メール送信の環境変数が未設定です (RESEND_API_KEY, RESEND_FROM_EMAIL, APP_URL)",
-    )
+    return internalError(c, "メール送信の環境変数が未設定です (RESEND_API_KEY, RESEND_FROM_EMAIL)")
   }
 
   try {
@@ -251,14 +244,15 @@ userEmailsRouter.openapi(passwordResetRoute, async (c) => {
     const result = await generateLink(c.env.SUPABASE_URL, c.env.SUPABASE_SERVICE_ROLE_KEY, {
       type: "recovery",
       email: user.email,
-      redirect_to: `${emailEnv.appUrl}/set-password`,
     })
 
+    const origin = new URL(c.req.url).origin
+    const resetPasswordUrl = `${origin}/set-password?token_hash=${encodeURIComponent(result.hashed_token)}&type=recovery`
     await sendEmail(emailEnv.resendApiKey, {
       from: emailEnv.resendFromEmail,
       to: user.email,
       subject: "パスワードリセット - 勤怠管理システム",
-      html: buildRecoveryEmailHtml(result.action_link),
+      html: buildRecoveryEmailHtml(resetPasswordUrl),
     })
 
     return successResponse(c, { message: "パスワードリセットメールを送信しました" })
