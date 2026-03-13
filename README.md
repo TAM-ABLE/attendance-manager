@@ -237,6 +237,7 @@ pnpm tsc --noEmit     # 型チェック
 | POST | `/api/auth/login` | ログイン |
 | POST | `/api/auth/logout` | ログアウト |
 | GET | `/api/auth/me` | 現在のユーザー情報取得 |
+| POST | `/api/auth/verify-otp` | メールリンクのトークン検証（token_hash → access_token） |
 | POST | `/api/auth/set-password` | パスワード設定（招待メール・リカバリーメールから） |
 
 ### 勤怠

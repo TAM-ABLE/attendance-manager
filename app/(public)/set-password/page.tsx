@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { usePasswordStrength } from "@/hooks/usePasswordStrength"
-import { setPassword } from "@/lib/api-client"
+import { setPassword, verifyOtp } from "@/lib/api-client"
 
 function PasswordCheck({ passed, label }: { passed: boolean; label: string }) {
   return (
@@ -22,11 +22,6 @@ function PasswordCheck({ passed, label }: { passed: boolean; label: string }) {
       <span className={passed ? "text-green-600" : "text-muted-foreground"}>{label}</span>
     </div>
   )
-}
-
-function parseHashParams(hash: string): Record<string, string> {
-  const str = hash.startsWith("#") ? hash.slice(1) : hash
-  return Object.fromEntries(new URLSearchParams(str))
 }
 
 type FlowType = "invite" | "recovery"
@@ -47,23 +42,26 @@ export default function SetPasswordPage() {
   const isRecovery = flowType === "recovery"
 
   useEffect(() => {
-    const hash = window.location.hash
-    if (!hash) {
+    // 新フロー: query params の token_hash を verify-otp で access_token に変換
+    const searchParams = new URLSearchParams(window.location.search)
+    const tokenHash = searchParams.get("token_hash")
+    const queryType = searchParams.get("type")
+
+    if (!tokenHash || (queryType !== "invite" && queryType !== "recovery")) {
       setTokenError(true)
       return
     }
 
-    const params = parseHashParams(hash)
-    const token = params.access_token
-    const type = params.type
-
-    if (!token || (type !== "invite" && type !== "recovery")) {
-      setTokenError(true)
-      return
-    }
-
-    setFlowType(type as FlowType)
-    setAccessToken(token)
+    setFlowType(queryType)
+    // 検証後に URL から token_hash を消す（ブラウザ履歴・Referer への漏洩防止）
+    window.history.replaceState({}, "", window.location.pathname)
+    verifyOtp(tokenHash, queryType).then((result) => {
+      if (result.success) {
+        setAccessToken(result.accessToken)
+      } else {
+        setTokenError(true)
+      }
+    })
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {

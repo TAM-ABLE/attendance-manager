@@ -12,5 +12,4 @@ export type Env = {
   SLACK_CSV_CHANNEL_ID?: string
   RESEND_API_KEY?: string
   RESEND_FROM_EMAIL?: string
-  APP_URL?: string
 }

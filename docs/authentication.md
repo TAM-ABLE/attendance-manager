@@ -100,11 +100,15 @@
      │                     │ type: "invite"         │                   │
      │                     │──────────────────────>│                   │
      │                     │                       │                   │
-     │                     │  action_link 返却      │                   │
+     │                     │  hashed_token 返却     │                   │
      │                     │<──────────────────────│                   │
      │                     │                       │                   │
+     │                     │ リクエスト元originで     │                   │
+     │                     │ リンク構築:             │                   │
+     │                     │ /set-password?token_hash=xxx&type=invite  │
+     │                     │                       │                   │
      │                     │ POST /emails                              │
-     │                     │ {to, subject, html(action_link)}          │
+     │                     │ {to, subject, html(setPasswordUrl)}       │
      │                     │──────────────────────────────────────────>│
      │                     │                                           │
      │                     │              送信完了                      │
@@ -118,18 +122,30 @@
 ```
 ┌──────────┐    ┌──────────────────────┐    ┌───────────────┐
 │ ユーザー  │    │ Hono API             │    │ GoTrue API    │
-│ ブラウザ  │    │ /api/auth/set-password│    │ (Supabase)    │
+│ ブラウザ  │    │ /api/auth/*          │    │ (Supabase)    │
 └────┬─────┘    └──────────┬───────────┘    └──────┬────────┘
      │                     │                       │
      │ メール内リンクをクリック                       │
-     │ → GoTrue がトークン検証                       │
-     │ → /set-password#access_token=xxx&type=invite │
+     │ → /set-password?token_hash=xxx&type=invite  │
+     │                     │                       │
+     │ POST /api/auth/     │                       │
+     │ verify-otp          │                       │
+     │ {tokenHash, type}   │                       │
+     │────────────────────>│                       │
+     │                     │ POST /auth/v1/verify  │
+     │                     │ {token_hash, type}    │
+     │                     │──────────────────────>│
+     │                     │                       │
+     │                     │  access_token 返却     │
+     │                     │<──────────────────────│
+     │  {accessToken}      │                       │
+     │<────────────────────│                       │
      │                     │                       │
      │ POST /api/auth/     │                       │
      │ set-password        │                       │
-     │ {password, token}   │                       │
+     │ {accessToken,       │                       │
+     │  newPassword}       │                       │
      │────────────────────>│                       │
-     │                     │                       │
      │                     │ PUT /admin/users/{id}  │
      │                     │ {password,             │
      │                     │  password_changed:true} │
@@ -170,9 +186,10 @@
      │                       │ type: "invite"         │                │
      │                       │───────────────────────>│                │
      │                       │                        │                │
-     │                       │  action_link            │                │
+     │                       │  hashed_token           │                │
      │                       │<───────────────────────│                │
      │                       │                        │                │
+     │                       │ リクエスト元originでリンク構築            │
      │                       │ Resend API で招待メール送信              │
      │                       │────────────────────────────────────────>│
      │                       │                                         │
@@ -201,9 +218,10 @@
      │                       │ type: "recovery"       │                │
      │                       │───────────────────────>│                │
      │                       │                        │                │
-     │                       │  action_link            │                │
+     │                       │  hashed_token           │                │
      │                       │<───────────────────────│                │
      │                       │                        │                │
+     │                       │ リクエスト元originでリンク構築            │
      │                       │ Resend API でリセットメール送信          │
      │                       │────────────────────────────────────────>│
      │                       │                                         │
@@ -212,7 +230,7 @@
      │                       │                        │                │
 ```
 
-→ ユーザーがリンクをクリック → `/set-password#access_token=xxx&type=recovery` → パスワード再設定 → 自動ログイン
+→ ユーザーがリンクをクリック → `/set-password?token_hash=xxx&type=recovery` → verify-otp で access_token 取得 → パスワード再設定 → 自動ログイン
 
 ### ユーザーステータス
 
@@ -233,7 +251,7 @@
 
 - Resend API（`server/lib/resend.ts`）経由でメール送信
 - GoTrue `/admin/generate_link` でリンク生成（メール送信なし）→ Resend API で送信
-- 環境変数: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `APP_URL`
+- 環境変数: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
 - 無料枠: 月3,000通（Resend）
 
 ### 主要ファイル

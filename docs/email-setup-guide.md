@@ -8,8 +8,8 @@
 
 本システムでは **Resend API** を使用してメールを送信します。
 
-- ユーザー登録時: GoTrue `/admin/generate_link` でリンク生成 → Resend API で招待メール送信
-- パスワードリセット時: GoTrue `/admin/generate_link` でリンク生成 → Resend API でリセットメール送信
+- ユーザー登録時: GoTrue `/admin/generate_link` でトークン生成 → リクエスト元のオリジンでリンク構築 → Resend API で招待メール送信
+- パスワードリセット時: GoTrue `/admin/generate_link` でトークン生成 → リクエスト元のオリジンでリンク構築 → Resend API でリセットメール送信
 - メールテンプレート: `server/lib/resend.ts` にインライン定義
 
 ---
@@ -20,7 +20,6 @@
 |---------|------|-----|
 | `RESEND_API_KEY` | Resend の API キー | `re_xxxxxxxxxx` |
 | `RESEND_FROM_EMAIL` | 送信元メールアドレス | `noreply@tamable.co.jp` |
-| `APP_URL` | アプリケーションの本番 URL | `https://attendance.tamable.co.jp` |
 
 ---
 
@@ -51,8 +50,9 @@ Resend から `tamable.co.jp` ドメインでメールを送信するには、DN
 ```
 RESEND_API_KEY=re_xxxxxxxxxx
 RESEND_FROM_EMAIL=noreply@tamable.co.jp
-APP_URL=https://attendance.tamable.co.jp
 ```
+
+> **Note:** `APP_URL` は不要です。メールのリンクはAPIリクエストのオリジンから自動的に導出されます。
 
 ---
 
@@ -71,7 +71,7 @@ APP_URL=https://attendance.tamable.co.jp
 |---|---------|---------|
 | 1 | **迷惑メールフォルダ** | 受信者のメールクライアントで迷惑メールフォルダを確認 |
 | 2 | **メールアドレスの入力ミス** | 管理画面のユーザー一覧で登録メールアドレスを確認 |
-| 3 | **環境変数の設定** | `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `APP_URL` が正しく設定されているか確認 |
+| 3 | **環境変数の設定** | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` が正しく設定されているか確認 |
 | 4 | **ドメイン認証** | Resend 管理画面でドメインが認証済みか確認 |
 | 5 | **Resend ダッシュボード** | Resend の Logs でメール送信状況・エラーを確認 |
 | 6 | **Supabase ログ** | Supabase Dashboard → Logs → Auth で GoTrue エラーがないか確認 |

@@ -33,7 +33,7 @@ pnpm tsc --noEmit     # Type check
 - Entry: `server/app.ts` - Hono app with `.basePath("/api")`
 - Catch-all: `app/api/[...route]/route.ts` - mounts Hono via `hono/vercel`
 - Routes (all under `/api`):
-  - `/api/auth` - Authentication (login, logout, me, set-password)
+  - `/api/auth` - Authentication (login, logout, me, set-password, verify-otp)
   - `/api/admin/users/{userId}/resend-invite` - Resend invite email
   - `/api/admin/users/{userId}/password-reset` - Send password reset email
   - `/api/attendance` - Attendance CRUD (clock-in/out, breaks, queries, close-month)
@@ -44,7 +44,7 @@ pnpm tsc --noEmit     # Type check
 - Auth middleware reads token from Cookie (accessToken)
 - OpenAPI: `@hono/zod-openapi` for schema validation + API docs
 - Swagger UI: `/api/ui` (dev only, dynamic import), OpenAPI spec: `/api/doc` (dev only)
-- Environment variables: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `SLACK_BOT_TOKEN`, `SLACK_CHANNEL_ID`, `SLACK_CSV_CHANNEL_ID`, `SLACK_ICON_CLOCK_IN`, `SLACK_ICON_CLOCK_OUT`, `SLACK_ICON_ATTENDANCE_CLOSE`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `APP_URL`
+- Environment variables: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `JWT_SECRET`, `SLACK_BOT_TOKEN`, `SLACK_CHANNEL_ID`, `SLACK_CSV_CHANNEL_ID`, `SLACK_ICON_CLOCK_IN`, `SLACK_ICON_CLOCK_OUT`, `SLACK_ICON_ATTENDANCE_CLOSE`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
 
 #### Server Code Structure
 ```
@@ -97,12 +97,12 @@ See `docs/slack-setup-guide.md` for setup details.
 #### Email Invitation & Recovery
 See `docs/email-setup-guide.md` for setup details.
 
-- Admin creates user → GoTrue `/admin/generate_link` でリンク生成 → Resend API でメール送信
-- User clicks link → redirected to `/set-password` with access token in URL hash
+- Admin creates user → GoTrue `/admin/generate_link` でトークン生成 → リクエスト元オリジンでリンク構築 → Resend API でメール送信
+- User clicks link → `/set-password?token_hash=xxx&type=invite` → verify-otp API で access_token 取得
 - Token verified server-side → password set → auto-login
 - Admin can resend invite (for pending users) or send password reset (for active users)
 - Email templates: `server/lib/resend.ts` (HTML inline)
-- Environment variables: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `APP_URL`
+- Environment variables: `RESEND_API_KEY`, `RESEND_FROM_EMAIL`
 
 #### Performance Optimizations
 See `docs/performance.md` for details.
